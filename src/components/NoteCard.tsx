@@ -2,7 +2,7 @@ import { Note, NoteType } from '@/types';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Quote, Lightbulb, HelpCircle, CheckCircle, MoreVertical, Trash2, MapPin } from 'lucide-react';
+import { Quote, Lightbulb, HelpCircle, CheckCircle, MoreVertical, Trash2, MapPin, Image, Mic, Clock } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -33,18 +33,43 @@ export function NoteCard({ note, onDelete, showBookTitle }: NoteCardProps) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           {/* Header with type badge */}
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <Badge variant="secondary" className={`${config.className} gap-1 text-xs font-medium`}>
               <Icon className="w-3 h-3" />
               {config.label}
             </Badge>
+            {note.mediaType === 'image' && (
+              <Badge variant="outline" className="gap-1 text-xs">
+                <Image className="w-3 h-3" />
+                Image
+              </Badge>
+            )}
+            {note.mediaType === 'audio' && (
+              <Badge variant="outline" className="gap-1 text-xs">
+                <Mic className="w-3 h-3" />
+                Voice
+              </Badge>
+            )}
             {note.location && (
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <MapPin className="w-3 h-3" />
                 {note.location}
               </span>
             )}
+            {note.timestamp && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                {note.timestamp}
+              </span>
+            )}
           </div>
+
+          {/* Image preview */}
+          {note.imageUrl && (
+            <div className="mb-3 rounded-lg overflow-hidden bg-secondary">
+              <img src={note.imageUrl} alt="Note capture" className="w-full max-h-48 object-cover" />
+            </div>
+          )}
 
           {/* Content */}
           <p className={`text-foreground leading-relaxed ${note.type === 'quote' ? 'font-display italic' : ''}`}>
@@ -52,6 +77,13 @@ export function NoteCard({ note, onDelete, showBookTitle }: NoteCardProps) {
             {note.content}
             {note.type === 'quote' && '"'}
           </p>
+
+          {/* Extracted text */}
+          {note.extractedText && note.extractedText !== note.content && (
+            <p className="mt-2 text-sm text-muted-foreground bg-secondary/50 p-2 rounded border-l-2 border-primary/30">
+              {note.extractedText}
+            </p>
+          )}
 
           {/* Context if exists */}
           {note.context && (
@@ -61,7 +93,7 @@ export function NoteCard({ note, onDelete, showBookTitle }: NoteCardProps) {
           )}
 
           {/* Footer */}
-          <div className="flex items-center gap-3 mt-3">
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
             {showBookTitle && (
               <span className="text-xs font-medium text-primary">{showBookTitle}</span>
             )}
@@ -69,9 +101,9 @@ export function NoteCard({ note, onDelete, showBookTitle }: NoteCardProps) {
               {format(note.createdAt, 'MMM d, yyyy')}
             </span>
             {note.tags && note.tags.length > 0 && (
-              <div className="flex gap-1">
+              <div className="flex gap-1 flex-wrap">
                 {note.tags.map(tag => (
-                  <span key={tag} className="text-xs text-muted-foreground">#{tag}</span>
+                  <span key={tag} className="text-xs text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded">#{tag}</span>
                 ))}
               </div>
             )}

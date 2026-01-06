@@ -7,7 +7,7 @@ import { SearchBar } from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
 import { AddBookDialog } from '@/components/AddBookDialog';
 import { FloatingAddButton } from '@/components/FloatingAddButton';
-import { Book, Note } from '@/types';
+import { Book, Note, BookFormat } from '@/types';
 import { getBooks, addBook, deleteBook, getNotes, deleteNote, searchNotes } from '@/lib/store';
 import { BookOpen, Search, Library, Sparkles } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,7 +26,7 @@ const Index = () => {
     setNotes(getNotes());
   }, []);
 
-  const handleAddBook = (bookData: { title: string; author: string; coverUrl?: string }) => {
+  const handleAddBook = (bookData: { title: string; author: string; format: BookFormat; coverUrl?: string; isbn?: string }) => {
     const newBook = addBook(bookData);
     setBooks(prev => [...prev, newBook]);
     toast.success('Book added to your library');
