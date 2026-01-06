@@ -7,7 +7,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { FloatingAddButton } from '@/components/FloatingAddButton';
 import { SearchBar } from '@/components/SearchBar';
 import { Button } from '@/components/ui/button';
-import { Book, Note, NoteType } from '@/types';
+import { Book, Note, NoteType, MediaType } from '@/types';
 import { getBooks, getNotesForBook, addNote, deleteNote } from '@/lib/store';
 import { ArrowLeft, BookOpen, PenLine, Quote, Lightbulb, HelpCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -42,7 +42,19 @@ const BookDetail = () => {
     }
   }, [bookId, navigate]);
 
-  const handleAddNote = (noteData: { type: NoteType; content: string; location?: string; context?: string }) => {
+  const handleAddNote = (noteData: { 
+    type: NoteType; 
+    mediaType: MediaType;
+    content: string; 
+    location?: string; 
+    context?: string;
+    timestamp?: string;
+    imageUrl?: string;
+    extractedText?: string;
+    audioUrl?: string;
+    audioDuration?: number;
+    tags?: string[];
+  }) => {
     if (!bookId) return;
     
     const newNote = addNote({
@@ -189,6 +201,7 @@ const BookDetail = () => {
         onOpenChange={setAddNoteOpen}
         onAdd={handleAddNote}
         bookTitle={book.title}
+        isAudiobook={book.format === 'audiobook'}
       />
     </div>
   );
