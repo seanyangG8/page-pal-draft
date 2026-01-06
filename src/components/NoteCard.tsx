@@ -1,0 +1,105 @@
+import { Note, NoteType } from '@/types';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Quote, Lightbulb, HelpCircle, CheckCircle, MoreVertical, Trash2, MapPin } from 'lucide-react';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { format } from 'date-fns';
+
+interface NoteCardProps {
+  note: Note;
+  onDelete: () => void;
+  showBookTitle?: string;
+}
+
+const noteTypeConfig: Record<NoteType, { icon: typeof Quote; label: string; className: string }> = {
+  quote: { icon: Quote, label: 'Quote', className: 'note-badge-quote' },
+  idea: { icon: Lightbulb, label: 'Idea', className: 'note-badge-idea' },
+  question: { icon: HelpCircle, label: 'Question', className: 'note-badge-question' },
+  action: { icon: CheckCircle, label: 'Action', className: 'note-badge-action' },
+};
+
+export function NoteCard({ note, onDelete, showBookTitle }: NoteCardProps) {
+  const config = noteTypeConfig[note.type];
+  const Icon = config.icon;
+
+  return (
+    <Card className="group relative p-4 shadow-soft hover:shadow-card transition-shadow duration-200 border-border/50 bg-card animate-fade-in">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          {/* Header with type badge */}
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="secondary" className={`${config.className} gap-1 text-xs font-medium`}>
+              <Icon className="w-3 h-3" />
+              {config.label}
+            </Badge>
+            {note.location && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="w-3 h-3" />
+                {note.location}
+              </span>
+            )}
+          </div>
+
+          {/* Content */}
+          <p className={`text-foreground leading-relaxed ${note.type === 'quote' ? 'font-display italic' : ''}`}>
+            {note.type === 'quote' && '"'}
+            {note.content}
+            {note.type === 'quote' && '"'}
+          </p>
+
+          {/* Context if exists */}
+          {note.context && (
+            <p className="mt-2 text-sm text-muted-foreground border-l-2 border-accent/30 pl-3">
+              {note.context}
+            </p>
+          )}
+
+          {/* Footer */}
+          <div className="flex items-center gap-3 mt-3">
+            {showBookTitle && (
+              <span className="text-xs font-medium text-primary">{showBookTitle}</span>
+            )}
+            <span className="text-xs text-muted-foreground">
+              {format(note.createdAt, 'MMM d, yyyy')}
+            </span>
+            {note.tags && note.tags.length > 0 && (
+              <div className="flex gap-1">
+                {note.tags.map(tag => (
+                  <span key={tag} className="text-xs text-muted-foreground">#{tag}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem 
+              onClick={onDelete}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete note
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </Card>
+  );
+}
