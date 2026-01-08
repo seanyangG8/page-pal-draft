@@ -1,45 +1,27 @@
 import { useState } from 'react';
-import { NoteType, Book, SavedFilter } from '@/types';
+import { NoteType, Book } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-} from '@/components/ui/sheet';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { 
-  Filter, ChevronDown, Save, X, Quote, Lightbulb, 
-  HelpCircle, CheckCircle, BookOpen, Tag, Calendar
-} from 'lucide-react';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Quote, Lightbulb, HelpCircle, CheckCircle, X } from 'lucide-react';
+import { getAllTags } from '@/lib/store';
 
-export interface FilterState {
-  bookIds: string[];
-  types: NoteType[];
+interface FilterState {
+  bookId?: string;
+  noteType?: string;
   tags: string[];
-  dateRange?: { start: Date; end: Date };
 }
 
 interface FilterPanelProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  filters: FilterState;
-  onFiltersChange: (filters: FilterState) => void;
   books: Book[];
-  allTags: string[];
-  savedFilters: SavedFilter[];
-  onSaveFilter: (name: string, filters: FilterState) => void;
-  onLoadFilter: (filter: SavedFilter) => void;
-  onDeleteSavedFilter: (id: string) => void;
+  onFilterChange: (filters: FilterState) => void;
+  activeFilters: FilterState;
 }
 
 const noteTypes: { type: NoteType; icon: typeof Quote; label: string }[] = [
@@ -49,210 +31,91 @@ const noteTypes: { type: NoteType; icon: typeof Quote; label: string }[] = [
   { type: 'action', icon: CheckCircle, label: 'Actions' },
 ];
 
-export function FilterPanel({
-  open,
-  onOpenChange,
-  filters,
-  onFiltersChange,
-  books,
-  allTags,
-  savedFilters,
-  onSaveFilter,
-  onLoadFilter,
-  onDeleteSavedFilter,
-}: FilterPanelProps) {
-  const [saveFilterName, setSaveFilterName] = useState('');
-  const [showSaveInput, setShowSaveInput] = useState(false);
-
-  const toggleType = (type: NoteType) => {
-    const types = filters.types.includes(type)
-      ? filters.types.filter(t => t !== type)
-      : [...filters.types, type];
-    onFiltersChange({ ...filters, types });
-  };
-
-  const toggleBook = (bookId: string) => {
-    const bookIds = filters.bookIds.includes(bookId)
-      ? filters.bookIds.filter(id => id !== bookId)
-      : [...filters.bookIds, bookId];
-    onFiltersChange({ ...filters, bookIds });
-  };
+export function FilterPanel({ books, onFilterChange, activeFilters }: FilterPanelProps) {
+  const allTags = getAllTags();
 
   const toggleTag = (tag: string) => {
-    const tags = filters.tags.includes(tag)
-      ? filters.tags.filter(t => t !== tag)
-      : [...filters.tags, tag];
-    onFiltersChange({ ...filters, tags });
+    const tags = activeFilters.tags.includes(tag)
+      ? activeFilters.tags.filter(t => t !== tag)
+      : [...activeFilters.tags, tag];
+    onFilterChange({ ...activeFilters, tags });
   };
 
   const clearFilters = () => {
-    onFiltersChange({ bookIds: [], types: [], tags: [] });
+    onFilterChange({ bookId: undefined, noteType: undefined, tags: [] });
   };
 
-  const handleSaveFilter = () => {
-    if (!saveFilterName.trim()) return;
-    onSaveFilter(saveFilterName.trim(), filters);
-    setSaveFilterName('');
-    setShowSaveInput(false);
-  };
-
-  const hasActiveFilters = filters.bookIds.length > 0 || filters.types.length > 0 || filters.tags.length > 0;
+  const hasActiveFilters = activeFilters.bookId || activeFilters.noteType || activeFilters.tags.length > 0;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <Filter className="w-5 h-5" />
-            Filter Notes
-          </SheetTitle>
-        </SheetHeader>
-
-        <div className="py-6 space-y-6">
-          {/* Saved Filters */}
-          {savedFilters.length > 0 && (
-            <Collapsible defaultOpen>
-              <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium">
-                Saved Filters
-                <ChevronDown className="w-4 h-4" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-2 space-y-1">
-                {savedFilters.map(sf => (
-                  <div key={sf.id} className="flex items-center gap-2 group">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="flex-1 justify-start h-8"
-                      onClick={() => onLoadFilter(sf)}
-                    >
-                      {sf.name}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                      onClick={() => onDeleteSavedFilter(sf.id)}
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
-                  </div>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-
-          {/* Note Types */}
-          <div className="space-y-3">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-              <Quote className="w-3 h-3" />
-              Note Types
-            </Label>
-            <div className="grid grid-cols-2 gap-2">
-              {noteTypes.map(({ type, icon: Icon, label }) => (
-                <button
-                  key={type}
-                  onClick={() => toggleType(type)}
-                  className={`flex items-center gap-2 p-2 rounded-lg border transition-all ${
-                    filters.types.includes(type)
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="text-sm">{label}</span>
-                </button>
+    <div className="p-4 rounded-lg border bg-card/50 space-y-4">
+      <div className="flex flex-wrap items-center gap-4">
+        {/* Book filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Book:</span>
+          <Select 
+            value={activeFilters.bookId || 'all'} 
+            onValueChange={(v) => onFilterChange({ ...activeFilters, bookId: v === 'all' ? undefined : v })}
+          >
+            <SelectTrigger className="w-[180px] h-8">
+              <SelectValue placeholder="All books" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All books</SelectItem>
+              {books.map(book => (
+                <SelectItem key={book.id} value={book.id}>{book.title}</SelectItem>
               ))}
-            </div>
-          </div>
-
-          {/* Books */}
-          {books.length > 0 && (
-            <div className="space-y-3">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                <BookOpen className="w-3 h-3" />
-                Books
-              </Label>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {books.map(book => (
-                  <div key={book.id} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`book-${book.id}`}
-                      checked={filters.bookIds.includes(book.id)}
-                      onCheckedChange={() => toggleBook(book.id)}
-                    />
-                    <label 
-                      htmlFor={`book-${book.id}`}
-                      className="text-sm cursor-pointer truncate flex-1"
-                    >
-                      {book.title}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Tags */}
-          {allTags.length > 0 && (
-            <div className="space-y-3">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                <Tag className="w-3 h-3" />
-                Tags
-              </Label>
-              <div className="flex flex-wrap gap-2">
-                {allTags.map(tag => (
-                  <Badge
-                    key={tag}
-                    variant={filters.tags.includes(tag) ? 'default' : 'outline'}
-                    className="cursor-pointer"
-                    onClick={() => toggleTag(tag)}
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
+            </SelectContent>
+          </Select>
         </div>
 
-        <SheetFooter className="flex-col gap-2 sm:flex-col">
-          {/* Save filter */}
-          {hasActiveFilters && (
-            showSaveInput ? (
-              <div className="flex gap-2 w-full">
-                <Input
-                  value={saveFilterName}
-                  onChange={(e) => setSaveFilterName(e.target.value)}
-                  placeholder="Filter name..."
-                  className="flex-1"
-                />
-                <Button size="sm" onClick={handleSaveFilter}>Save</Button>
-                <Button size="sm" variant="ghost" onClick={() => setShowSaveInput(false)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ) : (
-              <Button 
-                variant="outline" 
-                className="w-full gap-2"
-                onClick={() => setShowSaveInput(true)}
+        {/* Type filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Type:</span>
+          <div className="flex gap-1">
+            {noteTypes.map(({ type, icon: Icon, label }) => (
+              <Button
+                key={type}
+                variant={activeFilters.noteType === type ? 'default' : 'outline'}
+                size="sm"
+                className="h-8 gap-1"
+                onClick={() => onFilterChange({ 
+                  ...activeFilters, 
+                  noteType: activeFilters.noteType === type ? undefined : type 
+                })}
               >
-                <Save className="w-4 h-4" />
-                Save current filter
+                <Icon className="w-3 h-3" />
+                <span className="hidden sm:inline">{label}</span>
               </Button>
-            )
-          )}
-          
-          <div className="flex gap-2 w-full">
-            <Button variant="ghost" className="flex-1" onClick={clearFilters}>
-              Clear all
-            </Button>
-            <Button className="flex-1" onClick={() => onOpenChange(false)}>
-              Apply filters
-            </Button>
+            ))}
           </div>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </div>
+
+        {/* Clear button */}
+        {hasActiveFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 gap-1">
+            <X className="w-3 h-3" />
+            Clear
+          </Button>
+        )}
+      </div>
+
+      {/* Tags */}
+      {allTags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground">Tags:</span>
+          {allTags.map(tag => (
+            <Badge
+              key={tag}
+              variant={activeFilters.tags.includes(tag) ? 'default' : 'outline'}
+              className="cursor-pointer"
+              onClick={() => toggleTag(tag)}
+            >
+              #{tag}
+            </Badge>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

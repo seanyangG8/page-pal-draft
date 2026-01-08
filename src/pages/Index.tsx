@@ -7,10 +7,16 @@ import { SearchBar } from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
 import { AddBookDialog } from '@/components/AddBookDialog';
 import { FloatingAddButton } from '@/components/FloatingAddButton';
+import { ReviewWidget } from '@/components/ReviewWidget';
+import { ReviewSession } from '@/components/ReviewSession';
+import { FilterPanel } from '@/components/FilterPanel';
+import { ExportDialog } from '@/components/ExportDialog';
+import { ImportDialog } from '@/components/ImportDialog';
 import { Book, Note, BookFormat } from '@/types';
-import { getBooks, addBook, deleteBook, getNotes, deleteNote, searchNotes } from '@/lib/store';
-import { BookOpen, Search, Library, Sparkles } from 'lucide-react';
+import { getBooks, addBook, deleteBook, getNotes, deleteNote, searchNotes, saveBooks, saveNotes } from '@/lib/store';
+import { BookOpen, Search, Library, Sparkles, Filter, Download, Upload } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 const Index = () => {
@@ -20,6 +26,15 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [addBookOpen, setAddBookOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'library' | 'notes'>('library');
+  const [showFilters, setShowFilters] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [reviewNotes, setReviewNotes] = useState<Note[] | null>(null);
+  const [activeFilters, setActiveFilters] = useState<{
+    bookId?: string;
+    noteType?: string;
+    tags: string[];
+  }>({ tags: [] });
 
   useEffect(() => {
     setBooks(getBooks());
@@ -46,9 +61,36 @@ const Index = () => {
     toast.success('Note deleted');
   };
 
-  const filteredNotes = searchQuery 
-    ? searchNotes(searchQuery) 
-    : notes;
+  const handleImport = (importedBooks: Book[], importedNotes: Note[]) => {
+    // Merge with existing data
+    const existingBooks = getBooks();
+    const existingNotes = getNotes();
+    
+    const allBooks = [...existingBooks, ...importedBooks];
+    const allNotes = [...existingNotes, ...importedNotes];
+    
+    saveBooks(allBooks);
+    saveNotes(allNotes);
+    
+    setBooks(allBooks);
+    setNotes(allNotes);
+    toast.success(`Imported ${importedBooks.length} books and ${importedNotes.length} notes`);
+  };
+
+  const handleNoteUpdate = (updatedNote: Note) => {
+    setNotes(prev => prev.map(n => n.id === updatedNote.id ? updatedNote : n));
+  };
+
+  const filteredNotes = notes.filter(note => {
+    const matchesSearch = !searchQuery || 
+      note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      note.context?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesBook = !activeFilters.bookId || note.bookId === activeFilters.bookId;
+    const matchesType = !activeFilters.noteType || note.type === activeFilters.noteType;
+    const matchesTags = activeFilters.tags.length === 0 || 
+      activeFilters.tags.every(tag => note.tags?.includes(tag));
+    return matchesSearch && matchesBook && matchesType && matchesTags;
+  });
 
   const getBookTitle = (bookId: string) => {
     return books.find(b => b.id === bookId)?.title || 'Unknown';
@@ -96,14 +138,60 @@ const Index = () => {
                 </TabsList>
               </Tabs>
 
-              <div className="w-full sm:w-72">
-                <SearchBar 
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder={activeTab === 'library' ? 'Search books...' : 'Search notes...'}
-                />
+              <div className="flex items-center gap-2">
+                <div className="w-full sm:w-72">
+                  <SearchBar 
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    placeholder={activeTab === 'library' ? 'Search books...' : 'Search notes...'}
+                  />
+                </div>
+                {activeTab === 'notes' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setShowFilters(!showFilters)}
+                      className={showFilters ? 'bg-primary/10' : ''}
+                    >
+                      <Filter className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setExportOpen(true)}
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setImportOpen(true)}
+                    >
+                      <Upload className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
+
+            {/* Review Widget */}
+            {activeTab === 'notes' && (
+              <div className="mb-6">
+                <ReviewWidget onStartReview={(notes) => setReviewNotes(notes)} />
+              </div>
+            )}
+
+            {/* Filters Panel */}
+            {activeTab === 'notes' && showFilters && (
+              <div className="mb-6">
+                <FilterPanel
+                  books={books}
+                  onFilterChange={setActiveFilters}
+                  activeFilters={activeFilters}
+                />
+              </div>
+            )}
 
             {/* Library tab */}
             {activeTab === 'library' && (
@@ -162,6 +250,7 @@ const Index = () => {
                         <NoteCard
                           note={note}
                           onDelete={() => handleDeleteNote(note.id)}
+                          onUpdate={handleNoteUpdate}
                           showBookTitle={getBookTitle(note.bookId)}
                         />
                       </div>
@@ -188,6 +277,33 @@ const Index = () => {
         onOpenChange={setAddBookOpen}
         onAdd={handleAddBook}
       />
+
+      {/* Export dialog */}
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        notes={filteredNotes}
+        books={books}
+      />
+
+      {/* Import dialog */}
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImport={handleImport}
+      />
+
+      {/* Review session */}
+      {reviewNotes && (
+        <ReviewSession
+          notes={reviewNotes}
+          onComplete={() => {
+            setReviewNotes(null);
+            setNotes(getNotes()); // Refresh notes after review
+          }}
+          onClose={() => setReviewNotes(null)}
+        />
+      )}
     </div>
   );
 };

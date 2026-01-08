@@ -15,10 +15,11 @@ import { Book, Note } from '@/types';
 interface ImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onImportComplete: () => void;
+  onImport?: (books: Book[], notes: Note[]) => void;
+  onImportComplete?: () => void;
 }
 
-export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDialogProps) {
+export function ImportDialog({ open, onOpenChange, onImport, onImportComplete }: ImportDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<{ books: number; notes: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -72,10 +73,14 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
           const newBooks = data.books.filter(b => !existingBookIds.has(b.id));
           const newNotes = data.notes.filter(n => !existingNoteIds.has(n.id));
           
-          saveBooks([...existingBooks, ...newBooks]);
-          saveNotes([...existingNotes, ...newNotes]);
+          if (onImport) {
+            onImport(newBooks, newNotes);
+          } else {
+            saveBooks([...existingBooks, ...newBooks]);
+            saveNotes([...existingNotes, ...newNotes]);
+            onImportComplete?.();
+          }
           
-          onImportComplete();
           onOpenChange(false);
           setFile(null);
           setPreview(null);

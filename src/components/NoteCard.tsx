@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 interface NoteCardProps {
   note: Note;
   onDelete: () => void;
+  onUpdate?: (note: Note) => void;
   showBookTitle?: string;
 }
 
@@ -24,7 +25,7 @@ const noteTypeConfig: Record<NoteType, { icon: typeof Quote; label: string; clas
   action: { icon: CheckCircle, label: 'Action', className: 'note-badge-action' },
 };
 
-export function NoteCard({ note, onDelete, showBookTitle }: NoteCardProps) {
+export function NoteCard({ note, onDelete, onUpdate, showBookTitle }: NoteCardProps) {
   const config = noteTypeConfig[note.type];
   const Icon = config.icon;
 
