@@ -424,3 +424,25 @@ export function getAllTags(): string[] {
   notes.forEach(n => n.tags?.forEach(t => tags.add(t)));
   return Array.from(tags).sort();
 }
+
+// ===== GET NOTES FOR REVIEW =====
+export function getNotesForReview(limit: number = 10): Note[] {
+  const notes = getNotes();
+  const now = new Date();
+  
+  return notes
+    .filter(n => !n.nextReviewAt || n.nextReviewAt <= now)
+    .sort((a, b) => {
+      // Prioritize notes never reviewed, then by oldest review date
+      if (!a.lastReviewedAt && !b.lastReviewedAt) return 0;
+      if (!a.lastReviewedAt) return -1;
+      if (!b.lastReviewedAt) return 1;
+      return a.lastReviewedAt.getTime() - b.lastReviewedAt.getTime();
+    })
+    .slice(0, limit);
+}
+
+// Alias exports for convenience
+export const exportToMarkdown = exportNotesToMarkdown;
+export const exportToCSV = exportNotesToCSV;
+export const exportToJSON = exportNotesToJSON;
