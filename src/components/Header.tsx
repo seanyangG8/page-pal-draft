@@ -1,5 +1,6 @@
 import { BookMarked, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface HeaderProps {
   showSearch?: boolean;
@@ -17,11 +18,14 @@ export function Header({ showSearch, onSearchClick }: HeaderProps) {
           <span className="font-display text-xl font-semibold text-foreground">Marginalia</span>
         </a>
 
-        {showSearch && onSearchClick && (
-          <Button variant="ghost" size="icon" onClick={onSearchClick} className="md:hidden">
-            <Search className="w-5 h-5" />
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {showSearch && onSearchClick && (
+            <Button variant="ghost" size="icon" onClick={onSearchClick} className="md:hidden">
+              <Search className="w-5 h-5" />
+            </Button>
+          )}
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );
