@@ -30,7 +30,7 @@ export function NoteCard({ note, onDelete, onUpdate, showBookTitle }: NoteCardPr
   const Icon = config.icon;
 
   return (
-    <Card className="group relative p-4 shadow-soft hover:shadow-card transition-shadow duration-200 border-border/50 bg-card animate-fade-in">
+    <Card className="group relative p-4 shadow-soft hover:shadow-card transition-all duration-300 border-border/50 bg-card hover:-translate-y-0.5 active:translate-y-0 active:shadow-soft">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           {/* Header with type badge */}

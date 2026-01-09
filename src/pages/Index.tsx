@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Bookshelf } from '@/components/Bookshelf';
+import { BookshelfSkeleton, NoteCardSkeleton } from '@/components/BookshelfSkeleton';
 import { NoteCard } from '@/components/NoteCard';
 import { SearchBar } from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
@@ -32,6 +33,7 @@ const Index = () => {
   const [exportOpen, setExportOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [reviewNotes, setReviewNotes] = useState<Note[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeFilters, setActiveFilters] = useState<{
     bookId?: string;
     noteType?: string;
@@ -39,8 +41,13 @@ const Index = () => {
   }>({ tags: [] });
 
   useEffect(() => {
-    setBooks(getBooks());
-    setNotes(getNotes());
+    // Simulate brief loading for skeleton demo
+    const timer = setTimeout(() => {
+      setBooks(getBooks());
+      setNotes(getNotes());
+      setIsLoading(false);
+    }, 400);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleAddBook = (bookData: { title: string; author: string; format: BookFormat; coverUrl?: string; isbn?: string }) => {
@@ -212,8 +219,10 @@ const Index = () => {
 
             {/* Library tab */}
             {activeTab === 'library' && (
-              <>
-                {books.length === 0 ? (
+              <div className="library-bg wall-texture rounded-2xl -mx-2 px-2 py-6 sm:-mx-4 sm:px-4">
+                {isLoading ? (
+                  <BookshelfSkeleton />
+                ) : books.length === 0 ? (
                   <EmptyState
                     icon={BookOpen}
                     title="Your library is empty"
@@ -233,13 +242,19 @@ const Index = () => {
                     onReorder={() => setBooks(getBooks())}
                   />
                 )}
-              </>
+              </div>
             )}
 
             {/* Notes tab */}
             {activeTab === 'notes' && (
               <>
-                {filteredNotes.length === 0 ? (
+                {isLoading ? (
+                  <div className="space-y-3 max-w-2xl mx-auto">
+                    {[...Array(3)].map((_, i) => (
+                      <NoteCardSkeleton key={i} />
+                    ))}
+                  </div>
+                ) : filteredNotes.length === 0 ? (
                   <EmptyState
                     icon={Search}
                     title={searchQuery ? 'No notes found' : 'No notes yet'}
@@ -250,7 +265,8 @@ const Index = () => {
                     {filteredNotes.map((note, index) => (
                       <div 
                         key={note.id}
-                        style={{ animationDelay: `${index * 30}ms` }}
+                        className="animate-fade-up"
+                        style={{ animationDelay: `${index * 50}ms` }}
                       >
                         <NoteCard
                           note={note}
