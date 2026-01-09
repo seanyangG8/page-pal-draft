@@ -33,6 +33,7 @@ interface AddNoteDialogProps {
   bookTitle: string;
   isAudiobook?: boolean;
   initialRecording?: { url: string; duration: number; transcript?: string } | null;
+  initialImage?: { url: string; extractedText?: string } | null;
 }
 
 const noteTypes: { type: NoteType; icon: typeof Quote; label: string }[] = [
@@ -42,7 +43,7 @@ const noteTypes: { type: NoteType; icon: typeof Quote; label: string }[] = [
   { type: 'action', icon: CheckCircle, label: 'Action' },
 ];
 
-export function AddNoteDialog({ open, onOpenChange, onAdd, bookTitle, isAudiobook, initialRecording }: AddNoteDialogProps) {
+export function AddNoteDialog({ open, onOpenChange, onAdd, bookTitle, isAudiobook, initialRecording, initialImage }: AddNoteDialogProps) {
   const [captureMode, setCaptureMode] = useState<'text' | 'image' | 'audio'>('text');
   const [type, setType] = useState<NoteType>('quote');
   const [content, setContent] = useState('');
@@ -62,6 +63,14 @@ export function AddNoteDialog({ open, onOpenChange, onAdd, bookTitle, isAudioboo
       setCaptureMode('audio');
     }
   }, [open, initialRecording]);
+
+  // Handle initial image from floating camera
+  useEffect(() => {
+    if (open && initialImage) {
+      setImageData(initialImage);
+      setCaptureMode('image');
+    }
+  }, [open, initialImage]);
 
   const resetForm = () => {
     setType('quote');
