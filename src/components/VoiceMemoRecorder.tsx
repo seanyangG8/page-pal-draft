@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, forwardRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Mic, Square, Play, Pause, Trash2, FileText, Pencil, Check, X, Wand2 } from 'lucide-react';
@@ -96,7 +96,7 @@ function TranscriptEditor({
   );
 }
 
-export const VoiceMemoRecorder = forwardRef<HTMLDivElement, VoiceMemoRecorderProps>(function VoiceMemoRecorder({ onRecordingComplete, recordedAudio, onClear, onTranscriptEdit, onUseAsText }, ref) {
+export function VoiceMemoRecorder({ onRecordingComplete, recordedAudio, onClear, onTranscriptEdit, onUseAsText }: VoiceMemoRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -403,4 +403,4 @@ export const VoiceMemoRecorder = forwardRef<HTMLDivElement, VoiceMemoRecorderPro
       </div>
     </div>
   );
-});
+}
