@@ -5,6 +5,7 @@ import { NoteCard } from '@/components/NoteCard';
 import { AddNoteDialog } from '@/components/AddNoteDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { FloatingRecorder } from '@/components/FloatingRecorder';
+import { FloatingCamera } from '@/components/FloatingCamera';
 import { SearchBar } from '@/components/SearchBar';
 import { Button } from '@/components/ui/button';
 import { Book, Note, NoteType, MediaType } from '@/types';
@@ -29,6 +30,7 @@ const BookDetail = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | NoteType>('all');
   const [pendingRecording, setPendingRecording] = useState<{ url: string; duration: number; transcript?: string } | null>(null);
+  const [pendingImage, setPendingImage] = useState<{ url: string; extractedText?: string } | null>(null);
 
   useEffect(() => {
     if (!bookId) return;
@@ -65,10 +67,16 @@ const BookDetail = () => {
     setNotes(prev => [newNote, ...prev]);
     toast.success('Note saved');
     setPendingRecording(null);
+    setPendingImage(null);
   };
 
   const handleQuickRecording = (data: { url: string; duration: number; transcript?: string }) => {
     setPendingRecording(data);
+    setAddNoteOpen(true);
+  };
+
+  const handleQuickCapture = (data: { url: string; extractedText?: string }) => {
+    setPendingImage(data);
     setAddNoteOpen(true);
   };
 
@@ -201,12 +209,15 @@ const BookDetail = () => {
         {/* Quick voice recorder */}
         <FloatingRecorder onRecordingComplete={handleQuickRecording} />
         
+        {/* Quick camera capture */}
+        <FloatingCamera onCapture={handleQuickCapture} />
+        
         {/* Add note button */}
         <Button
           onClick={() => setAddNoteOpen(true)}
           size="icon"
-          variant="secondary"
-          className="h-12 w-12 rounded-full shadow-lg"
+          variant="outline"
+          className="h-12 w-12 rounded-full shadow-lg bg-background"
         >
           <Plus className="w-5 h-5" />
         </Button>
@@ -217,12 +228,16 @@ const BookDetail = () => {
         open={addNoteOpen}
         onOpenChange={(open) => {
           setAddNoteOpen(open);
-          if (!open) setPendingRecording(null);
+          if (!open) {
+            setPendingRecording(null);
+            setPendingImage(null);
+          }
         }}
         onAdd={handleAddNote}
         bookTitle={book.title}
         isAudiobook={book.format === 'audiobook'}
         initialRecording={pendingRecording}
+        initialImage={pendingImage}
       />
     </div>
   );
