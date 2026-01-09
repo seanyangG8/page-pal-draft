@@ -40,21 +40,23 @@ function BookSpine({ book, onClick, onDelete }: { book: Book; onClick: () => voi
       >
         {/* Book with cover image or colored spine */}
         {book.coverUrl ? (
-          // Show book cover at a slight angle
+          // Show book cover at a slight angle - wider container for full cover
           <div 
-            className="relative w-12 sm:w-14 md:w-16 h-44 sm:h-52 md:h-60"
+            className="relative h-44 sm:h-52 md:h-60"
             style={{
-              perspective: '300px',
+              width: 'auto',
+              perspective: '400px',
               transformStyle: 'preserve-3d',
             }}
           >
-            {/* Book cover */}
+            {/* Book cover - natural aspect ratio */}
             <div
-              className="absolute inset-0 rounded-sm shadow-lg overflow-hidden"
+              className="relative h-full rounded-sm shadow-lg overflow-hidden"
               style={{
-                transform: 'rotateY(-15deg)',
+                aspectRatio: '2/3',
+                transform: 'rotateY(-25deg)',
                 transformOrigin: 'left center',
-                boxShadow: '3px 2px 8px rgba(0,0,0,0.3)',
+                boxShadow: '4px 2px 10px rgba(0,0,0,0.35)',
               }}
             >
               <img 
@@ -63,14 +65,15 @@ function BookSpine({ book, onClick, onDelete }: { book: Book; onClick: () => voi
                 className="w-full h-full object-cover"
               />
               {/* Lighting overlay */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/15 via-transparent to-white/5" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-white/10" />
             </div>
-            {/* Page edges - positioned right against the cover */}
+            {/* Page edges - positioned at the right edge of the rotated cover */}
             <div 
-              className="absolute top-1 w-1.5 h-[calc(100%-8px)] bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-100 dark:to-amber-200 rounded-r-sm"
+              className="absolute top-1 h-[calc(100%-8px)] w-2 bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-100 dark:to-amber-200 rounded-r-sm"
               style={{
-                right: '-2px',
-                boxShadow: 'inset 0 0 2px rgba(0,0,0,0.1)',
+                right: '0',
+                transform: 'translateX(2px)',
+                boxShadow: '1px 0 3px rgba(0,0,0,0.15)',
               }}
             />
           </div>
