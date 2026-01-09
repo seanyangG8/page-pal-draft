@@ -1,12 +1,13 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { NoteType, MediaType } from '@/types';
-import { Quote, Lightbulb, HelpCircle, CheckCircle, PenLine, Camera, Mic, Clock, X, Image, Type } from 'lucide-react';
+import { Quote, Lightbulb, HelpCircle, CheckCircle, PenLine, Camera, Mic, Clock, Type, Lock, Globe } from 'lucide-react';
 import { ImageCapture } from './ImageCapture';
 import { VoiceMemoRecorder } from './VoiceMemoRecorder';
 
@@ -25,6 +26,7 @@ interface AddNoteDialogProps {
     audioUrl?: string;
     audioDuration?: number;
     tags?: string[];
+    isPrivate?: boolean;
   }) => void;
   bookTitle: string;
   isAudiobook?: boolean;
@@ -47,6 +49,7 @@ export function AddNoteDialog({ open, onOpenChange, onAdd, bookTitle, isAudioboo
   const [tagsInput, setTagsInput] = useState('');
   const [imageData, setImageData] = useState<{ url: string; extractedText?: string } | null>(null);
   const [audioData, setAudioData] = useState<{ url: string; duration: number } | null>(null);
+  const [isPrivate, setIsPrivate] = useState(false);
 
   const resetForm = () => {
     setType('quote');
@@ -58,6 +61,7 @@ export function AddNoteDialog({ open, onOpenChange, onAdd, bookTitle, isAudioboo
     setTagsInput('');
     setImageData(null);
     setAudioData(null);
+    setIsPrivate(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -82,6 +86,7 @@ export function AddNoteDialog({ open, onOpenChange, onAdd, bookTitle, isAudioboo
       audioUrl: audioData?.url,
       audioDuration: audioData?.duration,
       tags,
+      isPrivate: isPrivate || undefined,
     });
     
     resetForm();
@@ -279,6 +284,30 @@ export function AddNoteDialog({ open, onOpenChange, onAdd, bookTitle, isAudioboo
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
               className="bg-background"
+            />
+          </div>
+
+          {/* Privacy toggle */}
+          <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/50">
+            <div className="flex items-center gap-3">
+              {isPrivate ? (
+                <Lock className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <Globe className="w-4 h-4 text-muted-foreground" />
+              )}
+              <div>
+                <Label htmlFor="private-toggle" className="text-sm font-medium cursor-pointer">
+                  {isPrivate ? 'Private note' : 'Public note'}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {isPrivate ? 'Only you can see this note' : 'Visible on your public profile'}
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="private-toggle"
+              checked={isPrivate}
+              onCheckedChange={setIsPrivate}
             />
           </div>
           
