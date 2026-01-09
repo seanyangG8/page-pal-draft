@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
-import { BookCard } from '@/components/BookCard';
+import { Bookshelf } from '@/components/Bookshelf';
 import { NoteCard } from '@/components/NoteCard';
 import { SearchBar } from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
@@ -12,9 +12,11 @@ import { ReviewSession } from '@/components/ReviewSession';
 import { FilterPanel } from '@/components/FilterPanel';
 import { ExportDialog } from '@/components/ExportDialog';
 import { ImportDialog } from '@/components/ImportDialog';
+import { SocialFeed } from '@/components/social/SocialFeed';
+import { FriendsPanel } from '@/components/social/FriendsPanel';
 import { Book, Note, BookFormat } from '@/types';
 import { getBooks, addBook, deleteBook, getNotes, deleteNote, searchNotes, saveBooks, saveNotes } from '@/lib/store';
-import { BookOpen, Search, Library, Sparkles, Filter, Download, Upload } from 'lucide-react';
+import { BookOpen, Search, Library, Sparkles, Filter, Download, Upload, Users, Rss } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -25,7 +27,7 @@ const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [addBookOpen, setAddBookOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'library' | 'notes'>('library');
+  const [activeTab, setActiveTab] = useState<'library' | 'notes' | 'feed' | 'friends'>('library');
   const [showFilters, setShowFilters] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -125,7 +127,7 @@ const Index = () => {
           <>
             {/* Tabs and search */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'library' | 'notes')} className="w-full sm:w-auto">
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'library' | 'notes' | 'feed' | 'friends')} className="w-full sm:w-auto">
                 <TabsList className="bg-secondary/50">
                   <TabsTrigger value="library" className="gap-2">
                     <Library className="w-4 h-4" />
@@ -133,46 +135,56 @@ const Index = () => {
                   </TabsTrigger>
                   <TabsTrigger value="notes" className="gap-2">
                     <Search className="w-4 h-4" />
-                    All Notes
+                    Notes
+                  </TabsTrigger>
+                  <TabsTrigger value="feed" className="gap-2">
+                    <Rss className="w-4 h-4" />
+                    Feed
+                  </TabsTrigger>
+                  <TabsTrigger value="friends" className="gap-2">
+                    <Users className="w-4 h-4" />
+                    Friends
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
 
-              <div className="flex items-center gap-2">
-                <div className="w-full sm:w-72">
-                  <SearchBar 
-                    value={searchQuery}
-                    onChange={setSearchQuery}
-                    placeholder={activeTab === 'library' ? 'Search books...' : 'Search notes...'}
-                  />
-                </div>
-                {activeTab === 'notes' && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setShowFilters(!showFilters)}
-                      className={showFilters ? 'bg-primary/10' : ''}
-                    >
-                      <Filter className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setExportOpen(true)}
+              {(activeTab === 'library' || activeTab === 'notes') && (
+                <div className="flex items-center gap-2">
+                  <div className="w-full sm:w-72">
+                    <SearchBar 
+                      value={searchQuery}
+                      onChange={setSearchQuery}
+                      placeholder={activeTab === 'library' ? 'Search books...' : 'Search notes...'}
+                    />
+                  </div>
+                  {activeTab === 'notes' && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={showFilters ? 'bg-primary/10' : ''}
+                      >
+                        <Filter className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setExportOpen(true)}
                     >
                       <Download className="w-4 h-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setImportOpen(true)}
-                    >
-                      <Upload className="w-4 h-4" />
-                    </Button>
-                  </>
-                )}
-              </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setImportOpen(true)}
+                      >
+                        <Upload className="w-4 h-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Review Widget */}
@@ -205,28 +217,15 @@ const Index = () => {
                     onAction={() => setAddBookOpen(true)}
                   />
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-                    {books
-                      .filter(b => 
-                        !searchQuery || 
-                        b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        b.author.toLowerCase().includes(searchQuery.toLowerCase())
-                      )
-                      .map((book, index) => (
-                        <div 
-                          key={book.id} 
-                          className="animate-fade-up"
-                          style={{ animationDelay: `${index * 50}ms` }}
-                        >
-                          <BookCard
-                            book={book}
-                            onClick={() => navigate(`/book/${book.id}`)}
-                            onDelete={() => handleDeleteBook(book.id)}
-                          />
-                        </div>
-                      ))
-                    }
-                  </div>
+                  <Bookshelf
+                    books={books.filter(b => 
+                      !searchQuery || 
+                      b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      b.author.toLowerCase().includes(searchQuery.toLowerCase())
+                    )}
+                    onBookClick={(bookId) => navigate(`/book/${bookId}`)}
+                    onDeleteBook={handleDeleteBook}
+                  />
                 )}
               </>
             )}
@@ -258,6 +257,16 @@ const Index = () => {
                   </div>
                 )}
               </>
+            )}
+
+            {/* Feed tab */}
+            {activeTab === 'feed' && (
+              <SocialFeed />
+            )}
+
+            {/* Friends tab */}
+            {activeTab === 'friends' && (
+              <FriendsPanel />
             )}
           </>
         )}
