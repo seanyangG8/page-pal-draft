@@ -44,6 +44,8 @@ export interface Note {
   lastReviewedAt?: Date;
   reviewCount: number;
   nextReviewAt?: Date;
+  // Privacy
+  isPrivate?: boolean;
   // Timestamps
   createdAt: Date;
   updatedAt: Date;

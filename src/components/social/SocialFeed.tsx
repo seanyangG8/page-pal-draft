@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Heart, MessageCircle, Share2, MoreHorizontal } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { UserProfileDialog, UserProfile } from './UserProfileDialog';
 
 // Types for social features (will be connected to backend later)
 export interface SocialUser {
@@ -36,6 +37,84 @@ export interface FeedItem {
   comments: number;
   isLiked: boolean;
 }
+
+// Mock user profiles for clickable avatars
+const mockUserProfiles: Record<string, UserProfile> = {
+  '1': {
+    id: '1',
+    name: 'Sarah Chen',
+    username: 'sarahreads',
+    avatarUrl: '',
+    bio: 'Book lover and productivity enthusiast. Always reading something new.',
+    joinedAt: new Date('2024-03-10'),
+    booksRead: 47,
+    notesCount: 234,
+    followers: 156,
+    following: 89,
+    isFollowing: true,
+    recentBooks: [
+      { id: '1', title: 'Atomic Habits', author: 'James Clear' },
+      { id: '2', title: 'The 4-Hour Workweek', author: 'Tim Ferriss' },
+    ],
+    publicNotes: [
+      { id: '1', content: 'You do not rise to the level of your goals. You fall to the level of your systems.', type: 'quote', bookTitle: 'Atomic Habits' },
+    ],
+  },
+  '2': {
+    id: '2',
+    name: 'Marcus Johnson',
+    username: 'bookworm_mj',
+    avatarUrl: '',
+    bio: 'Finance and psychology geek. Learning through books.',
+    joinedAt: new Date('2024-01-20'),
+    booksRead: 32,
+    notesCount: 178,
+    followers: 89,
+    following: 124,
+    isFollowing: false,
+    recentBooks: [
+      { id: '1', title: 'The Psychology of Money', author: 'Morgan Housel' },
+    ],
+    publicNotes: [],
+  },
+  '3': {
+    id: '3',
+    name: 'Emma Wilson',
+    username: 'emmareads',
+    avatarUrl: '',
+    bio: 'Reached 50 books this year! Fiction and non-fiction equally.',
+    joinedAt: new Date('2023-08-15'),
+    booksRead: 50,
+    notesCount: 312,
+    followers: 423,
+    following: 201,
+    isFollowing: true,
+    recentBooks: [
+      { id: '1', title: 'Project Hail Mary', author: 'Andy Weir' },
+      { id: '2', title: 'Thinking, Fast and Slow', author: 'Daniel Kahneman' },
+    ],
+    publicNotes: [
+      { id: '1', content: 'The best ideas often come from unexpected places.', type: 'idea', bookTitle: 'Thinking, Fast and Slow' },
+    ],
+  },
+  '4': {
+    id: '4',
+    name: 'Alex Rivera',
+    username: 'alexlitlife',
+    avatarUrl: '',
+    bio: 'Deep work advocate. Building better focus one book at a time.',
+    joinedAt: new Date('2024-02-01'),
+    booksRead: 18,
+    notesCount: 95,
+    followers: 67,
+    following: 45,
+    isFollowing: false,
+    recentBooks: [
+      { id: '1', title: 'Deep Work', author: 'Cal Newport' },
+    ],
+    publicNotes: [],
+  },
+};
 
 // Mock data for demonstration
 const mockFeedItems: FeedItem[] = [
@@ -82,7 +161,15 @@ const mockFeedItems: FeedItem[] = [
   },
 ];
 
-function FeedItemCard({ item, onLike }: { item: FeedItem; onLike: (id: string) => void }) {
+function FeedItemCard({ 
+  item, 
+  onLike, 
+  onProfileClick 
+}: { 
+  item: FeedItem; 
+  onLike: (id: string) => void;
+  onProfileClick: (userId: string) => void;
+}) {
   const getActivityText = () => {
     switch (item.type) {
       case 'started_reading':
@@ -126,28 +213,38 @@ function FeedItemCard({ item, onLike }: { item: FeedItem; onLike: (id: string) =
   return (
     <Card className="p-4 bg-card border-border/50 hover:shadow-card transition-shadow">
       <div className="flex gap-3">
-        {/* Avatar */}
-        <Avatar className="h-10 w-10 flex-shrink-0">
-          <AvatarImage src={item.user.avatarUrl} alt={item.user.name} />
-          <AvatarFallback className="bg-primary/10 text-primary font-medium">
-            {item.user.name.split(' ').map(n => n[0]).join('')}
-          </AvatarFallback>
-        </Avatar>
+        {/* Clickable Avatar */}
+        <button 
+          onClick={() => onProfileClick(item.user.id)}
+          className="flex-shrink-0 transition-transform hover:scale-105 active:scale-95"
+        >
+          <Avatar className="h-10 w-10 ring-2 ring-transparent hover:ring-primary/30 transition-all">
+            <AvatarImage src={item.user.avatarUrl} alt={item.user.name} />
+            <AvatarFallback className="bg-primary/10 text-primary font-medium">
+              {item.user.name.split(' ').map(n => n[0]).join('')}
+            </AvatarFallback>
+          </Avatar>
+        </button>
 
-        <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-sm">
-                <span className="font-semibold text-foreground">{item.user.name}</span>
-                <span className="text-muted-foreground"> {getActivityText()}</span>
-              </p>
-              {item.book && item.type !== 'milestone' && (
-                <p className="text-sm font-medium text-foreground mt-0.5">
-                  {item.book.title}
-                  <span className="text-muted-foreground font-normal"> by {item.book.author}</span>
+          <div className="flex-1 min-w-0">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm">
+                  <button 
+                    onClick={() => onProfileClick(item.user.id)}
+                    className="font-semibold text-foreground hover:text-primary transition-colors hover:underline"
+                  >
+                    {item.user.name}
+                  </button>
+                  <span className="text-muted-foreground"> {getActivityText()}</span>
                 </p>
-              )}
+                {item.book && item.type !== 'milestone' && (
+                  <p className="text-sm font-medium text-foreground mt-0.5">
+                    {item.book.title}
+                    <span className="text-muted-foreground font-normal"> by {item.book.author}</span>
+                  </p>
+                )}
               <p className="text-xs text-muted-foreground mt-1">
                 {formatDistanceToNow(item.timestamp, { addSuffix: true })}
               </p>
@@ -209,6 +306,8 @@ function FeedItemCard({ item, onLike }: { item: FeedItem; onLike: (id: string) =
 
 export function SocialFeed() {
   const [feedItems, setFeedItems] = useState<FeedItem[]>(mockFeedItems);
+  const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   const handleLike = (id: string) => {
     setFeedItems(items => 
@@ -218,6 +317,22 @@ export function SocialFeed() {
           : item
       )
     );
+  };
+
+  const handleProfileClick = (userId: string) => {
+    const profile = mockUserProfiles[userId];
+    if (profile) {
+      setSelectedProfile(profile);
+      setProfileDialogOpen(true);
+    }
+  };
+
+  const handleFollow = (userId: string) => {
+    setSelectedProfile(prev => prev ? { ...prev, isFollowing: true, followers: prev.followers + 1 } : null);
+  };
+
+  const handleUnfollow = (userId: string) => {
+    setSelectedProfile(prev => prev ? { ...prev, isFollowing: false, followers: prev.followers - 1 } : null);
   };
 
   return (
@@ -235,9 +350,17 @@ export function SocialFeed() {
           className="animate-fade-up"
           style={{ animationDelay: `${index * 50}ms` }}
         >
-          <FeedItemCard item={item} onLike={handleLike} />
+          <FeedItemCard item={item} onLike={handleLike} onProfileClick={handleProfileClick} />
         </div>
       ))}
+
+      <UserProfileDialog 
+        open={profileDialogOpen}
+        onOpenChange={setProfileDialogOpen}
+        user={selectedProfile}
+        onFollow={handleFollow}
+        onUnfollow={handleUnfollow}
+      />
     </div>
   );
 }

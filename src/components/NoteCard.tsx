@@ -2,11 +2,13 @@ import { Note, NoteType } from '@/types';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Quote, Lightbulb, HelpCircle, CheckCircle, MoreVertical, Trash2, MapPin, Image, Mic, Clock } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Quote, Lightbulb, HelpCircle, CheckCircle, MoreVertical, Trash2, MapPin, Image, Mic, Clock, Lock, Globe } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
+  DropdownMenuSeparator,
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
@@ -39,6 +41,12 @@ export function NoteCard({ note, onDelete, onUpdate, showBookTitle }: NoteCardPr
               <Icon className="w-3 h-3" />
               {config.label}
             </Badge>
+            {note.isPrivate && (
+              <Badge variant="outline" className="gap-1 text-xs bg-muted/50">
+                <Lock className="w-3 h-3" />
+                Private
+              </Badge>
+            )}
             {note.mediaType === 'image' && (
               <Badge variant="outline" className="gap-1 text-xs">
                 <Image className="w-3 h-3" />
@@ -123,6 +131,23 @@ export function NoteCard({ note, onDelete, onUpdate, showBookTitle }: NoteCardPr
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem 
+              onClick={() => onUpdate?.({ ...note, isPrivate: !note.isPrivate })}
+              className="gap-2"
+            >
+              {note.isPrivate ? (
+                <>
+                  <Globe className="w-4 h-4" />
+                  Make public
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4" />
+                  Make private
+                </>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={onDelete}
               className="text-destructive focus:text-destructive"
