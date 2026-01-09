@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { reorderBooks } from '@/lib/store';
 
 interface BookshelfProps {
@@ -22,18 +22,22 @@ function BookSpine({
   onClick, 
   onDelete,
   isDragging,
+  isDragOver,
   onDragStart,
   onDragEnd,
   onDragOver,
+  onDragLeave,
   onDrop,
 }: { 
   book: Book; 
   onClick: () => void; 
   onDelete: () => void;
   isDragging?: boolean;
+  isDragOver?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
   onDragEnd?: (e: React.DragEvent) => void;
   onDragOver?: (e: React.DragEvent) => void;
+  onDragLeave?: (e: React.DragEvent) => void;
   onDrop?: (e: React.DragEvent) => void;
 }) {
   // Generate a consistent color based on book title for variety
@@ -54,13 +58,19 @@ function BookSpine({
 
   return (
     <div 
-      className={`group relative transition-all duration-200 ${isDragging ? 'opacity-50 scale-95' : ''}`}
+      className={`group relative transition-all duration-300 ease-out ${isDragging ? 'opacity-40 scale-90' : ''} ${isDragOver ? 'translate-x-4' : ''}`}
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
+      {/* Drop indicator */}
+      {isDragOver && (
+        <div className="absolute -left-2 top-0 bottom-0 w-1 bg-primary rounded-full animate-pulse z-20" />
+      )}
+      
       {/* Drag handle indicator */}
       <div className="absolute -left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 transition-opacity z-10 cursor-grab">
         <GripVertical className="w-3 h-3 text-muted-foreground" />
@@ -68,7 +78,7 @@ function BookSpine({
       
       {/* Book standing upright */}
       <div 
-        className="relative cursor-pointer transition-all duration-300 hover:-translate-y-3 hover:scale-105"
+        className="relative cursor-pointer transition-all duration-300 hover:-translate-y-3 hover:scale-105 [&:hover_.book-cover]:!transform-none [&:hover_.book-cover]:[transform:rotateY(-5deg)_!important]"
         onClick={onClick}
       >
         {/* Book with cover image or colored spine */}
@@ -83,7 +93,7 @@ function BookSpine({
           >
             {/* Book cover - fixed dimensions */}
             <div
-              className="absolute inset-0 rounded-sm shadow-lg overflow-hidden"
+              className="book-cover absolute inset-0 rounded-sm shadow-lg overflow-hidden transition-transform duration-300"
               style={{
                 transform: 'rotateY(-20deg)',
                 transformOrigin: 'left center',
@@ -116,7 +126,7 @@ function BookSpine({
             }}
           >
             <div 
-              className={`absolute inset-0 bg-gradient-to-b ${getSpineColor(book.title)} rounded-sm shadow-lg flex flex-col items-center justify-center overflow-hidden`}
+              className={`book-cover absolute inset-0 bg-gradient-to-b ${getSpineColor(book.title)} rounded-sm shadow-lg flex flex-col items-center justify-center overflow-hidden transition-transform duration-300`}
               style={{
                 transform: 'rotateY(-20deg)',
                 transformOrigin: 'left center',
@@ -187,8 +197,8 @@ function BookSpine({
 
 export function Bookshelf({ books, onBookClick, onDeleteBook, onReorder }: BookshelfProps) {
   const [draggedBookId, setDraggedBookId] = useState<string | null>(null);
+  const [dragOverBookId, setDragOverBookId] = useState<string | null>(null);
   const [localBooks, setLocalBooks] = useState<Book[]>(books);
-  const dragOverBookId = useRef<string | null>(null);
 
   // Sync local state when books prop changes
   if (books !== localBooks && !draggedBookId) {
@@ -201,10 +211,10 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onReorder }: Books
   };
 
   const handleDragEnd = () => {
-    if (draggedBookId && dragOverBookId.current && draggedBookId !== dragOverBookId.current) {
+    if (draggedBookId && dragOverBookId && draggedBookId !== dragOverBookId) {
       const newBooks = [...localBooks];
       const draggedIndex = newBooks.findIndex(b => b.id === draggedBookId);
-      const targetIndex = newBooks.findIndex(b => b.id === dragOverBookId.current);
+      const targetIndex = newBooks.findIndex(b => b.id === dragOverBookId);
       
       if (draggedIndex !== -1 && targetIndex !== -1) {
         const [removed] = newBooks.splice(draggedIndex, 1);
@@ -215,12 +225,18 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onReorder }: Books
       }
     }
     setDraggedBookId(null);
-    dragOverBookId.current = null;
+    setDragOverBookId(null);
   };
 
   const handleDragOver = (e: React.DragEvent, bookId: string) => {
     e.preventDefault();
-    dragOverBookId.current = bookId;
+    if (dragOverBookId !== bookId && draggedBookId !== bookId) {
+      setDragOverBookId(bookId);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverBookId(null);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -263,9 +279,11 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onReorder }: Books
                     onClick={() => onBookClick(book.id)}
                     onDelete={() => onDeleteBook(book.id)}
                     isDragging={draggedBookId === book.id}
+                    isDragOver={dragOverBookId === book.id && draggedBookId !== book.id}
                     onDragStart={(e) => handleDragStart(e, book.id)}
                     onDragEnd={handleDragEnd}
                     onDragOver={(e) => handleDragOver(e, book.id)}
+                    onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                   />
                 </div>
