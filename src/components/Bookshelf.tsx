@@ -40,21 +40,38 @@ function BookSpine({ book, onClick, onDelete }: { book: Book; onClick: () => voi
       >
         {/* Book with cover image or colored spine */}
         {book.coverUrl ? (
-          // Show book cover
+          // Show book cover at an angle (like pulled slightly from shelf)
           <div 
-            className="relative w-12 sm:w-14 md:w-16 h-44 sm:h-52 md:h-60 rounded-sm shadow-lg overflow-hidden"
+            className="relative h-44 sm:h-52 md:h-60"
             style={{
-              transform: 'perspective(200px) rotateY(-5deg)',
-              boxShadow: '2px 2px 8px rgba(0,0,0,0.3), inset -2px 0 4px rgba(255,255,255,0.1)',
+              perspective: '400px',
+              transformStyle: 'preserve-3d',
             }}
           >
-            <img 
-              src={book.coverUrl} 
-              alt={book.title}
-              className="w-full h-full object-cover"
+            <div
+              className="relative w-24 sm:w-28 md:w-32 h-full rounded-sm shadow-xl overflow-hidden"
+              style={{
+                transform: 'rotateY(-35deg) translateX(-10px)',
+                transformOrigin: 'left center',
+                boxShadow: '4px 4px 12px rgba(0,0,0,0.4), -2px 0 8px rgba(0,0,0,0.2)',
+              }}
+            >
+              <img 
+                src={book.coverUrl} 
+                alt={book.title}
+                className="w-full h-full object-cover"
+              />
+              {/* Lighting overlay for 3D depth effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-white/10" />
+            </div>
+            {/* Spine edge visible on the left */}
+            <div 
+              className="absolute top-0 left-0 w-3 h-full bg-gradient-to-r from-gray-800 to-gray-600 rounded-l-sm"
+              style={{
+                transform: 'rotateY(55deg) translateX(-6px)',
+                transformOrigin: 'left center',
+              }}
             />
-            {/* Subtle overlay for depth */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent" />
           </div>
         ) : (
           // Show colored spine (no cover)
