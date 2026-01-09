@@ -7,6 +7,7 @@ import { NoteCard } from '@/components/NoteCard';
 import { SearchBar } from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
 import { AddBookDialog } from '@/components/AddBookDialog';
+import { EditBookDialog } from '@/components/EditBookDialog';
 import { FloatingAddButton } from '@/components/FloatingAddButton';
 import { ReviewWidget } from '@/components/ReviewWidget';
 import { ReviewSession } from '@/components/ReviewSession';
@@ -16,7 +17,7 @@ import { ImportDialog } from '@/components/ImportDialog';
 import { SocialFeed } from '@/components/social/SocialFeed';
 import { FriendsPanel } from '@/components/social/FriendsPanel';
 import { Book, Note, BookFormat } from '@/types';
-import { getBooks, addBook, deleteBook, getNotes, deleteNote, searchNotes, saveBooks, saveNotes } from '@/lib/store';
+import { getBooks, addBook, deleteBook, updateBook, getNotes, deleteNote, searchNotes, saveBooks, saveNotes } from '@/lib/store';
 import { BookOpen, Search, Library, Sparkles, Filter, Download, Upload, Users, Rss } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,8 @@ const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [addBookOpen, setAddBookOpen] = useState(false);
+  const [editBookOpen, setEditBookOpen] = useState(false);
+  const [bookToEdit, setBookToEdit] = useState<Book | null>(null);
   const [activeTab, setActiveTab] = useState<'library' | 'notes' | 'feed' | 'friends'>('library');
   const [showFilters, setShowFilters] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -54,6 +57,19 @@ const Index = () => {
     const newBook = addBook(bookData);
     setBooks(prev => [...prev, newBook]);
     toast.success('Book added to your library');
+  };
+
+  const handleEditBook = (book: Book) => {
+    setBookToEdit(book);
+    setEditBookOpen(true);
+  };
+
+  const handleSaveBook = (bookId: string, updates: { title: string; author: string; format: BookFormat; coverUrl?: string; isbn?: string }) => {
+    const updated = updateBook(bookId, updates);
+    if (updated) {
+      setBooks(prev => prev.map(b => b.id === bookId ? updated : b));
+      toast.success('Book updated');
+    }
   };
 
   const handleDeleteBook = (bookId: string) => {
@@ -239,6 +255,7 @@ const Index = () => {
                     )}
                     onBookClick={(bookId) => navigate(`/book/${bookId}`)}
                     onDeleteBook={handleDeleteBook}
+                    onEditBook={handleEditBook}
                     onReorder={() => setBooks(getBooks())}
                   />
                 )}
@@ -307,6 +324,14 @@ const Index = () => {
         open={addBookOpen}
         onOpenChange={setAddBookOpen}
         onAdd={handleAddBook}
+      />
+
+      {/* Edit book dialog */}
+      <EditBookDialog
+        book={bookToEdit}
+        open={editBookOpen}
+        onOpenChange={setEditBookOpen}
+        onSave={handleSaveBook}
       />
 
       {/* Export dialog */}

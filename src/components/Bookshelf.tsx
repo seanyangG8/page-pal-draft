@@ -1,10 +1,11 @@
 import { Book } from '@/types';
-import { BookOpen, MoreVertical, Trash2, GripVertical } from 'lucide-react';
+import { BookOpen, MoreVertical, Trash2, GripVertical, Pencil } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator 
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { useState, useRef, useCallback } from 'react';
@@ -14,6 +15,7 @@ interface BookshelfProps {
   books: Book[];
   onBookClick: (bookId: string) => void;
   onDeleteBook: (bookId: string) => void;
+  onEditBook?: (book: Book) => void;
   onReorder?: () => void;
 }
 
@@ -21,6 +23,7 @@ interface BookSpineProps {
   book: Book;
   onClick: () => void;
   onDelete: () => void;
+  onEdit?: () => void;
   isDragging?: boolean;
   isDragOver?: boolean;
   isTouchDragging?: boolean;
@@ -39,6 +42,7 @@ function BookSpine({
   book, 
   onClick, 
   onDelete,
+  onEdit,
   isDragging,
   isDragOver,
   isTouchDragging,
@@ -187,6 +191,20 @@ function BookSpine({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center">
+            {onEdit && (
+              <>
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit();
+                  }}
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit book
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem 
               onClick={(e) => {
                 e.stopPropagation();
@@ -211,7 +229,7 @@ function BookSpine({
   );
 }
 
-export function Bookshelf({ books, onBookClick, onDeleteBook, onReorder }: BookshelfProps) {
+export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReorder }: BookshelfProps) {
   const [draggedBookId, setDraggedBookId] = useState<string | null>(null);
   const [dragOverBookId, setDragOverBookId] = useState<string | null>(null);
   const [localBooks, setLocalBooks] = useState<Book[]>(books);
@@ -380,6 +398,7 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onReorder }: Books
                     book={book} 
                     onClick={() => !touchDragId && onBookClick(book.id)}
                     onDelete={() => onDeleteBook(book.id)}
+                    onEdit={onEditBook ? () => onEditBook(book) : undefined}
                     isDragging={draggedBookId === book.id}
                     isDragOver={dragOverBookId === book.id && draggedBookId !== book.id && touchDragId !== book.id}
                     isTouchDragging={touchDragId === book.id}
