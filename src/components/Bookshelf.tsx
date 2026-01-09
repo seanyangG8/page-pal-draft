@@ -74,36 +74,45 @@ function BookSpine({ book, onClick, onDelete }: { book: Book; onClick: () => voi
             />
           </div>
         ) : (
-          // Show colored spine (no cover) - same fixed size
+          // Show colored spine (no cover) - same fixed size and angle
           <div 
-            className={`relative w-16 sm:w-20 md:w-24 h-32 sm:h-40 md:h-48 bg-gradient-to-b ${getSpineColor(book.title)} rounded-sm shadow-lg flex flex-col items-center justify-center overflow-hidden`}
+            className="relative w-16 sm:w-20 md:w-24 h-32 sm:h-40 md:h-48"
             style={{
-              transform: 'perspective(200px) rotateY(-5deg)',
-              boxShadow: '2px 2px 8px rgba(0,0,0,0.3), inset -2px 0 4px rgba(255,255,255,0.1)',
+              perspective: '400px',
+              transformStyle: 'preserve-3d',
             }}
           >
-            {/* Spine texture overlay */}
-            <div className="absolute inset-0 opacity-20 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.1)_50%,transparent_100%)]" />
-            
-            {/* Title on spine (rotated) */}
             <div 
-              className="absolute inset-0 flex items-center justify-center"
-              style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+              className={`absolute inset-0 bg-gradient-to-b ${getSpineColor(book.title)} rounded-sm shadow-lg flex flex-col items-center justify-center overflow-hidden`}
+              style={{
+                transform: 'rotateY(-20deg)',
+                transformOrigin: 'left center',
+                boxShadow: '4px 2px 10px rgba(0,0,0,0.35), inset -2px 0 4px rgba(255,255,255,0.1)',
+              }}
             >
-              <span className="text-[10px] sm:text-xs font-medium text-white/90 px-1 text-center leading-tight line-clamp-3 rotate-180">
-                {book.title}
-              </span>
+              {/* Spine texture overlay */}
+              <div className="absolute inset-0 opacity-20 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.1)_50%,transparent_100%)]" />
+              
+              {/* Title on spine (rotated) */}
+              <div 
+                className="absolute inset-0 flex items-center justify-center"
+                style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+              >
+                <span className="text-[10px] sm:text-xs font-medium text-white/90 px-1 text-center leading-tight line-clamp-3 rotate-180">
+                  {book.title}
+                </span>
+              </div>
+              
+              {/* Decorative lines */}
+              <div className="absolute top-3 left-1 right-1 h-0.5 bg-amber-300/30 rounded-full" />
+              <div className="absolute bottom-3 left-1 right-1 h-0.5 bg-amber-300/30 rounded-full" />
             </div>
-            
-            {/* Decorative lines */}
-            <div className="absolute top-3 left-1 right-1 h-0.5 bg-amber-300/30 rounded-full" />
-            <div className="absolute bottom-3 left-1 right-1 h-0.5 bg-amber-300/30 rounded-full" />
             
             {/* Page edges */}
             <div 
-              className="absolute top-1 -right-1 w-1.5 h-[calc(100%-8px)] bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-100 dark:to-amber-200 rounded-r-sm"
+              className="absolute top-1 right-0 h-[calc(100%-8px)] w-1.5 bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-100 dark:to-amber-200 rounded-r-sm"
               style={{
-                boxShadow: 'inset 0 0 2px rgba(0,0,0,0.1)',
+                boxShadow: '1px 0 3px rgba(0,0,0,0.15)',
               }}
             />
           </div>
