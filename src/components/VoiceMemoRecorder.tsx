@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, forwardRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Mic, Square, Play, Pause, Trash2, FileText, Pencil, Check, X } from 'lucide-react';
+import { Mic, Square, Play, Pause, Trash2, FileText, Pencil, Check, X, Wand2 } from 'lucide-react';
 
 interface VoiceMemoRecorderProps {
   onRecordingComplete: (data: { url: string; duration: number; transcript?: string }) => void;
@@ -65,7 +65,7 @@ function TranscriptEditor({
   return (
     <div className="mt-3 pt-3 border-t border-border/50">
       <div className="flex items-center justify-between mb-1">
-        <p className="text-xs text-muted-foreground">Transcribed:</p>
+        <p className="text-xs text-muted-foreground">Transcript:</p>
         <div className="flex gap-1">
           <Button
             type="button"
@@ -80,13 +80,13 @@ function TranscriptEditor({
           {onUseAsText && (
             <Button
               type="button"
-              variant="ghost"
+              variant="secondary"
               size="sm"
-              className="h-6 text-xs px-2"
+              className="h-6 text-xs px-2 gap-1"
               onClick={() => onUseAsText(transcript)}
             >
-              <FileText className="w-3 h-3 mr-1" />
-              Use as note
+              <Wand2 className="w-3 h-3" />
+              Enhance with AI
             </Button>
           )}
         </div>
@@ -96,7 +96,7 @@ function TranscriptEditor({
   );
 }
 
-export function VoiceMemoRecorder({ onRecordingComplete, recordedAudio, onClear, onTranscriptEdit, onUseAsText }: VoiceMemoRecorderProps) {
+export const VoiceMemoRecorder = forwardRef<HTMLDivElement, VoiceMemoRecorderProps>(function VoiceMemoRecorder({ onRecordingComplete, recordedAudio, onClear, onTranscriptEdit, onUseAsText }, ref) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -308,13 +308,32 @@ export function VoiceMemoRecorder({ onRecordingComplete, recordedAudio, onClear,
             </Button>
           </div>
           
-          {/* Show transcript with edit option */}
-          {recordedAudio.transcript && (
+          {/* Always show transcript section - either with content or prompt to add */}
+          {recordedAudio.transcript ? (
             <TranscriptEditor
               transcript={recordedAudio.transcript}
               onEdit={onTranscriptEdit}
               onUseAsText={onUseAsText}
             />
+          ) : (
+            <div className="mt-3 pt-3 border-t border-border/50">
+              <p className="text-xs text-muted-foreground mb-2">No transcript available</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                onClick={() => {
+                  // Simulate adding a transcript manually by setting it
+                  if (onTranscriptEdit) {
+                    onTranscriptEdit('');
+                  }
+                }}
+              >
+                <FileText className="w-4 h-4" />
+                Add transcript manually
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -384,4 +403,4 @@ export function VoiceMemoRecorder({ onRecordingComplete, recordedAudio, onClear,
       </div>
     </div>
   );
-}
+});

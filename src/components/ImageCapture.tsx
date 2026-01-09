@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Camera, Upload, X, Pencil, Type, RotateCcw, FileText, Check } from 'lucide-react';
+import { Camera, Upload, X, Pencil, Type, RotateCcw, Check, Wand2 } from 'lucide-react';
 
 interface ImageCaptureProps {
   onCapture: (data: { url: string; extractedText?: string }) => void;
@@ -268,16 +268,21 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
           </div>
         </div>
       ) : (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="w-full gap-2"
-          onClick={() => setShowTextInput(true)}
-        >
-          <Type className="w-4 h-4" />
-          Add extracted text manually
-        </Button>
+        <div className="space-y-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full gap-2"
+            onClick={() => setShowTextInput(true)}
+          >
+            <Type className="w-4 h-4" />
+            Add text from image
+          </Button>
+          <p className="text-xs text-center text-muted-foreground">
+            Type or paste the text you want to save from this image
+          </p>
+        </div>
       )}
 
       {capturedImage.extractedText && (
@@ -301,13 +306,13 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
               {onUseAsText && (
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="secondary"
                   size="sm"
-                  className="h-6 text-xs px-2"
+                  className="h-6 text-xs px-2 gap-1"
                   onClick={() => onUseAsText(capturedImage.extractedText || '')}
                 >
-                  <FileText className="w-3 h-3 mr-1" />
-                  Use as note
+                  <Wand2 className="w-3 h-3" />
+                  Enhance with AI
                 </Button>
               )}
             </div>
