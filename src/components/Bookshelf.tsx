@@ -38,31 +38,51 @@ function BookSpine({ book, onClick, onDelete }: { book: Book; onClick: () => voi
         className="relative cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:rotate-[-2deg]"
         onClick={onClick}
       >
-        {/* Book spine (visible part) */}
-        <div 
-          className={`relative w-12 sm:w-14 md:w-16 h-44 sm:h-52 md:h-60 bg-gradient-to-b ${getSpineColor(book.title)} rounded-sm shadow-lg flex flex-col items-center justify-center overflow-hidden`}
-          style={{
-            transform: 'perspective(200px) rotateY(-5deg)',
-            boxShadow: '2px 2px 8px rgba(0,0,0,0.3), inset -2px 0 4px rgba(255,255,255,0.1)',
-          }}
-        >
-          {/* Spine texture overlay */}
-          <div className="absolute inset-0 opacity-20 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.1)_50%,transparent_100%)]" />
-          
-          {/* Title on spine (rotated) */}
+        {/* Book with cover image or colored spine */}
+        {book.coverUrl ? (
+          // Show book cover
           <div 
-            className="absolute inset-0 flex items-center justify-center"
-            style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+            className="relative w-12 sm:w-14 md:w-16 h-44 sm:h-52 md:h-60 rounded-sm shadow-lg overflow-hidden"
+            style={{
+              transform: 'perspective(200px) rotateY(-5deg)',
+              boxShadow: '2px 2px 8px rgba(0,0,0,0.3), inset -2px 0 4px rgba(255,255,255,0.1)',
+            }}
           >
-            <span className="text-[10px] sm:text-xs font-medium text-white/90 px-1 text-center leading-tight line-clamp-3 rotate-180">
-              {book.title}
-            </span>
+            <img 
+              src={book.coverUrl} 
+              alt={book.title}
+              className="w-full h-full object-cover"
+            />
+            {/* Subtle overlay for depth */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent" />
           </div>
-          
-          {/* Decorative lines */}
-          <div className="absolute top-3 left-1 right-1 h-0.5 bg-amber-300/30 rounded-full" />
-          <div className="absolute bottom-3 left-1 right-1 h-0.5 bg-amber-300/30 rounded-full" />
-        </div>
+        ) : (
+          // Show colored spine (no cover)
+          <div 
+            className={`relative w-12 sm:w-14 md:w-16 h-44 sm:h-52 md:h-60 bg-gradient-to-b ${getSpineColor(book.title)} rounded-sm shadow-lg flex flex-col items-center justify-center overflow-hidden`}
+            style={{
+              transform: 'perspective(200px) rotateY(-5deg)',
+              boxShadow: '2px 2px 8px rgba(0,0,0,0.3), inset -2px 0 4px rgba(255,255,255,0.1)',
+            }}
+          >
+            {/* Spine texture overlay */}
+            <div className="absolute inset-0 opacity-20 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.1)_50%,transparent_100%)]" />
+            
+            {/* Title on spine (rotated) */}
+            <div 
+              className="absolute inset-0 flex items-center justify-center"
+              style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+            >
+              <span className="text-[10px] sm:text-xs font-medium text-white/90 px-1 text-center leading-tight line-clamp-3 rotate-180">
+                {book.title}
+              </span>
+            </div>
+            
+            {/* Decorative lines */}
+            <div className="absolute top-3 left-1 right-1 h-0.5 bg-amber-300/30 rounded-full" />
+            <div className="absolute bottom-3 left-1 right-1 h-0.5 bg-amber-300/30 rounded-full" />
+          </div>
+        )}
         
         {/* Book cover edge (slight 3D effect) */}
         <div 
