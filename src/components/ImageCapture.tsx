@@ -178,18 +178,37 @@ export function ImageCapture({ onCapture, capturedImage, onClear }: ImageCapture
           type="button"
           variant="ghost"
           size="icon"
-          className="absolute top-2 right-2 z-10 bg-background/80 hover:bg-background"
+          className="absolute top-2 right-2 z-20 bg-background/80 hover:bg-background"
           onClick={onClear}
         >
           <X className="w-4 h-4" />
         </Button>
         
         <div className="relative">
+          {/* Base image - always behind canvas */}
+          <img 
+            src={capturedImage.url} 
+            alt="Captured" 
+            className="w-full h-auto max-h-[300px] object-contain"
+            onLoad={(e) => {
+              const canvas = canvasRef.current;
+              const img = e.currentTarget;
+              if (canvas) {
+                // Set canvas dimensions to match image
+                const aspectRatio = img.naturalWidth / img.naturalHeight;
+                const maxWidth = 600;
+                const width = Math.min(img.naturalWidth, maxWidth);
+                const height = width / aspectRatio;
+                canvas.width = width;
+                canvas.height = height;
+              }
+            }}
+          />
+          
+          {/* Transparent canvas overlay for drawing */}
           <canvas
             ref={canvasRef}
-            width={600}
-            height={400}
-            className="w-full h-auto max-h-[300px] object-contain cursor-crosshair"
+            className={`absolute inset-0 w-full h-full ${isDrawMode ? 'cursor-crosshair z-10' : 'pointer-events-none'}`}
             onMouseDown={startDrawing}
             onMouseMove={draw}
             onMouseUp={stopDrawing}
@@ -198,25 +217,10 @@ export function ImageCapture({ onCapture, capturedImage, onClear }: ImageCapture
             onTouchMove={draw}
             onTouchEnd={stopDrawing}
           />
-          <img 
-            src={capturedImage.url} 
-            alt="Captured" 
-            className={`absolute inset-0 w-full h-full object-contain ${isDrawMode ? 'pointer-events-none' : ''}`}
-            onLoad={(e) => {
-              const canvas = canvasRef.current;
-              const img = e.currentTarget;
-              if (canvas) {
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-                const ctx = canvas.getContext('2d');
-                ctx?.drawImage(img, 0, 0);
-              }
-            }}
-          />
         </div>
         
         {/* Drawing tools */}
-        <div className="absolute bottom-2 left-2 right-2 flex justify-center gap-2">
+        <div className="absolute bottom-2 left-2 right-2 flex justify-center gap-2 z-20">
           <Button
             type="button"
             variant={isDrawMode ? 'default' : 'secondary'}
