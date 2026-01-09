@@ -52,6 +52,17 @@ export function deleteBook(bookId: string): void {
   saveNotes(notes);
 }
 
+export function reorderBooks(bookIds: string[]): void {
+  const books = getBooks();
+  const bookMap = new Map(books.map(b => [b.id, b]));
+  const reordered = bookIds.map(id => bookMap.get(id)).filter(Boolean) as Book[];
+  // Add any books not in the list (safety)
+  books.forEach(b => {
+    if (!bookIds.includes(b.id)) reordered.push(b);
+  });
+  saveBooks(reordered);
+}
+
 // ===== NOTES =====
 export function getNotes(): Note[] {
   if (typeof window === 'undefined') return [];
