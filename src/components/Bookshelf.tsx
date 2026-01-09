@@ -40,20 +40,21 @@ function BookSpine({ book, onClick, onDelete }: { book: Book; onClick: () => voi
       >
         {/* Book with cover image or colored spine */}
         {book.coverUrl ? (
-          // Show book cover at an angle (like pulled slightly from shelf)
+          // Show book cover at a slight angle
           <div 
-            className="relative h-44 sm:h-52 md:h-60"
+            className="relative w-12 sm:w-14 md:w-16 h-44 sm:h-52 md:h-60"
             style={{
-              perspective: '400px',
+              perspective: '300px',
               transformStyle: 'preserve-3d',
             }}
           >
+            {/* Book cover */}
             <div
-              className="relative w-24 sm:w-28 md:w-32 h-full rounded-sm shadow-xl overflow-hidden"
+              className="absolute inset-0 rounded-sm shadow-lg overflow-hidden"
               style={{
-                transform: 'rotateY(-35deg) translateX(-10px)',
+                transform: 'rotateY(-15deg)',
                 transformOrigin: 'left center',
-                boxShadow: '4px 4px 12px rgba(0,0,0,0.4), -2px 0 8px rgba(0,0,0,0.2)',
+                boxShadow: '3px 2px 8px rgba(0,0,0,0.3)',
               }}
             >
               <img 
@@ -61,15 +62,15 @@ function BookSpine({ book, onClick, onDelete }: { book: Book; onClick: () => voi
                 alt={book.title}
                 className="w-full h-full object-cover"
               />
-              {/* Lighting overlay for 3D depth effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-white/10" />
+              {/* Lighting overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-black/15 via-transparent to-white/5" />
             </div>
-            {/* Spine edge visible on the left */}
+            {/* Page edges - positioned right against the cover */}
             <div 
-              className="absolute top-0 left-0 w-3 h-full bg-gradient-to-r from-gray-800 to-gray-600 rounded-l-sm"
+              className="absolute top-1 w-1.5 h-[calc(100%-8px)] bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-100 dark:to-amber-200 rounded-r-sm"
               style={{
-                transform: 'rotateY(55deg) translateX(-6px)',
-                transformOrigin: 'left center',
+                right: '-2px',
+                boxShadow: 'inset 0 0 2px rgba(0,0,0,0.1)',
               }}
             />
           </div>
@@ -98,22 +99,16 @@ function BookSpine({ book, onClick, onDelete }: { book: Book; onClick: () => voi
             {/* Decorative lines */}
             <div className="absolute top-3 left-1 right-1 h-0.5 bg-amber-300/30 rounded-full" />
             <div className="absolute bottom-3 left-1 right-1 h-0.5 bg-amber-300/30 rounded-full" />
+            
+            {/* Page edges */}
+            <div 
+              className="absolute top-1 -right-1 w-1.5 h-[calc(100%-8px)] bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-100 dark:to-amber-200 rounded-r-sm"
+              style={{
+                boxShadow: 'inset 0 0 2px rgba(0,0,0,0.1)',
+              }}
+            />
           </div>
         )}
-        
-        {/* Book cover edge (slight 3D effect) */}
-        <div 
-          className="absolute top-0 right-0 w-2 h-full bg-gradient-to-r from-transparent to-white/10 rounded-r-sm"
-          style={{ transform: 'perspective(200px) rotateY(45deg)' }}
-        />
-        
-        {/* Book pages edge */}
-        <div 
-          className="absolute top-1 -right-1 w-1.5 h-[calc(100%-8px)] bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-100 dark:to-amber-200"
-          style={{
-            boxShadow: 'inset 0 0 2px rgba(0,0,0,0.1)',
-          }}
-        />
       </div>
 
       {/* Hover actions */}
