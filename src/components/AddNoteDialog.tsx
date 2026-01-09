@@ -7,9 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { NoteType, MediaType } from '@/types';
-import { Quote, Lightbulb, HelpCircle, CheckCircle, PenLine, Camera, Mic, Clock, Type, Lock, Globe } from 'lucide-react';
+import { Quote, Lightbulb, HelpCircle, CheckCircle, PenLine, Camera, Mic, Clock, Type, Lock, Globe, Wand2 } from 'lucide-react';
 import { ImageCapture } from './ImageCapture';
 import { VoiceMemoRecorder } from './VoiceMemoRecorder';
+import { AITextActions } from './AITextActions';
 
 interface AddNoteDialogProps {
   open: boolean;
@@ -25,6 +26,7 @@ interface AddNoteDialogProps {
     extractedText?: string;
     audioUrl?: string;
     audioDuration?: number;
+    transcript?: string;
     tags?: string[];
     isPrivate?: boolean;
   }) => void;
@@ -48,8 +50,9 @@ export function AddNoteDialog({ open, onOpenChange, onAdd, bookTitle, isAudioboo
   const [context, setContext] = useState('');
   const [tagsInput, setTagsInput] = useState('');
   const [imageData, setImageData] = useState<{ url: string; extractedText?: string } | null>(null);
-  const [audioData, setAudioData] = useState<{ url: string; duration: number } | null>(null);
+  const [audioData, setAudioData] = useState<{ url: string; duration: number; transcript?: string } | null>(null);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [showAIEditor, setShowAIEditor] = useState(false);
 
   const resetForm = () => {
     setType('quote');
@@ -62,6 +65,7 @@ export function AddNoteDialog({ open, onOpenChange, onAdd, bookTitle, isAudioboo
     setImageData(null);
     setAudioData(null);
     setIsPrivate(false);
+    setShowAIEditor(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -85,6 +89,7 @@ export function AddNoteDialog({ open, onOpenChange, onAdd, bookTitle, isAudioboo
       extractedText: imageData?.extractedText,
       audioUrl: audioData?.url,
       audioDuration: audioData?.duration,
+      transcript: audioData?.transcript,
       tags,
       isPrivate: isPrivate || undefined,
     });
@@ -122,81 +127,19 @@ export function AddNoteDialog({ open, onOpenChange, onAdd, bookTitle, isAudioboo
             </TabsList>
 
             <TabsContent value="text" className="space-y-4 mt-4">
-              {/* Note type selector */}
-              <div className="space-y-2">
-                <Label>Note type</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  {noteTypes.map(({ type: t, icon: Icon, label }) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setType(t)}
-                      className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
-                        type === t 
-                          ? 'border-primary bg-primary/5 text-primary' 
-                          : 'border-border hover:border-primary/50 hover:bg-secondary/50'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span className="text-xs font-medium">{label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="space-y-2">
-                <Label htmlFor="content">
-                  {type === 'quote' ? 'The passage' : type === 'question' ? 'Your question' : 'Your note'}
-                </Label>
-                <Textarea
-                  id="content"
-                  placeholder={type === 'quote' ? 'Type or paste the quote...' : 'Write your note...'}
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  className="min-h-[100px] bg-background resize-none"
+              {showAIEditor && content.trim() ? (
+                <AITextActions
+                  originalText={content}
+                  onTextChange={(text) => {
+                    setContent(text);
+                    setShowAIEditor(false);
+                  }}
+                  onBack={() => setShowAIEditor(false)}
+                  showBackButton
                 />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="image" className="mt-4">
-              <ImageCapture 
-                onCapture={setImageData}
-                capturedImage={imageData}
-                onClear={() => setImageData(null)}
-              />
-              {imageData && (
-                <div className="mt-4 space-y-2">
-                  <Label>Note type</Label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {noteTypes.map(({ type: t, icon: Icon, label }) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setType(t)}
-                        className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
-                          type === t 
-                            ? 'border-primary bg-primary/5 text-primary' 
-                            : 'border-border hover:border-primary/50 hover:bg-secondary/50'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        <span className="text-xs font-medium">{label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="audio" className="mt-4">
-              <VoiceMemoRecorder 
-                onRecordingComplete={setAudioData}
-                recordedAudio={audioData}
-                onClear={() => setAudioData(null)}
-              />
-              {audioData && (
-                <div className="mt-4 space-y-4">
+              ) : (
+                <>
+                  {/* Note type selector */}
                   <div className="space-y-2">
                     <Label>Note type</Label>
                     <div className="grid grid-cols-4 gap-2">
@@ -217,17 +160,150 @@ export function AddNoteDialog({ open, onOpenChange, onAdd, bookTitle, isAudioboo
                       ))}
                     </div>
                   </div>
+
+                  {/* Content */}
                   <div className="space-y-2">
-                    <Label htmlFor="audio-note">Additional notes (optional)</Label>
+                    <Label htmlFor="content">
+                      {type === 'quote' ? 'The passage' : type === 'question' ? 'Your question' : 'Your note'}
+                    </Label>
                     <Textarea
-                      id="audio-note"
-                      placeholder="Add a text note about this voice memo..."
+                      id="content"
+                      placeholder={type === 'quote' ? 'Type or paste the quote...' : 'Write your note...'}
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
-                      className="min-h-[60px] bg-background resize-none"
+                      className="min-h-[100px] bg-background resize-none"
                     />
                   </div>
-                </div>
+
+                  {/* AI Enhance button */}
+                  {content.trim() && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2"
+                      onClick={() => setShowAIEditor(true)}
+                    >
+                      <Wand2 className="w-4 h-4" />
+                      Enhance with AI
+                    </Button>
+                  )}
+                </>
+              )}
+            </TabsContent>
+
+            <TabsContent value="image" className="mt-4">
+              {showAIEditor && imageData?.extractedText ? (
+                <AITextActions
+                  originalText={imageData.extractedText}
+                  onTextChange={(text) => {
+                    setContent(text);
+                    setShowAIEditor(false);
+                    setCaptureMode('text');
+                  }}
+                  onBack={() => setShowAIEditor(false)}
+                  showBackButton
+                />
+              ) : (
+                <>
+                  <ImageCapture 
+                    onCapture={setImageData}
+                    capturedImage={imageData}
+                    onClear={() => setImageData(null)}
+                    onUseAsText={(text) => {
+                      setContent(text);
+                      setShowAIEditor(true);
+                    }}
+                  />
+                  {imageData && (
+                    <div className="mt-4 space-y-2">
+                      <Label>Note type</Label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {noteTypes.map(({ type: t, icon: Icon, label }) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setType(t)}
+                            className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
+                              type === t 
+                                ? 'border-primary bg-primary/5 text-primary' 
+                                : 'border-border hover:border-primary/50 hover:bg-secondary/50'
+                            }`}
+                          >
+                            <Icon className="w-4 h-4" />
+                            <span className="text-xs font-medium">{label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </TabsContent>
+
+            <TabsContent value="audio" className="mt-4">
+              {showAIEditor && audioData?.transcript ? (
+                <AITextActions
+                  originalText={audioData.transcript}
+                  onTextChange={(text) => {
+                    setContent(text);
+                    setShowAIEditor(false);
+                    setCaptureMode('text');
+                  }}
+                  onBack={() => setShowAIEditor(false)}
+                  showBackButton
+                />
+              ) : (
+                <>
+                  <VoiceMemoRecorder 
+                    onRecordingComplete={setAudioData}
+                    recordedAudio={audioData}
+                    onClear={() => setAudioData(null)}
+                    onTranscriptEdit={(transcript) => {
+                      if (audioData) {
+                        setAudioData({ ...audioData, transcript });
+                      }
+                    }}
+                    onUseAsText={(text) => {
+                      setContent(text);
+                      setShowAIEditor(true);
+                    }}
+                  />
+                  {audioData && (
+                    <div className="mt-4 space-y-4">
+                      <div className="space-y-2">
+                        <Label>Note type</Label>
+                        <div className="grid grid-cols-4 gap-2">
+                          {noteTypes.map(({ type: t, icon: Icon, label }) => (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => setType(t)}
+                              className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
+                                type === t 
+                                  ? 'border-primary bg-primary/5 text-primary' 
+                                  : 'border-border hover:border-primary/50 hover:bg-secondary/50'
+                              }`}
+                            >
+                              <Icon className="w-4 h-4" />
+                              <span className="text-xs font-medium">{label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="audio-note">Additional notes (optional)</Label>
+                        <Textarea
+                          id="audio-note"
+                          placeholder="Add a text note about this voice memo..."
+                          value={content}
+                          onChange={(e) => setContent(e.target.value)}
+                          className="min-h-[60px] bg-background resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </TabsContent>
           </Tabs>
