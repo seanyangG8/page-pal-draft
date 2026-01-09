@@ -9,13 +9,16 @@ interface HeaderProps {
 
 export function Header({ showSearch, onSearchClick }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="sticky top-0 z-50 w-full glass">
       <div className="container flex h-16 items-center justify-between">
-        <a href="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-lg gradient-amber flex items-center justify-center shadow-soft group-hover:shadow-card transition-shadow">
+        <a href="/" className="flex items-center gap-3 group">
+          <div className="relative w-10 h-10 rounded-xl gradient-amber flex items-center justify-center shadow-card group-hover:shadow-elevated transition-all duration-300 group-hover:scale-105 shine">
             <BookMarked className="w-5 h-5 text-primary-foreground" />
           </div>
-          <span className="font-display text-xl font-semibold text-foreground">Marginalia</span>
+          <div className="flex flex-col">
+            <span className="font-display text-xl font-bold text-foreground tracking-tight">Marginalia</span>
+            <span className="text-[10px] text-muted-foreground -mt-0.5 tracking-wide uppercase">Reading Notes</span>
+          </div>
         </a>
 
         <div className="flex items-center gap-2">
