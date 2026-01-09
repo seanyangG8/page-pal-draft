@@ -225,6 +225,7 @@ const Index = () => {
                     )}
                     onBookClick={(bookId) => navigate(`/book/${bookId}`)}
                     onDeleteBook={handleDeleteBook}
+                    onReorder={() => setBooks(getBooks())}
                   />
                 )}
               </>
