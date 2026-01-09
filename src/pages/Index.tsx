@@ -99,49 +99,54 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Header />
       
       <main className="container py-8 pb-24">
         {/* Hero section for empty state */}
         {books.length === 0 && notes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center animate-fade-up">
-            <div className="w-20 h-20 rounded-2xl gradient-amber flex items-center justify-center mb-6 shadow-card animate-float">
-              <Sparkles className="w-10 h-10 text-primary-foreground" />
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center animate-fade-up gradient-hero rounded-3xl -mx-4 px-4 py-12">
+            <div className="w-24 h-24 rounded-2xl gradient-amber flex items-center justify-center mb-8 shadow-elevated animate-float shine">
+              <Sparkles className="w-12 h-12 text-primary-foreground" />
             </div>
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground mb-4">
-              Welcome to Marginalia
+            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 tracking-tight">
+              Welcome to <span className="text-gradient">Marginalia</span>
             </h1>
-            <p className="text-lg text-muted-foreground max-w-md mb-8">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-lg mb-10 leading-relaxed">
               Your personal companion for capturing and organizing thoughts from every book you read.
             </p>
             <button 
               onClick={() => setAddBookOpen(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-primary-foreground gradient-amber shadow-card hover:shadow-elevated transition-all hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl font-semibold text-primary-foreground gradient-amber shadow-elevated hover:shadow-glow transition-all duration-300 hover:-translate-y-1 hover:scale-105"
             >
               <BookOpen className="w-5 h-5" />
               Add your first book
             </button>
+            
+            {/* Decorative elements */}
+            <div className="ornament-divider w-48 mt-16">
+              <BookOpen className="w-4 h-4 text-muted-foreground/50" />
+            </div>
           </div>
         ) : (
           <>
             {/* Tabs and search */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'library' | 'notes' | 'feed' | 'friends')} className="w-full sm:w-auto">
-                <TabsList className="bg-secondary/50">
-                  <TabsTrigger value="library" className="gap-2">
+                <TabsList className="bg-secondary/80 shadow-soft p-1">
+                  <TabsTrigger value="library" className="gap-2 data-[state=active]:shadow-card">
                     <Library className="w-4 h-4" />
                     Library
                   </TabsTrigger>
-                  <TabsTrigger value="notes" className="gap-2">
+                  <TabsTrigger value="notes" className="gap-2 data-[state=active]:shadow-card">
                     <Search className="w-4 h-4" />
                     Notes
                   </TabsTrigger>
-                  <TabsTrigger value="feed" className="gap-2">
+                  <TabsTrigger value="feed" className="gap-2 data-[state=active]:shadow-card">
                     <Rss className="w-4 h-4" />
                     Feed
                   </TabsTrigger>
-                  <TabsTrigger value="friends" className="gap-2">
+                  <TabsTrigger value="friends" className="gap-2 data-[state=active]:shadow-card">
                     <Users className="w-4 h-4" />
                     Friends
                   </TabsTrigger>
