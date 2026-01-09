@@ -96,6 +96,69 @@ function TranscriptEditor({
   );
 }
 
+// Manual transcript entry sub-component
+function ManualTranscriptEntry({ 
+  onSave, 
+  onUseAsText 
+}: { 
+  onSave: (text: string) => void;
+  onUseAsText?: (text: string) => void;
+}) {
+  const [isEntering, setIsEntering] = useState(false);
+  const [text, setText] = useState('');
+
+  if (isEntering) {
+    return (
+      <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
+        <Textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Type what you said in the recording..."
+          className="min-h-[80px] bg-background resize-none text-sm"
+          autoFocus
+        />
+        <div className="flex gap-2">
+          <Button type="button" variant="ghost" size="sm" onClick={() => setIsEntering(false)}>
+            <X className="w-3 h-3 mr-1" />
+            Cancel
+          </Button>
+          <Button type="button" size="sm" onClick={() => onSave(text)} disabled={!text.trim()}>
+            <Check className="w-3 h-3 mr-1" />
+            Save transcript
+          </Button>
+          {onUseAsText && text.trim() && (
+            <Button 
+              type="button" 
+              variant="secondary" 
+              size="sm" 
+              onClick={() => onUseAsText(text)}
+            >
+              <Wand2 className="w-3 h-3 mr-1" />
+              Enhance with AI
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border/50">
+      <p className="text-xs text-muted-foreground mb-2">No transcript detected</p>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-full gap-2"
+        onClick={() => setIsEntering(true)}
+      >
+        <FileText className="w-4 h-4" />
+        Add transcript manually
+      </Button>
+    </div>
+  );
+}
+
 export function VoiceMemoRecorder({ onRecordingComplete, recordedAudio, onClear, onTranscriptEdit, onUseAsText }: VoiceMemoRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -316,24 +379,12 @@ export function VoiceMemoRecorder({ onRecordingComplete, recordedAudio, onClear,
               onUseAsText={onUseAsText}
             />
           ) : (
-            <div className="mt-3 pt-3 border-t border-border/50">
-              <p className="text-xs text-muted-foreground mb-2">No transcript available</p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-full gap-2"
-                onClick={() => {
-                  // Simulate adding a transcript manually by setting it
-                  if (onTranscriptEdit) {
-                    onTranscriptEdit('');
-                  }
-                }}
-              >
-                <FileText className="w-4 h-4" />
-                Add transcript manually
-              </Button>
-            </div>
+            <ManualTranscriptEntry 
+              onSave={(text) => {
+                if (onTranscriptEdit) onTranscriptEdit(text);
+              }}
+              onUseAsText={onUseAsText}
+            />
           )}
         </div>
       </div>
