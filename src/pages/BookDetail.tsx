@@ -4,12 +4,12 @@ import { Header } from '@/components/Header';
 import { NoteCard } from '@/components/NoteCard';
 import { AddNoteDialog } from '@/components/AddNoteDialog';
 import { EmptyState } from '@/components/EmptyState';
-import { FloatingAddButton } from '@/components/FloatingAddButton';
+import { FloatingRecorder } from '@/components/FloatingRecorder';
 import { SearchBar } from '@/components/SearchBar';
 import { Button } from '@/components/ui/button';
 import { Book, Note, NoteType, MediaType } from '@/types';
 import { getBooks, getNotesForBook, addNote, deleteNote } from '@/lib/store';
-import { ArrowLeft, BookOpen, PenLine, Quote, Lightbulb, HelpCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, PenLine, Quote, Lightbulb, HelpCircle, CheckCircle, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 const noteFilters = [
@@ -28,6 +28,7 @@ const BookDetail = () => {
   const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | NoteType>('all');
+  const [pendingRecording, setPendingRecording] = useState<{ url: string; duration: number; transcript?: string } | null>(null);
 
   useEffect(() => {
     if (!bookId) return;
@@ -63,6 +64,12 @@ const BookDetail = () => {
     });
     setNotes(prev => [newNote, ...prev]);
     toast.success('Note saved');
+    setPendingRecording(null);
+  };
+
+  const handleQuickRecording = (data: { url: string; duration: number; transcript?: string }) => {
+    setPendingRecording(data);
+    setAddNoteOpen(true);
   };
 
   const handleDeleteNote = (noteId: string) => {
@@ -189,19 +196,33 @@ const BookDetail = () => {
         )}
       </main>
 
-      {/* Floating add button */}
-      <FloatingAddButton 
-        onClick={() => setAddNoteOpen(true)} 
-        label="Add note"
-      />
+      {/* Floating action buttons */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 items-end">
+        {/* Quick voice recorder */}
+        <FloatingRecorder onRecordingComplete={handleQuickRecording} />
+        
+        {/* Add note button */}
+        <Button
+          onClick={() => setAddNoteOpen(true)}
+          size="icon"
+          variant="secondary"
+          className="h-12 w-12 rounded-full shadow-lg"
+        >
+          <Plus className="w-5 h-5" />
+        </Button>
+      </div>
 
       {/* Add note dialog */}
       <AddNoteDialog
         open={addNoteOpen}
-        onOpenChange={setAddNoteOpen}
+        onOpenChange={(open) => {
+          setAddNoteOpen(open);
+          if (!open) setPendingRecording(null);
+        }}
         onAdd={handleAddNote}
         bookTitle={book.title}
         isAudiobook={book.format === 'audiobook'}
+        initialRecording={pendingRecording}
       />
     </div>
   );
