@@ -40,21 +40,19 @@ function BookSpine({ book, onClick, onDelete }: { book: Book; onClick: () => voi
       >
         {/* Book with cover image or colored spine */}
         {book.coverUrl ? (
-          // Show book cover at a slight angle - wider container for full cover
+          // Show book cover at a slight angle - fixed size container
           <div 
-            className="relative h-44 sm:h-52 md:h-60"
+            className="relative w-16 sm:w-20 md:w-24 h-32 sm:h-40 md:h-48"
             style={{
-              width: 'auto',
               perspective: '400px',
               transformStyle: 'preserve-3d',
             }}
           >
-            {/* Book cover - natural aspect ratio */}
+            {/* Book cover - fixed dimensions */}
             <div
-              className="relative h-full rounded-sm shadow-lg overflow-hidden"
+              className="absolute inset-0 rounded-sm shadow-lg overflow-hidden"
               style={{
-                aspectRatio: '2/3',
-                transform: 'rotateY(-25deg)',
+                transform: 'rotateY(-20deg)',
                 transformOrigin: 'left center',
                 boxShadow: '4px 2px 10px rgba(0,0,0,0.35)',
               }}
@@ -67,20 +65,18 @@ function BookSpine({ book, onClick, onDelete }: { book: Book; onClick: () => voi
               {/* Lighting overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-white/10" />
             </div>
-            {/* Page edges - positioned at the right edge of the rotated cover */}
+            {/* Page edges */}
             <div 
-              className="absolute top-1 h-[calc(100%-8px)] w-2 bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-100 dark:to-amber-200 rounded-r-sm"
+              className="absolute top-1 right-0 h-[calc(100%-8px)] w-1.5 bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-100 dark:to-amber-200 rounded-r-sm"
               style={{
-                right: '0',
-                transform: 'translateX(2px)',
                 boxShadow: '1px 0 3px rgba(0,0,0,0.15)',
               }}
             />
           </div>
         ) : (
-          // Show colored spine (no cover)
+          // Show colored spine (no cover) - same fixed size
           <div 
-            className={`relative w-12 sm:w-14 md:w-16 h-44 sm:h-52 md:h-60 bg-gradient-to-b ${getSpineColor(book.title)} rounded-sm shadow-lg flex flex-col items-center justify-center overflow-hidden`}
+            className={`relative w-16 sm:w-20 md:w-24 h-32 sm:h-40 md:h-48 bg-gradient-to-b ${getSpineColor(book.title)} rounded-sm shadow-lg flex flex-col items-center justify-center overflow-hidden`}
             style={{
               transform: 'perspective(200px) rotateY(-5deg)',
               boxShadow: '2px 2px 8px rgba(0,0,0,0.3), inset -2px 0 4px rgba(255,255,255,0.1)',
@@ -172,7 +168,7 @@ export function Bookshelf({ books, onBookClick, onDeleteBook }: BookshelfProps) 
           {/* Shelf with books */}
           <div className="relative">
             {/* Books container */}
-            <div className="flex items-end justify-start gap-1 sm:gap-2 px-4 pb-3 min-h-[15rem] sm:min-h-[17rem] md:min-h-[19rem] overflow-x-auto scrollbar-hide">
+            <div className="flex items-end justify-start gap-2 sm:gap-3 px-4 pb-3 min-h-[10rem] sm:min-h-[12rem] md:min-h-[14rem] overflow-x-auto overflow-y-hidden scrollbar-hide">
               {shelfBooks.map((book, bookIndex) => (
                 <div 
                   key={book.id}
