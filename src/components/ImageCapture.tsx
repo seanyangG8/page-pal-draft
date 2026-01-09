@@ -1,14 +1,16 @@
 import { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, Upload, X, Pencil, Type, RotateCcw } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Camera, Upload, X, Pencil, Type, RotateCcw, FileText, Check } from 'lucide-react';
 
 interface ImageCaptureProps {
   onCapture: (data: { url: string; extractedText?: string }) => void;
   capturedImage: { url: string; extractedText?: string } | null;
   onClear: () => void;
+  onUseAsText?: (text: string) => void;
 }
 
-export function ImageCapture({ onCapture, capturedImage, onClear }: ImageCaptureProps) {
+export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }: ImageCaptureProps) {
   const [isDrawing, setIsDrawing] = useState(false);
   const [showTextInput, setShowTextInput] = useState(false);
   const [manualText, setManualText] = useState('');
@@ -249,8 +251,8 @@ export function ImageCapture({ onCapture, capturedImage, onClear }: ImageCapture
       {/* Manual text extraction */}
       {showTextInput ? (
         <div className="space-y-2">
-          <textarea
-            className="w-full min-h-[80px] p-3 rounded-lg border border-border bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+          <Textarea
+            className="min-h-[80px] bg-background resize-none text-sm"
             placeholder="Type or paste the text from the image..."
             value={manualText}
             onChange={(e) => setManualText(e.target.value)}
@@ -260,6 +262,7 @@ export function ImageCapture({ onCapture, capturedImage, onClear }: ImageCapture
               Cancel
             </Button>
             <Button type="button" size="sm" onClick={handleSaveText} disabled={!manualText.trim()}>
+              <Check className="w-3 h-3 mr-1" />
               Save text
             </Button>
           </div>
@@ -279,7 +282,36 @@ export function ImageCapture({ onCapture, capturedImage, onClear }: ImageCapture
 
       {capturedImage.extractedText && (
         <div className="p-3 rounded-lg bg-secondary/50 border border-border">
-          <p className="text-xs text-muted-foreground mb-1">Extracted text:</p>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs text-muted-foreground">Extracted text:</p>
+            <div className="flex gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs px-2"
+                onClick={() => {
+                  setManualText(capturedImage.extractedText || '');
+                  setShowTextInput(true);
+                }}
+              >
+                <Pencil className="w-3 h-3 mr-1" />
+                Edit
+              </Button>
+              {onUseAsText && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs px-2"
+                  onClick={() => onUseAsText(capturedImage.extractedText || '')}
+                >
+                  <FileText className="w-3 h-3 mr-1" />
+                  Use as note
+                </Button>
+              )}
+            </div>
+          </div>
           <p className="text-sm">{capturedImage.extractedText}</p>
         </div>
       )}

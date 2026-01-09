@@ -1,17 +1,102 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, Square, Play, Pause, Trash2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Mic, Square, Play, Pause, Trash2, FileText, Pencil, Check, X } from 'lucide-react';
 
 interface VoiceMemoRecorderProps {
   onRecordingComplete: (data: { url: string; duration: number; transcript?: string }) => void;
   recordedAudio: { url: string; duration: number; transcript?: string } | null;
   onClear: () => void;
+  onTranscriptEdit?: (transcript: string) => void;
+  onUseAsText?: (transcript: string) => void;
 }
 
 // Check for Web Speech API support
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-export function VoiceMemoRecorder({ onRecordingComplete, recordedAudio, onClear }: VoiceMemoRecorderProps) {
+// Transcript editor sub-component
+function TranscriptEditor({ 
+  transcript, 
+  onEdit, 
+  onUseAsText 
+}: { 
+  transcript: string; 
+  onEdit?: (text: string) => void;
+  onUseAsText?: (text: string) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedText, setEditedText] = useState(transcript);
+
+  const handleSave = () => {
+    if (onEdit) {
+      onEdit(editedText);
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditedText(transcript);
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
+        <Textarea
+          value={editedText}
+          onChange={(e) => setEditedText(e.target.value)}
+          className="min-h-[80px] bg-background resize-none text-sm"
+          autoFocus
+        />
+        <div className="flex gap-2">
+          <Button type="button" variant="ghost" size="sm" onClick={handleCancel}>
+            <X className="w-3 h-3 mr-1" />
+            Cancel
+          </Button>
+          <Button type="button" size="sm" onClick={handleSave}>
+            <Check className="w-3 h-3 mr-1" />
+            Save
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border/50">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-xs text-muted-foreground">Transcribed:</p>
+        <div className="flex gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-6 text-xs px-2"
+            onClick={() => setIsEditing(true)}
+          >
+            <Pencil className="w-3 h-3 mr-1" />
+            Edit
+          </Button>
+          {onUseAsText && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 text-xs px-2"
+              onClick={() => onUseAsText(transcript)}
+            >
+              <FileText className="w-3 h-3 mr-1" />
+              Use as note
+            </Button>
+          )}
+        </div>
+      </div>
+      <p className="text-sm text-foreground">{transcript}</p>
+    </div>
+  );
+}
+
+export function VoiceMemoRecorder({ onRecordingComplete, recordedAudio, onClear, onTranscriptEdit, onUseAsText }: VoiceMemoRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -223,12 +308,13 @@ export function VoiceMemoRecorder({ onRecordingComplete, recordedAudio, onClear 
             </Button>
           </div>
           
-          {/* Show transcript if available */}
+          {/* Show transcript with edit option */}
           {recordedAudio.transcript && (
-            <div className="mt-3 pt-3 border-t border-border/50">
-              <p className="text-xs text-muted-foreground mb-1">Transcribed:</p>
-              <p className="text-sm text-foreground">{recordedAudio.transcript}</p>
-            </div>
+            <TranscriptEditor
+              transcript={recordedAudio.transcript}
+              onEdit={onTranscriptEdit}
+              onUseAsText={onUseAsText}
+            />
           )}
         </div>
       </div>
