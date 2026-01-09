@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,7 @@ interface AddNoteDialogProps {
   }) => void;
   bookTitle: string;
   isAudiobook?: boolean;
+  initialRecording?: { url: string; duration: number; transcript?: string } | null;
 }
 
 const noteTypes: { type: NoteType; icon: typeof Quote; label: string }[] = [
@@ -41,7 +42,7 @@ const noteTypes: { type: NoteType; icon: typeof Quote; label: string }[] = [
   { type: 'action', icon: CheckCircle, label: 'Action' },
 ];
 
-export function AddNoteDialog({ open, onOpenChange, onAdd, bookTitle, isAudiobook }: AddNoteDialogProps) {
+export function AddNoteDialog({ open, onOpenChange, onAdd, bookTitle, isAudiobook, initialRecording }: AddNoteDialogProps) {
   const [captureMode, setCaptureMode] = useState<'text' | 'image' | 'audio'>('text');
   const [type, setType] = useState<NoteType>('quote');
   const [content, setContent] = useState('');
@@ -53,6 +54,14 @@ export function AddNoteDialog({ open, onOpenChange, onAdd, bookTitle, isAudioboo
   const [audioData, setAudioData] = useState<{ url: string; duration: number; transcript?: string } | null>(null);
   const [isPrivate, setIsPrivate] = useState(false);
   const [showAIEditor, setShowAIEditor] = useState(false);
+
+  // Handle initial recording from floating recorder
+  useEffect(() => {
+    if (open && initialRecording) {
+      setAudioData(initialRecording);
+      setCaptureMode('audio');
+    }
+  }, [open, initialRecording]);
 
   const resetForm = () => {
     setType('quote');
