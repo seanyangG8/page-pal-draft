@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { reorderBooks } from '@/lib/store';
 
 interface BookshelfProps {
@@ -17,29 +17,41 @@ interface BookshelfProps {
   onReorder?: () => void;
 }
 
+interface BookSpineProps {
+  book: Book;
+  onClick: () => void;
+  onDelete: () => void;
+  isDragging?: boolean;
+  isDragOver?: boolean;
+  isTouchDragging?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragLeave?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
+  onTouchStart?: (e: React.TouchEvent) => void;
+  onTouchMove?: (e: React.TouchEvent) => void;
+  onTouchEnd?: (e: React.TouchEvent) => void;
+  bookRef?: (el: HTMLDivElement | null) => void;
+}
+
 function BookSpine({ 
   book, 
   onClick, 
   onDelete,
   isDragging,
   isDragOver,
+  isTouchDragging,
   onDragStart,
   onDragEnd,
   onDragOver,
   onDragLeave,
   onDrop,
-}: { 
-  book: Book; 
-  onClick: () => void; 
-  onDelete: () => void;
-  isDragging?: boolean;
-  isDragOver?: boolean;
-  onDragStart?: (e: React.DragEvent) => void;
-  onDragEnd?: (e: React.DragEvent) => void;
-  onDragOver?: (e: React.DragEvent) => void;
-  onDragLeave?: (e: React.DragEvent) => void;
-  onDrop?: (e: React.DragEvent) => void;
-}) {
+  onTouchStart,
+  onTouchMove,
+  onTouchEnd,
+  bookRef,
+}: BookSpineProps) {
   // Generate a consistent color based on book title for variety
   const getSpineColor = (title: string) => {
     const colors = [
@@ -58,13 +70,17 @@ function BookSpine({
 
   return (
     <div 
-      className={`group relative transition-all duration-300 ease-out ${isDragging ? 'opacity-40 scale-90' : ''} ${isDragOver ? 'translate-x-4' : ''}`}
+      ref={bookRef}
+      className={`group relative transition-all duration-300 ease-out touch-none ${isDragging || isTouchDragging ? 'opacity-40 scale-90 z-50' : ''} ${isDragOver ? 'translate-x-4' : ''}`}
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
     >
       {/* Drop indicator */}
       {isDragOver && (
@@ -72,7 +88,7 @@ function BookSpine({
       )}
       
       {/* Drag handle indicator */}
-      <div className="absolute -left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 transition-opacity z-10 cursor-grab">
+      <div className="absolute -left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 sm:group-hover:opacity-60 transition-opacity z-10 cursor-grab">
         <GripVertical className="w-3 h-3 text-muted-foreground" />
       </div>
       
@@ -103,7 +119,7 @@ function BookSpine({
               <img 
                 src={book.coverUrl} 
                 alt={book.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover pointer-events-none"
               />
               {/* Lighting overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-white/10" />
@@ -199,11 +215,24 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onReorder }: Books
   const [draggedBookId, setDraggedBookId] = useState<string | null>(null);
   const [dragOverBookId, setDragOverBookId] = useState<string | null>(null);
   const [localBooks, setLocalBooks] = useState<Book[]>(books);
+  const [touchDragId, setTouchDragId] = useState<string | null>(null);
+  
+  const bookRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Sync local state when books prop changes
-  if (books !== localBooks && !draggedBookId) {
+  if (books !== localBooks && !draggedBookId && !touchDragId) {
     setLocalBooks(books);
   }
+
+  const setBookRef = useCallback((bookId: string) => (el: HTMLDivElement | null) => {
+    if (el) {
+      bookRefs.current.set(bookId, el);
+    } else {
+      bookRefs.current.delete(bookId);
+    }
+  }, []);
 
   const handleDragStart = (e: React.DragEvent, bookId: string) => {
     setDraggedBookId(bookId);
@@ -212,17 +241,7 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onReorder }: Books
 
   const handleDragEnd = () => {
     if (draggedBookId && dragOverBookId && draggedBookId !== dragOverBookId) {
-      const newBooks = [...localBooks];
-      const draggedIndex = newBooks.findIndex(b => b.id === draggedBookId);
-      const targetIndex = newBooks.findIndex(b => b.id === dragOverBookId);
-      
-      if (draggedIndex !== -1 && targetIndex !== -1) {
-        const [removed] = newBooks.splice(draggedIndex, 1);
-        newBooks.splice(targetIndex, 0, removed);
-        setLocalBooks(newBooks);
-        reorderBooks(newBooks.map(b => b.id));
-        onReorder?.();
-      }
+      reorderBooksInternal(draggedBookId, dragOverBookId);
     }
     setDraggedBookId(null);
     setDragOverBookId(null);
@@ -241,6 +260,89 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onReorder }: Books
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+  };
+
+  // Touch handlers for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent, bookId: string) => {
+    const touch = e.touches[0];
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    
+    // Long press to start drag
+    longPressTimer.current = setTimeout(() => {
+      setTouchDragId(bookId);
+      // Haptic feedback if available
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    }, 300);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent, bookId: string) => {
+    if (!touchDragId) {
+      // Cancel long press if moved too much before drag started
+      if (longPressTimer.current && touchStartPos.current) {
+        const touch = e.touches[0];
+        const dx = Math.abs(touch.clientX - touchStartPos.current.x);
+        const dy = Math.abs(touch.clientY - touchStartPos.current.y);
+        if (dx > 10 || dy > 10) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+      }
+      return;
+    }
+
+    e.preventDefault();
+    const touch = e.touches[0];
+    
+    // Find which book we're over
+    let foundBookId: string | null = null;
+    bookRefs.current.forEach((el, id) => {
+      if (id !== touchDragId) {
+        const rect = el.getBoundingClientRect();
+        if (
+          touch.clientX >= rect.left &&
+          touch.clientX <= rect.right &&
+          touch.clientY >= rect.top &&
+          touch.clientY <= rect.bottom
+        ) {
+          foundBookId = id;
+        }
+      }
+    });
+    
+    if (foundBookId !== dragOverBookId) {
+      setDragOverBookId(foundBookId);
+    }
+  }, [touchDragId, dragOverBookId]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    
+    if (touchDragId && dragOverBookId && touchDragId !== dragOverBookId) {
+      reorderBooksInternal(touchDragId, dragOverBookId);
+    }
+    
+    setTouchDragId(null);
+    setDragOverBookId(null);
+    touchStartPos.current = null;
+  }, [touchDragId, dragOverBookId]);
+
+  const reorderBooksInternal = (fromId: string, toId: string) => {
+    const newBooks = [...localBooks];
+    const draggedIndex = newBooks.findIndex(b => b.id === fromId);
+    const targetIndex = newBooks.findIndex(b => b.id === toId);
+    
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+      const [removed] = newBooks.splice(draggedIndex, 1);
+      newBooks.splice(targetIndex, 0, removed);
+      setLocalBooks(newBooks);
+      reorderBooks(newBooks.map(b => b.id));
+      onReorder?.();
+    }
   };
 
   // Group books into shelves (max 8 per shelf for good visual)
@@ -276,15 +378,20 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onReorder }: Books
                 >
                   <BookSpine 
                     book={book} 
-                    onClick={() => onBookClick(book.id)}
+                    onClick={() => !touchDragId && onBookClick(book.id)}
                     onDelete={() => onDeleteBook(book.id)}
                     isDragging={draggedBookId === book.id}
-                    isDragOver={dragOverBookId === book.id && draggedBookId !== book.id}
+                    isDragOver={dragOverBookId === book.id && draggedBookId !== book.id && touchDragId !== book.id}
+                    isTouchDragging={touchDragId === book.id}
                     onDragStart={(e) => handleDragStart(e, book.id)}
                     onDragEnd={handleDragEnd}
                     onDragOver={(e) => handleDragOver(e, book.id)}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
+                    onTouchStart={(e) => handleTouchStart(e, book.id)}
+                    onTouchMove={(e) => handleTouchMove(e, book.id)}
+                    onTouchEnd={handleTouchEnd}
+                    bookRef={setBookRef(book.id)}
                   />
                 </div>
               ))}
@@ -320,6 +427,13 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onReorder }: Books
           </div>
         </div>
       ))}
+      
+      {/* Touch drag instruction toast */}
+      {touchDragId && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-foreground/90 text-background px-4 py-2 rounded-full text-sm font-medium shadow-lg z-50 animate-fade-in">
+          Drag to reorder • Release to drop
+        </div>
+      )}
     </div>
   );
 }
