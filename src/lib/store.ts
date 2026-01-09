@@ -7,6 +7,96 @@ const FOLDERS_KEY = 'marginalia_folders';
 const COLLECTIONS_KEY = 'marginalia_collections';
 const FILTERS_KEY = 'marginalia_saved_filters';
 const REVIEW_KEY = 'marginalia_review_sessions';
+const ACTIVITY_KEY = 'marginalia_activity_dates';
+const GOALS_KEY = 'marginalia_reading_goals';
+
+// ===== READING ACTIVITY TRACKING =====
+export interface ReadingGoals {
+  yearlyBookTarget: number;
+  year: number;
+}
+
+export function getReadingGoals(): ReadingGoals {
+  if (typeof window === 'undefined') return { yearlyBookTarget: 12, year: new Date().getFullYear() };
+  const stored = localStorage.getItem(GOALS_KEY);
+  if (!stored) return { yearlyBookTarget: 12, year: new Date().getFullYear() };
+  return JSON.parse(stored);
+}
+
+export function saveReadingGoals(goals: ReadingGoals): void {
+  localStorage.setItem(GOALS_KEY, JSON.stringify(goals));
+}
+
+export function getActivityDates(): string[] {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem(ACTIVITY_KEY);
+  if (!stored) return [];
+  return JSON.parse(stored);
+}
+
+export function saveActivityDates(dates: string[]): void {
+  localStorage.setItem(ACTIVITY_KEY, JSON.stringify(dates));
+}
+
+export function recordActivity(): void {
+  const today = new Date().toISOString().split('T')[0];
+  const dates = getActivityDates();
+  if (!dates.includes(today)) {
+    dates.push(today);
+    saveActivityDates(dates);
+  }
+}
+
+export function calculateStreak(): { current: number; longest: number } {
+  const dates = getActivityDates().sort().reverse();
+  if (dates.length === 0) return { current: 0, longest: 0 };
+
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  
+  let currentStreak = 0;
+  let longestStreak = 0;
+  let tempStreak = 0;
+  
+  // Calculate current streak (must include today or yesterday)
+  if (dates[0] === today || dates[0] === yesterday) {
+    currentStreak = 1;
+    for (let i = 1; i < dates.length; i++) {
+      const prevDate = new Date(dates[i - 1]);
+      const currDate = new Date(dates[i]);
+      const diffDays = (prevDate.getTime() - currDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (diffDays === 1) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+  }
+  
+  // Calculate longest streak
+  const sortedAsc = [...dates].sort();
+  tempStreak = 1;
+  longestStreak = 1;
+  for (let i = 1; i < sortedAsc.length; i++) {
+    const prevDate = new Date(sortedAsc[i - 1]);
+    const currDate = new Date(sortedAsc[i]);
+    const diffDays = (currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
+    if (diffDays === 1) {
+      tempStreak++;
+      longestStreak = Math.max(longestStreak, tempStreak);
+    } else if (diffDays > 1) {
+      tempStreak = 1;
+    }
+  }
+  
+  return { current: currentStreak, longest: Math.max(longestStreak, currentStreak) };
+}
+
+export function getBooksReadThisYear(): number {
+  const currentYear = new Date().getFullYear();
+  const books = getBooks();
+  return books.filter(b => new Date(b.createdAt).getFullYear() === currentYear).length;
+}
 
 // ===== BOOKS =====
 export function getBooks(): Book[] {
@@ -33,6 +123,10 @@ export function addBook(book: Omit<Book, 'id' | 'createdAt' | 'notesCount'>): Bo
   };
   books.push(newBook);
   saveBooks(books);
+  
+  // Record activity for streak tracking
+  recordActivity();
+  
   return newBook;
 }
 
@@ -92,6 +186,9 @@ export function addNote(note: Omit<Note, 'id' | 'createdAt' | 'updatedAt' | 'rev
   };
   notes.push(newNote);
   saveNotes(notes);
+
+  // Record activity for streak tracking
+  recordActivity();
 
   // Update book notes count
   const books = getBooks();

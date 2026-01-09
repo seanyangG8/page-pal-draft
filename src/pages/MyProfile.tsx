@@ -8,20 +8,22 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { 
   BookOpen, 
   FileText, 
   Calendar, 
-  Users, 
   Edit2, 
   Save, 
   X, 
   TrendingUp,
   Award,
-  Target
+  Target,
+  Flame,
+  Trophy
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getBooks, getNotes } from '@/lib/store';
+import { getBooks, getNotes, getReadingGoals, saveReadingGoals, calculateStreak, getBooksReadThisYear, getActivityDates } from '@/lib/store';
 import { useNavigate } from 'react-router-dom';
 
 interface UserProfileData {
@@ -47,6 +49,8 @@ export default function MyProfile() {
   const [profile, setProfile] = useState<UserProfileData>(defaultProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<UserProfileData>(defaultProfile);
+  const [isEditingGoal, setIsEditingGoal] = useState(false);
+  const [goalInput, setGoalInput] = useState(12);
   const [stats, setStats] = useState({
     booksRead: 0,
     totalNotes: 0,
@@ -55,6 +59,10 @@ export default function MyProfile() {
     questions: 0,
     actions: 0,
   });
+  const [goals, setGoals] = useState({ yearlyBookTarget: 12, year: new Date().getFullYear() });
+  const [streak, setStreak] = useState({ current: 0, longest: 0 });
+  const [booksThisYear, setBooksThisYear] = useState(0);
+  const [activityDays, setActivityDays] = useState(0);
 
   useEffect(() => {
     // Load profile from localStorage
@@ -76,7 +84,23 @@ export default function MyProfile() {
       questions: notes.filter(n => n.type === 'question').length,
       actions: notes.filter(n => n.type === 'action').length,
     });
+
+    // Load goals and streak
+    const savedGoals = getReadingGoals();
+    setGoals(savedGoals);
+    setGoalInput(savedGoals.yearlyBookTarget);
+    setStreak(calculateStreak());
+    setBooksThisYear(getBooksReadThisYear());
+    setActivityDays(getActivityDates().length);
   }, []);
+
+  const handleSaveGoal = () => {
+    const newGoals = { yearlyBookTarget: goalInput, year: new Date().getFullYear() };
+    saveReadingGoals(newGoals);
+    setGoals(newGoals);
+    setIsEditingGoal(false);
+    toast.success('Reading goal updated!');
+  };
 
   const handleSave = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(editForm));
@@ -202,6 +226,99 @@ export default function MyProfile() {
           </div>
         </Card>
 
+        {/* Reading Goals & Streak Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Yearly Reading Goal */}
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Target className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold text-foreground">{new Date().getFullYear()} Reading Goal</h3>
+              </div>
+              {!isEditingGoal && (
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditingGoal(true)}>
+                  <Edit2 className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+            
+            {isEditingGoal ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={goalInput}
+                    onChange={(e) => setGoalInput(parseInt(e.target.value) || 1)}
+                    className="w-24"
+                  />
+                  <span className="text-muted-foreground">books this year</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleSaveGoal}>Save</Button>
+                  <Button size="sm" variant="outline" onClick={() => { setIsEditingGoal(false); setGoalInput(goals.yearlyBookTarget); }}>Cancel</Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-3xl font-bold text-foreground">{booksThisYear}</span>
+                  <span className="text-muted-foreground">/ {goals.yearlyBookTarget} books</span>
+                </div>
+                <Progress 
+                  value={Math.min((booksThisYear / goals.yearlyBookTarget) * 100, 100)} 
+                  className="h-3 mb-2"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {booksThisYear >= goals.yearlyBookTarget 
+                    ? '🎉 Goal reached! Amazing work!' 
+                    : `${goals.yearlyBookTarget - booksThisYear} more to go`
+                  }
+                </p>
+              </>
+            )}
+          </Card>
+
+          {/* Reading Streak */}
+          <Card className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Flame className="w-5 h-5 text-orange-500" />
+              <h3 className="font-semibold text-foreground">Reading Streak</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-bold text-foreground">{streak.current}</span>
+                  <span className="text-muted-foreground text-sm">days</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Current streak</p>
+              </div>
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <Trophy className="w-4 h-4 text-amber-500 mr-1" />
+                  <span className="text-xl font-bold text-foreground">{streak.longest}</span>
+                  <span className="text-muted-foreground text-sm">days</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Longest streak</p>
+              </div>
+            </div>
+            
+            <div className="mt-4 pt-3 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">
+                {streak.current > 0 
+                  ? `🔥 Keep it up! You're on a ${streak.current}-day streak!`
+                  : 'Add a book or note today to start your streak!'
+                }
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {activityDays} total active days
+              </p>
+            </div>
+          </Card>
+        </div>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card className="p-4 text-center">
@@ -282,6 +399,9 @@ export default function MyProfile() {
                   { name: 'Quote Collector', desc: 'Saved 10 quotes', unlocked: stats.quotes >= 10, icon: '💬' },
                   { name: 'Idea Machine', desc: 'Captured 20 ideas', unlocked: stats.ideas >= 20, icon: '💡' },
                   { name: 'Scholar', desc: 'Read 10 books', unlocked: stats.booksRead >= 10, icon: '🎓' },
+                  { name: 'On Fire', desc: '7-day reading streak', unlocked: streak.longest >= 7, icon: '🔥' },
+                  { name: 'Dedicated', desc: '30-day reading streak', unlocked: streak.longest >= 30, icon: '💪' },
+                  { name: 'Goal Getter', desc: 'Reach yearly goal', unlocked: booksThisYear >= goals.yearlyBookTarget, icon: '🏆' },
                 ].map(achievement => (
                   <div 
                     key={achievement.name}
