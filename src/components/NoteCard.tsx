@@ -17,6 +17,7 @@ interface NoteCardProps {
   onDelete: () => void;
   onUpdate?: (note: Note) => void;
   onEdit?: () => void;
+  onClick?: () => void;
   showBookTitle?: string;
   onBookClick?: () => void;
 }
@@ -28,12 +29,15 @@ const noteTypeConfig: Record<NoteType, { icon: typeof Quote; label: string; clas
   action: { icon: CheckCircle, label: 'Action', className: 'note-badge-action' },
 };
 
-export function NoteCard({ note, onDelete, onUpdate, onEdit, showBookTitle, onBookClick }: NoteCardProps) {
+export function NoteCard({ note, onDelete, onUpdate, onEdit, onClick, showBookTitle, onBookClick }: NoteCardProps) {
   const config = noteTypeConfig[note.type];
   const Icon = config.icon;
 
   return (
-    <Card className="group relative p-4 shadow-soft hover:shadow-card transition-all duration-300 border-border/50 bg-card hover:-translate-y-0.5 active:translate-y-0 active:shadow-soft">
+    <Card 
+      className={`group relative p-4 shadow-soft hover:shadow-card transition-all duration-300 border-border/50 bg-card hover:-translate-y-0.5 active:translate-y-0 active:shadow-soft ${onClick ? 'cursor-pointer hover:bg-accent/5' : ''}`}
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           {/* Header with type badge */}
@@ -106,7 +110,10 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, showBookTitle, onBo
           <div className="flex items-center gap-3 mt-3 flex-wrap">
             {showBookTitle && (
               <button 
-                onClick={onBookClick}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBookClick?.();
+                }}
                 className="text-xs font-medium text-primary hover:text-primary/80 hover:underline transition-colors"
               >
                 {showBookTitle}
@@ -125,17 +132,18 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, showBookTitle, onBo
           </div>
         </div>
 
-        {/* Actions */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
+        {/* Actions - stop propagation */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {onEdit && (
               <DropdownMenuItem onClick={onEdit} className="gap-2">
@@ -168,7 +176,8 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, showBookTitle, onBo
               Delete note
             </DropdownMenuItem>
           </DropdownMenuContent>
-        </DropdownMenu>
+          </DropdownMenu>
+        </div>
       </div>
     </Card>
   );
