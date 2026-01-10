@@ -234,8 +234,9 @@ const BookDetail = () => {
           }
         }}
         onAdd={handleAddNote}
+        bookId={book.id}
         bookTitle={book.title}
-        isAudiobook={book.format === 'audiobook'}
+        bookFormat={book.format}
         initialRecording={pendingRecording}
         initialImage={pendingImage}
       />
