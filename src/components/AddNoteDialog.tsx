@@ -419,9 +419,9 @@ export function AddNoteDialog({
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-4 pt-3">
-                {/* Location */}
+                {/* Bookmark */}
                 <div className="space-y-2">
-                  <Label className="text-sm">Location</Label>
+                  <Label className="text-sm">Bookmark</Label>
                   <LocationInput
                     value={location}
                     onChange={setLocation}
