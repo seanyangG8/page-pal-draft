@@ -167,10 +167,10 @@ export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps
             </div>
           )}
 
-          {/* Location */}
+          {/* Bookmark */}
           {currentNote.location && (
             <p className="text-xs text-muted-foreground mt-4">
-              📍 {currentNote.location}
+              🔖 {currentNote.location}
             </p>
           )}
         </Card>

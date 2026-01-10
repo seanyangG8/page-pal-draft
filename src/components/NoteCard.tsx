@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Quote, Lightbulb, HelpCircle, CheckCircle, MoreVertical, Trash2, MapPin, Image, Mic, Clock, Lock, Globe } from 'lucide-react';
+import { Quote, Lightbulb, HelpCircle, CheckCircle, MoreVertical, Trash2, Bookmark, Image, Mic, Clock, Lock, Globe } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -61,7 +61,7 @@ export function NoteCard({ note, onDelete, onUpdate, showBookTitle }: NoteCardPr
             )}
             {note.location && (
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="w-3 h-3" />
+                <Bookmark className="w-3 h-3" />
                 {note.location}
               </span>
             )}

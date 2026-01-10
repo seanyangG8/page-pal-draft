@@ -1,6 +1,8 @@
+import { useState, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { BookOpen, Clock, Hash, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BookOpen, Clock, FileText, Minus, Plus } from 'lucide-react';
 import { BookFormat } from '@/types';
 
 export interface LocationData {
@@ -19,6 +21,35 @@ interface LocationInputProps {
   className?: string;
 }
 
+// Smart parsing function to handle various input formats
+function parseSmartInput(input: string): Partial<LocationData> {
+  const result: Partial<LocationData> = {};
+  let remaining = input.trim();
+  
+  // Extract page number: p42, p.42, page 42, pg42, etc.
+  const pageMatch = remaining.match(/(?:^|\s)(?:p\.?|page\s*|pg\.?\s*)(\d+)/i);
+  if (pageMatch) {
+    result.page = pageMatch[1];
+    remaining = remaining.replace(pageMatch[0], ' ');
+  }
+  
+  // Extract chapter: ch3, ch.3, chapter 3, etc.
+  const chapterMatch = remaining.match(/(?:^|\s)(?:ch\.?\s*|chapter\s*)(\d+|\w+)/i);
+  if (chapterMatch) {
+    result.chapter = `Ch ${chapterMatch[1]}`;
+    remaining = remaining.replace(chapterMatch[0], ' ');
+  }
+  
+  // Extract timestamp: 1:23:45 or 1:23
+  const timestampMatch = remaining.match(/\d{1,2}:\d{2}(:\d{2})?/);
+  if (timestampMatch) {
+    result.timestamp = timestampMatch[0];
+    remaining = remaining.replace(timestampMatch[0], ' ');
+  }
+  
+  return result;
+}
+
 export function LocationInput({ 
   value, 
   onChange, 
@@ -27,63 +58,142 @@ export function LocationInput({
   className 
 }: LocationInputProps) {
   const isAudiobook = bookFormat === 'audiobook';
+  
+  // Handle page stepper
+  const handlePageStep = useCallback((delta: number) => {
+    const currentPage = parseInt(value.page || '0', 10);
+    const newPage = Math.max(1, currentPage + delta);
+    onChange({ ...value, page: String(newPage) });
+  }, [value, onChange]);
+  
+  // Handle smart paste/input for page field
+  const handlePageInput = useCallback((inputValue: string) => {
+    // Check if this looks like a combined input (has both page and chapter markers)
+    if (/(?:p\.?|page|pg\.?)\s*\d+.*(?:ch\.?|chapter)/i.test(inputValue) ||
+        /(?:ch\.?|chapter).*(?:p\.?|page|pg\.?)\s*\d+/i.test(inputValue)) {
+      const parsed = parseSmartInput(inputValue);
+      onChange({ 
+        ...value, 
+        page: parsed.page || value.page,
+        chapter: parsed.chapter || value.chapter,
+        timestamp: parsed.timestamp || value.timestamp
+      });
+      return;
+    }
+    
+    // Clean simple page input: p42 -> 42, p.42 -> 42
+    let cleanedValue = inputValue.replace(/^(?:p\.?|page\s*|pg\.?\s*)/i, '');
+    onChange({ ...value, page: cleanedValue });
+  }, [value, onChange]);
+  
+  // Handle smart paste/input for chapter field
+  const handleChapterInput = useCallback((inputValue: string) => {
+    // Check if this looks like a combined input
+    if (/(?:p\.?|page|pg\.?)\s*\d+/i.test(inputValue)) {
+      const parsed = parseSmartInput(inputValue);
+      onChange({ 
+        ...value, 
+        page: parsed.page || value.page,
+        chapter: parsed.chapter || value.chapter,
+        timestamp: parsed.timestamp || value.timestamp
+      });
+      return;
+    }
+    
+    onChange({ ...value, chapter: inputValue });
+  }, [value, onChange]);
 
   if (compact) {
-    // Compact mode: single row with most relevant fields
+    // Compact mode: single row with labels and most relevant fields
     return (
-      <div className={`flex gap-2 ${className}`}>
+      <div className={`flex gap-3 ${className}`}>
         {isAudiobook ? (
           <>
-            <div className="flex-1">
-              <div className="relative">
-                <Clock className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                <Input
-                  placeholder="0:00:00"
-                  value={value.timestamp || ''}
-                  onChange={(e) => onChange({ ...value, timestamp: e.target.value })}
-                  className="pl-8 h-9 text-sm bg-background"
-                />
-              </div>
+            <div className="flex-1 space-y-1">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                Timestamp
+              </Label>
+              <Input
+                placeholder="0:00:00"
+                value={value.timestamp || ''}
+                onChange={(e) => onChange({ ...value, timestamp: e.target.value })}
+                className="h-9 text-sm bg-background"
+              />
             </div>
-            <div className="flex-1">
-              <div className="relative">
-                <BookOpen className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                <Input
-                  placeholder="Chapter"
-                  value={value.chapter || ''}
-                  onChange={(e) => onChange({ ...value, chapter: e.target.value })}
-                  className="pl-8 h-9 text-sm bg-background"
-                />
-              </div>
+            <div className="flex-1 space-y-1">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                <BookOpen className="w-3 h-3" />
+                Chapter
+              </Label>
+              <Input
+                placeholder="Ch 3"
+                value={value.chapter || ''}
+                onChange={(e) => handleChapterInput(e.target.value)}
+                className="h-9 text-sm bg-background"
+              />
             </div>
           </>
         ) : (
           <>
-            <div className="w-28">
-              <div className="relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-sm">#</span>
+            <div className="w-32 space-y-1">
+              <Label className="text-xs text-muted-foreground">Page</Label>
+              <div className="flex items-center gap-0.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-8 shrink-0"
+                  onClick={() => handlePageStep(-1)}
+                  disabled={!value.page || parseInt(value.page, 10) <= 1}
+                >
+                  <Minus className="w-3 h-3" />
+                </Button>
                 <Input
-                  placeholder="e.g. 42"
+                  placeholder="42"
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
                   value={value.page || ''}
-                  onChange={(e) => {
-                    // Auto-clean p42 -> 42
-                    let val = e.target.value.replace(/^p\.?\s*/i, '');
-                    onChange({ ...value, page: val });
+                  onChange={(e) => handlePageInput(e.target.value)}
+                  onPaste={(e) => {
+                    const pasted = e.clipboardData.getData('text');
+                    if (/(?:p\.?|page|pg\.?|ch\.?|chapter)/i.test(pasted)) {
+                      e.preventDefault();
+                      handlePageInput(pasted);
+                    }
                   }}
-                  className="pl-7 h-9 text-sm bg-background"
+                  className="h-9 text-sm bg-background text-center px-1"
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-8 shrink-0"
+                  onClick={() => handlePageStep(1)}
+                >
+                  <Plus className="w-3 h-3" />
+                </Button>
               </div>
             </div>
-            <div className="flex-1">
-              <div className="relative">
-                <BookOpen className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="e.g. Ch 3"
-                  value={value.chapter || ''}
-                  onChange={(e) => onChange({ ...value, chapter: e.target.value })}
-                  className="pl-8 h-9 text-sm bg-background"
-                />
-              </div>
+            <div className="flex-1 space-y-1">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                <BookOpen className="w-3 h-3" />
+                Chapter
+              </Label>
+              <Input
+                placeholder="Ch 3"
+                value={value.chapter || ''}
+                onChange={(e) => handleChapterInput(e.target.value)}
+                onPaste={(e) => {
+                  const pasted = e.clipboardData.getData('text');
+                  if (/(?:p\.?|page|pg\.?)\s*\d+/i.test(pasted)) {
+                    e.preventDefault();
+                    handleChapterInput(pasted);
+                  }
+                }}
+                className="h-9 text-sm bg-background"
+              />
             </div>
           </>
         )}
@@ -115,9 +225,9 @@ export function LocationInput({
                 Chapter
               </Label>
               <Input
-                placeholder="Chapter 5"
+                placeholder="Ch 3"
                 value={value.chapter || ''}
-                onChange={(e) => onChange({ ...value, chapter: e.target.value })}
+                onChange={(e) => handleChapterInput(e.target.value)}
                 className="h-9 text-sm bg-background"
               />
             </div>
@@ -125,17 +235,44 @@ export function LocationInput({
         ) : (
           <>
             <div className="space-y-1.5">
-              <Label className="text-xs flex items-center gap-1.5">
-                <Hash className="w-3 h-3" />
-                Page
-              </Label>
-              <Input
-                placeholder="42"
-                type="number"
-                value={value.page || ''}
-                onChange={(e) => onChange({ ...value, page: e.target.value })}
-                className="h-9 text-sm bg-background"
-              />
+              <Label className="text-xs">Page</Label>
+              <div className="flex items-center gap-0.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-8 shrink-0"
+                  onClick={() => handlePageStep(-1)}
+                  disabled={!value.page || parseInt(value.page, 10) <= 1}
+                >
+                  <Minus className="w-3 h-3" />
+                </Button>
+                <Input
+                  placeholder="42"
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  value={value.page || ''}
+                  onChange={(e) => handlePageInput(e.target.value)}
+                  onPaste={(e) => {
+                    const pasted = e.clipboardData.getData('text');
+                    if (/(?:p\.?|page|pg\.?|ch\.?|chapter)/i.test(pasted)) {
+                      e.preventDefault();
+                      handlePageInput(pasted);
+                    }
+                  }}
+                  className="h-9 text-sm bg-background text-center px-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-8 shrink-0"
+                  onClick={() => handlePageStep(1)}
+                >
+                  <Plus className="w-3 h-3" />
+                </Button>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs flex items-center gap-1.5">
@@ -143,9 +280,16 @@ export function LocationInput({
                 Chapter
               </Label>
               <Input
-                placeholder="Chapter 3"
+                placeholder="Ch 3"
                 value={value.chapter || ''}
-                onChange={(e) => onChange({ ...value, chapter: e.target.value })}
+                onChange={(e) => handleChapterInput(e.target.value)}
+                onPaste={(e) => {
+                  const pasted = e.clipboardData.getData('text');
+                  if (/(?:p\.?|page|pg\.?)\s*\d+/i.test(pasted)) {
+                    e.preventDefault();
+                    handleChapterInput(pasted);
+                  }
+                }}
                 className="h-9 text-sm bg-background"
               />
             </div>
