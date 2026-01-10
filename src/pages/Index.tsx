@@ -36,6 +36,7 @@ const Index = () => {
   const [exportOpen, setExportOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [reviewNotes, setReviewNotes] = useState<Note[] | null>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilters, setActiveFilters] = useState<{
     bookId?: string;
@@ -123,11 +124,14 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
-      <Header />
+      <Header 
+        hasBooks={books.length > 0} 
+        onShowWelcome={() => setShowWelcome(true)} 
+      />
       
       <main className="container py-8 pb-24">
-        {/* Hero section for empty state */}
-        {books.length === 0 && notes.length === 0 ? (
+        {/* Hero section for empty state or when showWelcome is true */}
+        {(books.length === 0 && notes.length === 0) || showWelcome ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center animate-fade-up gradient-hero rounded-3xl -mx-4 px-4 py-12">
             <div className="w-24 h-24 rounded-2xl gradient-amber flex items-center justify-center mb-8 shadow-elevated animate-float shine">
               <Sparkles className="w-12 h-12 text-primary-foreground" />
@@ -138,17 +142,26 @@ const Index = () => {
             <p className="text-lg md:text-xl text-muted-foreground max-w-lg mb-10 leading-relaxed">
               Your personal companion for capturing and organizing thoughts from every book you read.
             </p>
-            <button 
-              onClick={() => setAddBookOpen(true)}
-              className="inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl font-semibold text-primary-foreground gradient-amber shadow-elevated hover:shadow-glow transition-all duration-300 hover:-translate-y-1 hover:scale-105"
-            >
-              <BookOpen className="w-5 h-5" />
-              Add your first book
-            </button>
-            
-            {/* Decorative elements */}
-            <div className="ornament-divider w-48 mt-16">
-              <BookOpen className="w-4 h-4 text-muted-foreground/50" />
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <button 
+                onClick={() => {
+                  setAddBookOpen(true);
+                  setShowWelcome(false);
+                }}
+                className="inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl font-semibold text-primary-foreground gradient-amber shadow-elevated hover:shadow-glow transition-all duration-300 hover:-translate-y-1 hover:scale-105"
+              >
+                <BookOpen className="w-5 h-5" />
+                Add a book
+              </button>
+              {showWelcome && books.length > 0 && (
+                <button 
+                  onClick={() => setShowWelcome(false)}
+                  className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl font-medium text-muted-foreground hover:text-foreground bg-secondary hover:bg-secondary/80 transition-all duration-200"
+                >
+                  <Library className="w-4 h-4" />
+                  Back to Library
+                </button>
+              )}
             </div>
           </div>
         ) : (

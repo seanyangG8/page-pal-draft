@@ -1,4 +1,4 @@
-import { BookMarked, Search, User } from 'lucide-react';
+import { BookMarked, Search, User, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -16,6 +16,8 @@ import { useEffect, useState } from 'react';
 interface HeaderProps {
   showSearch?: boolean;
   onSearchClick?: () => void;
+  onShowWelcome?: () => void;
+  hasBooks?: boolean;
 }
 
 interface UserProfile {
@@ -26,7 +28,7 @@ interface UserProfile {
 
 const STORAGE_KEY = 'marginalia-user-profile';
 
-export function Header({ showSearch, onSearchClick }: HeaderProps) {
+export function Header({ showSearch, onSearchClick, onShowWelcome, hasBooks }: HeaderProps) {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile>({ name: 'Reader', username: 'reader', avatarUrl: '' });
 
@@ -87,6 +89,15 @@ export function Header({ showSearch, onSearchClick }: HeaderProps) {
                 <User className="w-4 h-4 mr-2" />
                 My Profile
               </DropdownMenuItem>
+              {hasBooks && onShowWelcome && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onShowWelcome} className="cursor-pointer">
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    About Marginalia
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
