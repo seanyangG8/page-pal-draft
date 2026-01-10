@@ -14,6 +14,7 @@ interface ChapterInputProps {
   onChange: (value: ChapterData) => void;
   className?: string;
   recentChapters?: string[];
+  hideLabel?: boolean;
 }
 
 // Parse user input into structured chapter data
@@ -102,7 +103,8 @@ export function ChapterInput({
   value, 
   onChange, 
   className,
-  recentChapters = []
+  recentChapters = [],
+  hideLabel = false
 }: ChapterInputProps) {
   const [inputValue, setInputValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
