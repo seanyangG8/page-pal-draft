@@ -220,11 +220,17 @@ function FeedItemCard({
   };
 
   return (
-    <Card className="p-4 bg-card border-border/50 hover:shadow-card transition-shadow">
+    <Card 
+      className="p-4 bg-card border-border/50 hover:shadow-card transition-all cursor-pointer hover:bg-accent/5"
+      onClick={() => onPostClick(item)}
+    >
       <div className="flex gap-3">
-        {/* Clickable Avatar */}
+        {/* Clickable Avatar - stops propagation to open profile instead */}
         <button 
-          onClick={() => onProfileClick(item.user.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onProfileClick(item.user.id);
+          }}
           className="flex-shrink-0 transition-transform hover:scale-105 active:scale-95"
         >
           <Avatar className="h-10 w-10 ring-2 ring-transparent hover:ring-primary/30 transition-all">
@@ -241,7 +247,10 @@ function FeedItemCard({
               <div className="min-w-0">
                 <p className="text-sm">
                   <button 
-                    onClick={() => onProfileClick(item.user.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onProfileClick(item.user.id);
+                    }}
                     className="font-semibold text-foreground hover:text-primary transition-colors hover:underline"
                   >
                     {item.user.name}
@@ -258,32 +267,31 @@ function FeedItemCard({
                 {formatDistanceToNow(item.timestamp, { addSuffix: true })}
               </p>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 flex-shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </div>
 
-          {/* Clickable Note content */}
+          {/* Note content - now just visual since card is clickable */}
           {item.note && (
-            <button 
-              onClick={() => onPostClick(item)}
-              className="mt-3 p-3 bg-secondary/50 rounded-lg border border-border/30 w-full text-left hover:bg-secondary/70 transition-colors"
-            >
+            <div className="mt-3 p-3 bg-secondary/50 rounded-lg border border-border/30">
               <span className={`inline-block text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full mb-2 ${getNoteTypeBadge()}`}>
                 {item.note.type}
               </span>
               <p className="text-sm text-foreground italic">
                 {item.note.content}
               </p>
-            </button>
+            </div>
           )}
 
-          {/* Clickable Book visual for started/finished */}
+          {/* Book visual for started/finished */}
           {(item.type === 'started_reading' || item.type === 'finished_book') && item.book && (
-            <button 
-              onClick={() => onPostClick(item)}
-              className="mt-3 flex items-center gap-3 p-3 bg-secondary/30 rounded-lg w-full text-left hover:bg-secondary/50 transition-colors"
-            >
+            <div className="mt-3 flex items-center gap-3 p-3 bg-secondary/30 rounded-lg">
               <div className="w-10 h-14 bg-gradient-to-br from-primary/20 to-primary/40 rounded flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-primary" />
               </div>
@@ -291,15 +299,12 @@ function FeedItemCard({
                 <p className="text-sm font-medium text-foreground">{item.book.title}</p>
                 <p className="text-xs text-muted-foreground">{item.book.author}</p>
               </div>
-            </button>
+            </div>
           )}
 
-          {/* Clickable Milestone */}
+          {/* Milestone */}
           {item.type === 'milestone' && (
-            <button 
-              onClick={() => onPostClick(item)}
-              className="mt-3 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-lg w-full text-center hover:opacity-90 transition-opacity"
-            >
+            <div className="mt-3 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-lg text-center">
               <span className="text-2xl">
                 {item.milestone?.type === 'books_read' && '📚'}
                 {item.milestone?.type === 'notes_count' && '📝'}
@@ -311,11 +316,11 @@ function FeedItemCard({
                 {item.milestone?.type === 'notes_count' && 'notes captured'}
                 {item.milestone?.type === 'streak' && 'day streak'}
               </p>
-            </button>
+            </div>
           )}
 
-          {/* Actions */}
-          <div className="flex items-center gap-4 mt-3 pt-2">
+          {/* Actions - stop propagation so they don't trigger card click */}
+          <div className="flex items-center gap-4 mt-3 pt-2" onClick={(e) => e.stopPropagation()}>
             <Button 
               variant="ghost" 
               size="sm" 
