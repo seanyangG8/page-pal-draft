@@ -143,12 +143,12 @@ export function CollapsibleFAB({
         onClick={() => handleAction(onStartRecording)}
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
-          "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300 hover:scale-105",
-          "bg-accent text-accent-foreground hover:bg-accent/90",
+          "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
+          "bg-muted text-muted-foreground hover:bg-foreground hover:text-background hover:scale-105",
           isExpanded 
             ? "opacity-100 -translate-y-16 translate-x-0 pointer-events-auto" 
             : "opacity-0 translate-y-0 translate-x-0 pointer-events-none",
-          dragTarget === 'record' && "scale-110 ring-4 ring-accent/30"
+          dragTarget === 'record' && "scale-110 ring-4 ring-foreground/20"
         )}
         style={{ bottom: '0', right: '0' }}
       >
@@ -162,12 +162,12 @@ export function CollapsibleFAB({
         onClick={() => handleAction(onOpenCamera)}
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
-          "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300 hover:scale-105",
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
+          "bg-muted text-muted-foreground hover:bg-foreground hover:text-background hover:scale-105",
           isExpanded 
             ? "opacity-100 -translate-y-12 -translate-x-12 pointer-events-auto" 
             : "opacity-0 translate-y-0 translate-x-0 pointer-events-none",
-          dragTarget === 'camera' && "scale-110 ring-4 ring-secondary/50"
+          dragTarget === 'camera' && "scale-110 ring-4 ring-foreground/20"
         )}
         style={{ bottom: '0', right: '0' }}
       >
@@ -178,15 +178,15 @@ export function CollapsibleFAB({
       <Button
         data-action="note"
         size="icon"
-        variant="outline"
         onClick={() => handleAction(onAddNote)}
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
-          "absolute h-11 w-11 rounded-full shadow-lg bg-background transition-all duration-300 hover:scale-105 hover:bg-muted hover:text-foreground",
+          "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
+          "bg-muted text-muted-foreground hover:bg-foreground hover:text-background hover:scale-105",
           isExpanded 
             ? "opacity-100 translate-y-0 -translate-x-16 pointer-events-auto" 
             : "opacity-0 translate-y-0 translate-x-0 pointer-events-none",
-          dragTarget === 'note' && "scale-110 ring-4 ring-accent/30 border-accent"
+          dragTarget === 'note' && "scale-110 ring-4 ring-foreground/20"
         )}
         style={{ bottom: '0', right: '0' }}
       >
