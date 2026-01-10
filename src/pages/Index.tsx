@@ -4,6 +4,7 @@ import { Header } from '@/components/Header';
 import { Bookshelf } from '@/components/Bookshelf';
 import { BookshelfSkeleton, NoteCardSkeleton } from '@/components/BookshelfSkeleton';
 import { NoteCard } from '@/components/NoteCard';
+import { EditNoteDialog } from '@/components/EditNoteDialog';
 import { SearchBar } from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
 import { AddBookDialog } from '@/components/AddBookDialog';
@@ -17,7 +18,7 @@ import { ImportDialog } from '@/components/ImportDialog';
 import { SocialFeed } from '@/components/social/SocialFeed';
 import { FriendsPanel } from '@/components/social/FriendsPanel';
 import { Book, Note, BookFormat } from '@/types';
-import { getBooks, addBook, deleteBook, updateBook, getNotes, deleteNote, searchNotes, saveBooks, saveNotes } from '@/lib/store';
+import { getBooks, addBook, deleteBook, updateBook, getNotes, deleteNote, updateNote, searchNotes, saveBooks, saveNotes } from '@/lib/store';
 import { BookOpen, Search, Library, Sparkles, Filter, Download, Upload, Users, Rss } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ const Index = () => {
   const [importOpen, setImportOpen] = useState(false);
   const [reviewNotes, setReviewNotes] = useState<Note[] | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilters, setActiveFilters] = useState<{
     bookId?: string;
@@ -104,7 +106,13 @@ const Index = () => {
   };
 
   const handleNoteUpdate = (updatedNote: Note) => {
+    updateNote(updatedNote.id, updatedNote);
     setNotes(prev => prev.map(n => n.id === updatedNote.id ? updatedNote : n));
+    toast.success('Note updated');
+  };
+
+  const getBookFormat = (bookId: string): BookFormat | undefined => {
+    return books.find(b => b.id === bookId)?.format;
   };
 
   const filteredNotes = notes.filter(note => {
@@ -302,6 +310,8 @@ const Index = () => {
                           note={note}
                           onDelete={() => handleDeleteNote(note.id)}
                           onUpdate={handleNoteUpdate}
+                          onEdit={() => setEditingNote(note)}
+                          onClick={() => setEditingNote(note)}
                           showBookTitle={getBookTitle(note.bookId)}
                           onBookClick={() => navigate(`/book/${note.bookId}`)}
                         />
@@ -374,6 +384,15 @@ const Index = () => {
           onClose={() => setReviewNotes(null)}
         />
       )}
+
+      {/* Edit note dialog */}
+      <EditNoteDialog
+        open={!!editingNote}
+        onOpenChange={(open) => !open && setEditingNote(null)}
+        note={editingNote}
+        onSave={handleNoteUpdate}
+        bookFormat={editingNote ? getBookFormat(editingNote.bookId) : undefined}
+      />
     </div>
   );
 };
