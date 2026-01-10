@@ -124,7 +124,7 @@ export function TagInput({
       </div>
 
       {/* Suggestions dropdown */}
-      {showSuggestions && (filteredSuggestions.length > 0 || recentTags.length > 0) && (
+      {showSuggestions && (
         <div className="p-2 rounded-lg border border-border bg-popover shadow-md space-y-2">
           {/* Recent tags */}
           {!inputValue && recentTags.length > 0 && (
@@ -145,7 +145,7 @@ export function TagInput({
             </div>
           )}
 
-          {/* Suggested tags */}
+          {/* Suggested tags for this book */}
           {suggestedTags.length > 0 && !inputValue && (
             <div>
               <p className="text-xs text-muted-foreground mb-1.5">Suggested for this book</p>
@@ -170,6 +170,25 @@ export function TagInput({
               <p className="text-xs text-muted-foreground mb-1.5">Matching tags</p>
               <div className="flex flex-wrap gap-1">
                 {filteredSuggestions.slice(0, 8).map(tag => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => addTag(tag)}
+                    className="px-2 py-0.5 text-xs rounded-md bg-secondary hover:bg-secondary/80 transition-colors"
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Empty state with common tag suggestions */}
+          {!inputValue && recentTags.length === 0 && suggestedTags.length === 0 && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">Common tags</p>
+              <div className="flex flex-wrap gap-1">
+                {['important', 'favorite', 'key-insight', 'to-revisit', 'actionable'].map(tag => (
                   <button
                     key={tag}
                     type="button"
