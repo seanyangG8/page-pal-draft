@@ -173,6 +173,7 @@ export function VoiceMemoRecorder({ onRecordingComplete, recordedAudio, onClear,
   const timerRef = useRef<number | null>(null);
   const recognitionRef = useRef<any>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const transcriptRef = useRef<string>(''); // Ref to capture transcript for closure
 
   useEffect(() => {
     return () => {
@@ -215,10 +216,12 @@ export function VoiceMemoRecorder({ onRecordingComplete, recordedAudio, onClear,
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const url = URL.createObjectURL(audioBlob);
-        const transcript = finalTranscript.trim();
+        // Use ref instead of state to avoid closure issue
+        const transcript = transcriptRef.current.trim();
         onRecordingComplete({ url, duration: recordingTime, transcript: transcript || undefined });
         stream.getTracks().forEach(track => track.stop());
         streamRef.current = null;
+        transcriptRef.current = ''; // Reset for next recording
       };
 
       // Start speech recognition if available
@@ -245,10 +248,16 @@ export function VoiceMemoRecorder({ onRecordingComplete, recordedAudio, onClear,
           setFinalTranscript(prev => {
             // Only update if we have new final text
             if (final && !prev.includes(final.trim())) {
-              return prev + final;
+              const newTranscript = prev + final;
+              transcriptRef.current = newTranscript; // Keep ref in sync
+              return newTranscript;
             }
             return prev;
           });
+          // Also capture interim in case user stops before final is ready
+          if (interim) {
+            transcriptRef.current = finalTranscript + interim;
+          }
           setLiveTranscript(interim);
         };
 
