@@ -63,10 +63,13 @@ export function LocationInput({
               <div className="relative">
                 <Hash className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <Input
-                  placeholder="Page"
-                  type="number"
+                  placeholder="e.g. 42"
                   value={value.page || ''}
-                  onChange={(e) => onChange({ ...value, page: e.target.value })}
+                  onChange={(e) => {
+                    // Auto-clean p42 -> 42
+                    let val = e.target.value.replace(/^p\.?\s*/i, '');
+                    onChange({ ...value, page: val });
+                  }}
                   className="pl-8 h-9 text-sm bg-background"
                 />
               </div>
@@ -75,7 +78,7 @@ export function LocationInput({
               <div className="relative">
                 <BookOpen className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <Input
-                  placeholder="Chapter"
+                  placeholder="e.g. Ch 3"
                   value={value.chapter || ''}
                   onChange={(e) => onChange({ ...value, chapter: e.target.value })}
                   className="pl-8 h-9 text-sm bg-background"

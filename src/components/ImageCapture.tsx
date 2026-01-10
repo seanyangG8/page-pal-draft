@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Camera, Upload, X, Highlighter, Type, RotateCcw, Check, Wand2, Square, Move } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Camera, Upload, X, Highlighter, Type, RotateCcw, Check, Wand2, Square, Copy, Plus } from 'lucide-react';
 
 interface ImageCaptureProps {
   onCapture: (data: { url: string; extractedText?: string }) => void;
@@ -191,7 +192,12 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
+      {/* Instruction text */}
+      <p className="text-sm text-muted-foreground text-center">
+        Drag to select the text you want to save
+      </p>
+
       {/* Image preview with selection canvas */}
       <div className="relative rounded-xl overflow-hidden bg-secondary">
         <Button
@@ -249,7 +255,7 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
             onClick={() => setIsSelectMode(!isSelectMode)}
           >
             <Highlighter className="w-3 h-3" />
-            {isSelectMode ? 'Done' : 'Select text'}
+            {isSelectMode ? 'Done' : 'Select text to extract'}
           </Button>
           {selections.length > 0 && (
             <Button
@@ -281,77 +287,96 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
         </div>
       )}
 
-      {/* Manual text extraction */}
-      {showTextInput ? (
-        <div className="space-y-2">
-          <Textarea
-            className="min-h-[80px] bg-background resize-none text-sm"
-            placeholder="Type or paste the text from the image..."
-            value={manualText}
-            onChange={(e) => setManualText(e.target.value)}
-          />
-          <div className="flex gap-2">
-            <Button type="button" variant="secondary" size="sm" onClick={() => setShowTextInput(false)}>
-              Cancel
-            </Button>
-            <Button type="button" size="sm" onClick={handleSaveText} disabled={!manualText.trim()}>
-              <Check className="w-3 h-3 mr-1" />
-              Save text
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="w-full gap-2"
-            onClick={() => setShowTextInput(true)}
-          >
-            <Type className="w-4 h-4" />
-            Add text from image
-          </Button>
-          <p className="text-xs text-center text-muted-foreground">
-            Type or paste the text you want to save from this image
-          </p>
-        </div>
-      )}
-
-      {capturedImage.extractedText && (
-        <div className="p-3 rounded-lg bg-secondary/50 border border-border">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-xs text-muted-foreground">Extracted text:</p>
+      {/* Extracted text section - always show input when we have selections or text */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-medium">Extracted text</Label>
+          {capturedImage.extractedText && (
             <div className="flex gap-1">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-6 text-xs px-2"
-                onClick={() => {
-                  setManualText(capturedImage.extractedText || '');
-                  setShowTextInput(true);
-                }}
+                className="h-6 text-xs px-2 gap-1"
+                onClick={() => setShowTextInput(true)}
               >
-                Edit
+                <RotateCcw className="w-3 h-3" />
+                Re-extract
               </Button>
-              {onUseAsText && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs px-2 gap-1"
+                onClick={() => navigator.clipboard.writeText(capturedImage.extractedText || '')}
+              >
+                <Copy className="w-3 h-3" />
+                Copy
+              </Button>
+              {selections.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs px-2 gap-1"
+                  onClick={() => {
+                    const currentText = manualText || capturedImage.extractedText || '';
+                    setManualText(currentText + '\n\n[Selection ' + (selections.length) + ']');
+                    setShowTextInput(true);
+                  }}
+                >
+                  <Plus className="w-3 h-3" />
+                  Append
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {showTextInput || !capturedImage.extractedText ? (
+          <>
+            <Textarea
+              className="min-h-[80px] bg-background resize-none text-sm"
+              placeholder="Type or paste the text from the image..."
+              value={manualText}
+              onChange={(e) => setManualText(e.target.value)}
+            />
+            <div className="flex gap-2">
+              {capturedImage.extractedText && (
+                <Button type="button" variant="secondary" size="sm" onClick={() => setShowTextInput(false)}>
+                  Cancel
+                </Button>
+              )}
+              <Button type="button" size="sm" onClick={handleSaveText} disabled={!manualText.trim()}>
+                <Check className="w-3 h-3 mr-1" />
+                Save text
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+            <Textarea
+              className="min-h-[60px] bg-transparent resize-none text-sm border-0 p-0 focus-visible:ring-0"
+              value={capturedImage.extractedText}
+              onChange={(e) => onCapture({ ...capturedImage, extractedText: e.target.value })}
+            />
+            {onUseAsText && (
+              <div className="flex justify-end mt-2 pt-2 border-t border-border/50">
                 <Button
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="h-6 text-xs px-2 gap-1"
+                  className="text-xs gap-1"
                   onClick={() => onUseAsText(capturedImage.extractedText || '')}
                 >
                   <Wand2 className="w-3 h-3" />
                   Enhance with AI
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
-          <p className="text-sm">{capturedImage.extractedText}</p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
