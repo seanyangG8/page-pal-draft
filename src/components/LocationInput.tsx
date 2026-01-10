@@ -157,43 +157,43 @@ export function LocationInput({
           </>
         ) : (
           <>
-            <div className="flex-1 space-y-1">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <span className="font-medium">#</span>
-                Page
-              </Label>
+            <div className="w-36 space-y-1">
+              <Label className="text-xs text-muted-foreground">Page</Label>
               <div className="flex items-center gap-0.5">
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-9 w-8 shrink-0"
+                  className="h-9 w-7 shrink-0"
                   onClick={() => handlePageStep(-1)}
                   disabled={!value.page || parseInt(value.page, 10) <= 1}
                 >
                   <Minus className="w-3 h-3" />
                 </Button>
-                <Input
-                  placeholder="42"
-                  type="number"
-                  inputMode="numeric"
-                  min="1"
-                  value={value.page || ''}
-                  onChange={(e) => handlePageInput(e.target.value)}
-                  onPaste={(e) => {
-                    const pasted = e.clipboardData.getData('text');
-                    if (/(?:p\.?|page|pg\.?|ch\.?|chapter)/i.test(pasted)) {
-                      e.preventDefault();
-                      handlePageInput(pasted);
-                    }
-                  }}
-                  className="h-9 text-sm bg-background text-center px-1"
-                />
+                <div className="relative flex-1">
+                  <Input
+                    placeholder="42"
+                    type="number"
+                    inputMode="numeric"
+                    min="1"
+                    value={value.page || ''}
+                    onChange={(e) => handlePageInput(e.target.value)}
+                    onPaste={(e) => {
+                      const pasted = e.clipboardData.getData('text');
+                      if (/(?:p\.?|page|pg\.?|ch\.?|chapter)/i.test(pasted)) {
+                        e.preventDefault();
+                        handlePageInput(pasted);
+                      }
+                    }}
+                    className="h-9 text-sm bg-background text-center pl-6 pr-1"
+                  />
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-sm">#</span>
+                </div>
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-9 w-8 shrink-0"
+                  className="h-9 w-7 shrink-0"
                   onClick={() => handlePageStep(1)}
                 >
                   <Plus className="w-3 h-3" />
@@ -243,38 +243,41 @@ export function LocationInput({
           <>
             <div className="space-y-1.5">
               <Label className="text-xs">Page</Label>
-              <div className="flex items-center gap-0.5">
+              <div className="flex items-center gap-0.5 w-36">
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-9 w-8 shrink-0"
+                  className="h-9 w-7 shrink-0"
                   onClick={() => handlePageStep(-1)}
                   disabled={!value.page || parseInt(value.page, 10) <= 1}
                 >
                   <Minus className="w-3 h-3" />
                 </Button>
-                <Input
-                  placeholder="42"
-                  type="number"
-                  inputMode="numeric"
-                  min="1"
-                  value={value.page || ''}
-                  onChange={(e) => handlePageInput(e.target.value)}
-                  onPaste={(e) => {
-                    const pasted = e.clipboardData.getData('text');
-                    if (/(?:p\.?|page|pg\.?|ch\.?|chapter)/i.test(pasted)) {
-                      e.preventDefault();
-                      handlePageInput(pasted);
-                    }
-                  }}
-                  className="h-9 text-sm bg-background text-center px-1"
-                />
+                <div className="relative flex-1">
+                  <Input
+                    placeholder="42"
+                    type="number"
+                    inputMode="numeric"
+                    min="1"
+                    value={value.page || ''}
+                    onChange={(e) => handlePageInput(e.target.value)}
+                    onPaste={(e) => {
+                      const pasted = e.clipboardData.getData('text');
+                      if (/(?:p\.?|page|pg\.?|ch\.?|chapter)/i.test(pasted)) {
+                        e.preventDefault();
+                        handlePageInput(pasted);
+                      }
+                    }}
+                    className="h-9 text-sm bg-background text-center pl-6 pr-1"
+                  />
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-sm">#</span>
+                </div>
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-9 w-8 shrink-0"
+                  className="h-9 w-7 shrink-0"
                   onClick={() => handlePageStep(1)}
                 >
                   <Plus className="w-3 h-3" />
