@@ -112,29 +112,25 @@ function FriendCard({
   onProfileClick: (friend: Friend) => void;
 }) {
   return (
-    <Card className="p-4 bg-card border-border/50 hover:shadow-card transition-all duration-200">
+    <Card 
+      className="p-4 bg-card border-border/50 hover:shadow-card transition-all duration-200 cursor-pointer hover:bg-accent/5"
+      onClick={() => onProfileClick(friend)}
+    >
       <div className="flex items-center gap-3">
-        {/* Clickable avatar */}
-        <button 
-          onClick={() => onProfileClick(friend)}
-          className="flex-shrink-0 transition-transform hover:scale-105 active:scale-95"
-        >
-          <Avatar className="h-12 w-12 ring-2 ring-transparent hover:ring-primary/30 transition-all">
+        {/* Avatar */}
+        <div className="flex-shrink-0">
+          <Avatar className="h-12 w-12 ring-2 ring-transparent group-hover:ring-primary/30 transition-all">
             <AvatarImage src={friend.avatarUrl} alt={friend.name} />
             <AvatarFallback className="bg-primary/10 text-primary font-medium">
               {friend.name.split(' ').map(n => n[0]).join('')}
             </AvatarFallback>
           </Avatar>
-        </button>
+        </div>
         
         <div className="flex-1 min-w-0">
-          {/* Clickable name */}
-          <button 
-            onClick={() => onProfileClick(friend)}
-            className="font-semibold text-foreground truncate hover:text-primary transition-colors text-left"
-          >
+          <p className="font-semibold text-foreground truncate">
             {friend.name}
-          </button>
+          </p>
           <p className="text-sm text-muted-foreground">@{friend.username}</p>
           <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
