@@ -104,10 +104,21 @@ export function CollapsibleFAB({
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="fixed bottom-6 right-6 z-50"
+      onMouseEnter={() => setIsExpanded(true)}
+      onMouseLeave={() => !isDragging && setIsExpanded(false)}
     >
+      {/* Hover buffer so you can move from + to the icons without collapsing */}
+      <div
+        aria-hidden="true"
+        className={cn(
+          "absolute bottom-0 right-0 h-44 w-44 bg-background/0",
+          isExpanded ? "pointer-events-auto" : "pointer-events-none"
+        )}
+      />
+
       {/* Action buttons - arc pattern: top, diagonal-left, left */}
       {/* Top - Voice Recording */}
       <Button
