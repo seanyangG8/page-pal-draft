@@ -22,6 +22,22 @@ export function CollapsibleFAB({
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
+  const hoverTimeoutRef = useRef<number | null>(null);
+
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setIsExpanded(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (isDragging) return;
+    hoverTimeoutRef.current = window.setTimeout(() => {
+      setIsExpanded(false);
+    }, 150);
+  };
 
   // Close on outside click
   useEffect(() => {
