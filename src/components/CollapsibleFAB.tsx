@@ -143,12 +143,12 @@ export function CollapsibleFAB({
         onClick={() => handleAction(onStartRecording)}
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
-          "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
-          "bg-primary hover:bg-primary/90",
+          "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300 hover:scale-105",
+          "bg-accent text-accent-foreground hover:bg-accent/90",
           isExpanded 
             ? "opacity-100 -translate-y-16 translate-x-0 pointer-events-auto" 
             : "opacity-0 translate-y-0 translate-x-0 pointer-events-none",
-          dragTarget === 'record' && "scale-110 ring-4 ring-primary/30"
+          dragTarget === 'record' && "scale-110 ring-4 ring-accent/30"
         )}
         style={{ bottom: '0', right: '0' }}
       >
@@ -162,8 +162,8 @@ export function CollapsibleFAB({
         onClick={() => handleAction(onOpenCamera)}
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
-          "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
-          "bg-secondary hover:bg-secondary/90 text-secondary-foreground",
+          "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300 hover:scale-105",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
           isExpanded 
             ? "opacity-100 -translate-y-12 -translate-x-12 pointer-events-auto" 
             : "opacity-0 translate-y-0 translate-x-0 pointer-events-none",
@@ -182,7 +182,7 @@ export function CollapsibleFAB({
         onClick={() => handleAction(onAddNote)}
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
-          "absolute h-11 w-11 rounded-full shadow-lg bg-background transition-all duration-300",
+          "absolute h-11 w-11 rounded-full shadow-lg bg-background transition-all duration-300 hover:scale-105 hover:bg-muted hover:text-foreground",
           isExpanded 
             ? "opacity-100 translate-y-0 -translate-x-16 pointer-events-auto" 
             : "opacity-0 translate-y-0 translate-x-0 pointer-events-none",
