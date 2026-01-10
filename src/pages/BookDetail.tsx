@@ -207,6 +207,7 @@ const BookDetail = () => {
                   onDelete={() => handleDeleteNote(note.id)}
                   onUpdate={handleUpdateNote}
                   onEdit={() => setEditingNote(note)}
+                  onClick={() => setEditingNote(note)}
                 />
               </div>
             ))}
