@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { NoteCard } from '@/components/NoteCard';
 import { AddNoteDialog } from '@/components/AddNoteDialog';
 import { EditNoteDialog } from '@/components/EditNoteDialog';
 import { EmptyState } from '@/components/EmptyState';
-import { FloatingRecorder } from '@/components/FloatingRecorder';
-import { FloatingCamera } from '@/components/FloatingCamera';
+import { CollapsibleFAB } from '@/components/CollapsibleFAB';
+import { VoiceMemoRecorder } from '@/components/VoiceMemoRecorder';
 import { SearchBar } from '@/components/SearchBar';
 import { Button } from '@/components/ui/button';
 import { Book, Note, NoteType, MediaType } from '@/types';
@@ -33,6 +33,8 @@ const BookDetail = () => {
   const [pendingRecording, setPendingRecording] = useState<{ url: string; duration: number; transcript?: string } | null>(null);
   const [pendingImage, setPendingImage] = useState<{ url: string; extractedText?: string } | null>(null);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!bookId) return;
@@ -215,24 +217,37 @@ const BookDetail = () => {
         )}
       </main>
 
-      {/* Floating action buttons */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 items-end">
-        {/* Quick voice recorder */}
-        <FloatingRecorder onRecordingComplete={handleQuickRecording} />
-        
-        {/* Quick camera capture */}
-        <FloatingCamera onCapture={handleQuickCapture} />
-        
-        {/* Add note button */}
-        <Button
-          onClick={() => setAddNoteOpen(true)}
-          size="icon"
-          variant="outline"
-          className="h-12 w-12 rounded-full shadow-lg bg-background"
-        >
-          <Plus className="w-5 h-5" />
-        </Button>
-      </div>
+      {/* Hidden camera input */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const url = event.target?.result as string;
+            handleQuickCapture({ url, extractedText: undefined });
+          };
+          reader.readAsDataURL(file);
+          if (cameraInputRef.current) cameraInputRef.current.value = '';
+        }}
+        className="hidden"
+      />
+
+      {/* Collapsible FAB */}
+      <CollapsibleFAB
+        onAddNote={() => setAddNoteOpen(true)}
+        onStartRecording={() => {
+          setPendingRecording(null);
+          setAddNoteOpen(true);
+          // The AddNoteDialog will handle the recording
+        }}
+        onOpenCamera={() => cameraInputRef.current?.click()}
+        cameraInputRef={cameraInputRef}
+      />
 
       {/* Add note dialog */}
       <AddNoteDialog
