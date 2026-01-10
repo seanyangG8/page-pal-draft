@@ -107,8 +107,8 @@ export function CollapsibleFAB({
     <div
       ref={containerRef}
       className="fixed bottom-6 right-6 z-50"
-      onMouseEnter={() => setIsExpanded(true)}
-      onMouseLeave={() => !isDragging && setIsExpanded(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Hover buffer so you can move from + to the icons without collapsing */}
       <div
@@ -182,7 +182,6 @@ export function CollapsibleFAB({
         size="icon"
         onClick={handleMainClick}
         onMouseEnter={() => setIsExpanded(true)}
-        onMouseLeave={() => !isDragging && setIsExpanded(false)}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
