@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { NoteType, MediaType, BookFormat } from '@/types';
-import { Quote, Lightbulb, HelpCircle, CheckCircle, PenLine, Camera, Mic, Type, Lock, Globe, Wand2, ChevronDown, ChevronUp, Sparkles, Plus, Save } from 'lucide-react';
+import { Quote, Lightbulb, HelpCircle, CheckCircle, PenLine, Camera, Mic, Type, Lock, Globe, Wand2, ChevronDown, ChevronUp, Sparkles, Plus, Save, Pencil } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ImageCapture } from './ImageCapture';
 import { VoiceMemoRecorder } from './VoiceMemoRecorder';
 import { AITextActions } from './AITextActions';
@@ -48,6 +49,101 @@ const noteTypes: { type: NoteType; icon: typeof Quote; label: string }[] = [
   { type: 'question', icon: HelpCircle, label: 'Question' },
   { type: 'action', icon: CheckCircle, label: 'Action' },
 ];
+
+// AI Enhance dropdown component
+function AIEnhanceDropdown({ onAction }: { onAction: (action: string) => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" variant="outline" size="sm" className="w-full gap-2">
+          <Wand2 className="w-4 h-4" />
+          Enhance with AI
+          <ChevronDown className="w-3 h-3 ml-auto" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-48">
+        <DropdownMenuItem onClick={() => onAction('summarise')}>
+          Summarise
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAction('explain')}>
+          Explain
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAction('action')}>
+          Turn into action
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAction('questions')}>
+          Generate questions
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// Compact note type selector with "Change" toggle
+function NoteTypeSelector({ 
+  type, 
+  typeManuallySet, 
+  onTypeChange 
+}: { 
+  type: NoteType; 
+  typeManuallySet: boolean; 
+  onTypeChange: (type: NoteType) => void;
+}) {
+  const [showChips, setShowChips] = useState(false);
+  const currentType = noteTypes.find(t => t.type === type);
+  const Icon = currentType?.icon || Lightbulb;
+
+  if (showChips) {
+    return (
+      <div className="flex flex-wrap gap-1.5 items-center">
+        {noteTypes.map(({ type: t, icon: TypeIcon, label }) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => {
+              onTypeChange(t);
+              setShowChips(false);
+            }}
+            className={getTypeStyles(t, type === t)}
+          >
+            <TypeIcon className="w-3.5 h-3.5" />
+            {label}
+          </button>
+        ))}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-6 text-xs px-2"
+          onClick={() => setShowChips(false)}
+        >
+          Done
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span className="text-muted-foreground">Type:</span>
+      <span className="flex items-center gap-1.5 font-medium">
+        <Icon className="w-3.5 h-3.5" />
+        {currentType?.label}
+        {!typeManuallySet && <span className="text-xs text-muted-foreground">(auto)</span>}
+      </span>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-6 text-xs px-2 gap-1"
+        onClick={() => setShowChips(true)}
+      >
+        <Pencil className="w-3 h-3" />
+        Change
+      </Button>
+    </div>
+  );
+}
 
 export function AddNoteDialog({ 
   open, 
@@ -249,18 +345,12 @@ export function AddNoteDialog({
                     />
                   </div>
 
-                  {/* AI Enhance button - only show when there's content */}
+                  {/* AI Enhance dropdown - only show when there's content */}
                   {content.trim() && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full gap-2"
-                      onClick={() => setShowAIEditor(true)}
-                    >
-                      <Wand2 className="w-4 h-4" />
-                      Enhance with AI
-                    </Button>
+                    <AIEnhanceDropdown onAction={(action) => {
+                      // Store the action type for AITextActions to use
+                      setShowAIEditor(true);
+                    }} />
                   )}
                 </>
               )}
@@ -324,31 +414,16 @@ export function AddNoteDialog({
             </TabsContent>
           </Tabs>
 
-          {/* Note Type - shown as "Change type" chips below content */}
+          {/* Note Type - compact single row with Change button */}
           {hasContent && !showAIEditor && (
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Sparkles className="w-3 h-3" />
-                {typeManuallySet ? 'Note type' : 'Auto-detected type'} 
-                <span className="text-muted-foreground/60">• tap to change</span>
-              </Label>
-              <div className="flex flex-wrap gap-1.5">
-                {noteTypes.map(({ type: t, icon: Icon, label }) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => handleTypeChange(t)}
-                    className={getTypeStyles(t, type === t)}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <NoteTypeSelector
+              type={type}
+              typeManuallySet={typeManuallySet}
+              onTypeChange={handleTypeChange}
+            />
           )}
 
-          {/* Refine Section - collapsible */}
+          {/* Add Details Section - collapsible, never auto-expand */}
           {hasContent && !showAIEditor && (
             <Collapsible open={showRefine} onOpenChange={setShowRefine}>
               <CollapsibleTrigger asChild>
@@ -359,8 +434,8 @@ export function AddNoteDialog({
                   className="w-full justify-between text-muted-foreground hover:text-foreground"
                 >
                   <span className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    Refine note (location, tags, context)
+                    <Plus className="w-4 h-4" />
+                    Add details (optional)
                   </span>
                   {showRefine ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </Button>

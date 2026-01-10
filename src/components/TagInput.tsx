@@ -183,10 +183,10 @@ export function TagInput({
             </div>
           )}
 
-          {/* Empty state with common tag suggestions */}
+          {/* Empty state with popular tag suggestions */}
           {!inputValue && recentTags.length === 0 && suggestedTags.length === 0 && (
             <div>
-              <p className="text-xs text-muted-foreground mb-1.5">Common tags</p>
+              <p className="text-xs text-muted-foreground mb-1.5">Popular tags</p>
               <div className="flex flex-wrap gap-1">
                 {['important', 'favorite', 'key-insight', 'to-revisit', 'actionable'].map(tag => (
                   <button
