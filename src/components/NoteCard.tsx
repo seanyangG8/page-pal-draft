@@ -18,6 +18,7 @@ interface NoteCardProps {
   onUpdate?: (note: Note) => void;
   onEdit?: () => void;
   showBookTitle?: string;
+  onBookClick?: () => void;
 }
 
 const noteTypeConfig: Record<NoteType, { icon: typeof Quote; label: string; className: string }> = {
@@ -27,7 +28,7 @@ const noteTypeConfig: Record<NoteType, { icon: typeof Quote; label: string; clas
   action: { icon: CheckCircle, label: 'Action', className: 'note-badge-action' },
 };
 
-export function NoteCard({ note, onDelete, onUpdate, onEdit, showBookTitle }: NoteCardProps) {
+export function NoteCard({ note, onDelete, onUpdate, onEdit, showBookTitle, onBookClick }: NoteCardProps) {
   const config = noteTypeConfig[note.type];
   const Icon = config.icon;
 
@@ -104,7 +105,12 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, showBookTitle }: No
           {/* Footer */}
           <div className="flex items-center gap-3 mt-3 flex-wrap">
             {showBookTitle && (
-              <span className="text-xs font-medium text-primary">{showBookTitle}</span>
+              <button 
+                onClick={onBookClick}
+                className="text-xs font-medium text-primary hover:text-primary/80 hover:underline transition-colors"
+              >
+                {showBookTitle}
+              </button>
             )}
             <span className="text-xs text-muted-foreground">
               {format(note.createdAt, 'MMM d, yyyy')}
