@@ -164,12 +164,12 @@ export function CollapsibleFAB({
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
           "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
-          "bg-[hsl(220_10%_88%)] text-[hsl(220_10%_40%)] hover:bg-[hsl(220_10%_78%)] hover:scale-105",
-          "dark:bg-[hsl(220_10%_25%)] dark:text-[hsl(220_10%_80%)] dark:hover:bg-[hsl(220_10%_35%)]",
+          "bg-[hsl(40_15%_86%)] text-[hsl(40_15%_40%)] hover:bg-[hsl(40_18%_76%)] hover:scale-105",
+          "dark:bg-[hsl(40_12%_25%)] dark:text-[hsl(40_12%_80%)] dark:hover:bg-[hsl(40_15%_35%)]",
           isExpanded 
             ? "opacity-100 -translate-y-12 -translate-x-12 pointer-events-auto" 
             : "opacity-0 translate-y-0 translate-x-0 pointer-events-none",
-          dragTarget === 'camera' && "scale-110 ring-4 ring-[hsl(220_10%_70%)]/30"
+          dragTarget === 'camera' && "scale-110 ring-4 ring-[hsl(40_15%_70%)]/30"
         )}
         style={{ bottom: '0', right: '0' }}
       >
