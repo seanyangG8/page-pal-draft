@@ -157,8 +157,8 @@ export function LocationInput({
           </>
         ) : (
           <>
-            <div className="w-36 space-y-1">
-              <Label className="text-xs text-muted-foreground">Page</Label>
+            <div className="w-36">
+              <Label className="text-xs text-muted-foreground block mb-1">Page</Label>
               <div className="flex items-center gap-0.5">
                 <Button
                   type="button"
@@ -201,10 +201,11 @@ export function LocationInput({
               </div>
             </div>
             <div className="flex-1">
-              <Label className="text-xs text-muted-foreground mb-1 block">Chapter</Label>
+              <Label className="text-xs text-muted-foreground block mb-1">Chapter</Label>
               <ChapterInput
                 value={chapterData}
                 onChange={handleChapterChange}
+                hideLabel
               />
             </div>
           </>
