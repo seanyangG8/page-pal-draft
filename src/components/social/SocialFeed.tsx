@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { BookOpen, Heart, MessageCircle, Share2, MoreHorizontal } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { UserProfileDialog, UserProfile } from './UserProfileDialog';
+import { CommentsDialog } from './CommentsDialog';
+import { ShareDialog } from './ShareDialog';
+import { PostDetailDialog } from './PostDetailDialog';
 
 // Types for social features (will be connected to backend later)
 export interface SocialUser {
@@ -164,11 +167,17 @@ const mockFeedItems: FeedItem[] = [
 function FeedItemCard({ 
   item, 
   onLike, 
-  onProfileClick 
+  onProfileClick,
+  onPostClick,
+  onCommentClick,
+  onShareClick,
 }: { 
   item: FeedItem; 
   onLike: (id: string) => void;
   onProfileClick: (userId: string) => void;
+  onPostClick: (item: FeedItem) => void;
+  onCommentClick: (item: FeedItem) => void;
+  onShareClick: (item: FeedItem) => void;
 }) {
   const getActivityText = () => {
     switch (item.type) {
@@ -254,21 +263,27 @@ function FeedItemCard({
             </Button>
           </div>
 
-          {/* Note content */}
+          {/* Clickable Note content */}
           {item.note && (
-            <div className="mt-3 p-3 bg-secondary/50 rounded-lg border border-border/30">
+            <button 
+              onClick={() => onPostClick(item)}
+              className="mt-3 p-3 bg-secondary/50 rounded-lg border border-border/30 w-full text-left hover:bg-secondary/70 transition-colors"
+            >
               <span className={`inline-block text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full mb-2 ${getNoteTypeBadge()}`}>
                 {item.note.type}
               </span>
               <p className="text-sm text-foreground italic">
                 {item.note.content}
               </p>
-            </div>
+            </button>
           )}
 
-          {/* Book visual for started/finished */}
+          {/* Clickable Book visual for started/finished */}
           {(item.type === 'started_reading' || item.type === 'finished_book') && item.book && (
-            <div className="mt-3 flex items-center gap-3 p-3 bg-secondary/30 rounded-lg">
+            <button 
+              onClick={() => onPostClick(item)}
+              className="mt-3 flex items-center gap-3 p-3 bg-secondary/30 rounded-lg w-full text-left hover:bg-secondary/50 transition-colors"
+            >
               <div className="w-10 h-14 bg-gradient-to-br from-primary/20 to-primary/40 rounded flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-primary" />
               </div>
@@ -276,7 +291,27 @@ function FeedItemCard({
                 <p className="text-sm font-medium text-foreground">{item.book.title}</p>
                 <p className="text-xs text-muted-foreground">{item.book.author}</p>
               </div>
-            </div>
+            </button>
+          )}
+
+          {/* Clickable Milestone */}
+          {item.type === 'milestone' && (
+            <button 
+              onClick={() => onPostClick(item)}
+              className="mt-3 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-lg w-full text-center hover:opacity-90 transition-opacity"
+            >
+              <span className="text-2xl">
+                {item.milestone?.type === 'books_read' && '📚'}
+                {item.milestone?.type === 'notes_count' && '📝'}
+                {item.milestone?.type === 'streak' && '🔥'}
+              </span>
+              <p className="text-lg font-semibold text-foreground mt-1">{item.milestone?.value}</p>
+              <p className="text-xs text-muted-foreground">
+                {item.milestone?.type === 'books_read' && 'books read'}
+                {item.milestone?.type === 'notes_count' && 'notes captured'}
+                {item.milestone?.type === 'streak' && 'day streak'}
+              </p>
+            </button>
           )}
 
           {/* Actions */}
@@ -290,11 +325,21 @@ function FeedItemCard({
               <Heart className={`h-4 w-4 ${item.isLiked ? 'fill-current' : ''}`} />
               <span className="text-xs">{item.likes}</span>
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 px-2 gap-1.5 text-muted-foreground">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 px-2 gap-1.5 text-muted-foreground hover:text-primary"
+              onClick={() => onCommentClick(item)}
+            >
               <MessageCircle className="h-4 w-4" />
               <span className="text-xs">{item.comments}</span>
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 px-2 gap-1.5 text-muted-foreground">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 px-2 gap-1.5 text-muted-foreground hover:text-primary"
+              onClick={() => onShareClick(item)}
+            >
               <Share2 className="h-4 w-4" />
             </Button>
           </div>
@@ -308,6 +353,10 @@ export function SocialFeed() {
   const [feedItems, setFeedItems] = useState<FeedItem[]>(mockFeedItems);
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<FeedItem | null>(null);
+  const [postDetailOpen, setPostDetailOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const handleLike = (id: string) => {
     setFeedItems(items => 
@@ -317,6 +366,10 @@ export function SocialFeed() {
           : item
       )
     );
+    // Also update selectedPost if it's the same
+    if (selectedPost?.id === id) {
+      setSelectedPost(prev => prev ? { ...prev, isLiked: !prev.isLiked, likes: prev.isLiked ? prev.likes - 1 : prev.likes + 1 } : null);
+    }
   };
 
   const handleProfileClick = (userId: string) => {
@@ -325,6 +378,21 @@ export function SocialFeed() {
       setSelectedProfile(profile);
       setProfileDialogOpen(true);
     }
+  };
+
+  const handlePostClick = (item: FeedItem) => {
+    setSelectedPost(item);
+    setPostDetailOpen(true);
+  };
+
+  const handleCommentClick = (item: FeedItem) => {
+    setSelectedPost(item);
+    setCommentsOpen(true);
+  };
+
+  const handleShareClick = (item: FeedItem) => {
+    setSelectedPost(item);
+    setShareOpen(true);
   };
 
   const handleFollow = (userId: string) => {
@@ -350,7 +418,14 @@ export function SocialFeed() {
           className="animate-fade-up"
           style={{ animationDelay: `${index * 50}ms` }}
         >
-          <FeedItemCard item={item} onLike={handleLike} onProfileClick={handleProfileClick} />
+          <FeedItemCard 
+            item={item} 
+            onLike={handleLike} 
+            onProfileClick={handleProfileClick}
+            onPostClick={handlePostClick}
+            onCommentClick={handleCommentClick}
+            onShareClick={handleShareClick}
+          />
         </div>
       ))}
 
@@ -360,6 +435,35 @@ export function SocialFeed() {
         user={selectedProfile}
         onFollow={handleFollow}
         onUnfollow={handleUnfollow}
+      />
+
+      <PostDetailDialog
+        open={postDetailOpen}
+        onOpenChange={setPostDetailOpen}
+        feedItem={selectedPost}
+        onProfileClick={handleProfileClick}
+        onLike={handleLike}
+        onComment={() => {
+          setPostDetailOpen(false);
+          setCommentsOpen(true);
+        }}
+        onShare={() => {
+          setPostDetailOpen(false);
+          setShareOpen(true);
+        }}
+      />
+
+      <CommentsDialog
+        open={commentsOpen}
+        onOpenChange={setCommentsOpen}
+        feedItem={selectedPost}
+        onProfileClick={handleProfileClick}
+      />
+
+      <ShareDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        feedItem={selectedPost}
       />
     </div>
   );

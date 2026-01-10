@@ -303,6 +303,7 @@ const Index = () => {
                           onDelete={() => handleDeleteNote(note.id)}
                           onUpdate={handleNoteUpdate}
                           showBookTitle={getBookTitle(note.bookId)}
+                          onBookClick={() => navigate(`/book/${note.bookId}`)}
                         />
                       </div>
                     ))}
