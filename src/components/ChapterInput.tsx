@@ -70,7 +70,7 @@ export function formatChapterDisplay(
   chapterTitle: string | null
 ): string {
   if (chapterNumber !== null && chapterTitle) {
-    return `Ch ${chapterNumber} — ${chapterTitle}`;
+    return `Ch ${chapterNumber} - ${chapterTitle}`;
   }
   if (chapterNumber !== null) {
     return `Ch ${chapterNumber}`;
@@ -158,7 +158,7 @@ export function ChapterInput({
     <div className={`space-y-1 ${className}`}>
       <div className="relative">
         <Input
-          placeholder="Ch 3 — Title (optional)"
+          placeholder="Ch 3 - Title (optional)"
           value={inputValue}
           onChange={handleChange}
           onBlur={handleBlur}
