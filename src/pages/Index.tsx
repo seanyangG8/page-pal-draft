@@ -180,7 +180,7 @@ const Index = () => {
                   className="group inline-flex items-center gap-3 px-8 py-4 rounded-2xl font-semibold text-primary-foreground gradient-primary shadow-float hover:shadow-glow transition-all duration-300 hover:-translate-y-1 press-effect"
                 >
                   <BookOpen className="w-5 h-5 transition-transform group-hover:rotate-6" />
-                  Add your first book
+                  {books.length > 0 ? 'Add a book' : 'Add your first book'}
                 </button>
                 {showWelcome && books.length > 0 && (
                   <button 
