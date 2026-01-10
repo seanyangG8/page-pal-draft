@@ -90,57 +90,70 @@
   }
 
   .dark {
-    /* Deep, rich dark mode */
-    --background: 20 20% 6%;
-    --foreground: 35 20% 92%;
+    /* Rich, warm dark mode - not flat black */
+    --background: 25 18% 11%;
+    --foreground: 38 25% 93%;
 
-    --card: 20 18% 9%;
-    --card-foreground: 35 20% 92%;
+    --card: 25 16% 14%;
+    --card-foreground: 38 25% 93%;
 
-    --popover: 20 18% 8%;
-    --popover-foreground: 35 20% 92%;
+    --popover: 25 15% 13%;
+    --popover-foreground: 38 25% 93%;
 
-    /* Warm amber primary for dark */
-    --primary: 28 80% 55%;
-    --primary-foreground: 20 20% 6%;
+    /* Warm golden amber primary */
+    --primary: 32 85% 58%;
+    --primary-foreground: 25 30% 8%;
 
-    --secondary: 20 15% 13%;
-    --secondary-foreground: 35 18% 85%;
+    --secondary: 25 14% 18%;
+    --secondary-foreground: 38 20% 88%;
 
-    --muted: 20 12% 15%;
-    --muted-foreground: 30 12% 50%;
+    --muted: 25 12% 20%;
+    --muted-foreground: 30 15% 55%;
 
-    --accent: 28 75% 52%;
-    --accent-foreground: 20 20% 6%;
+    --accent: 32 80% 55%;
+    --accent-foreground: 25 30% 8%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 20 12% 14%;
-    --input: 20 12% 14%;
-    --ring: 28 80% 55%;
+    --border: 25 12% 20%;
+    --input: 25 12% 18%;
+    --ring: 32 85% 58%;
 
-    /* Dark mode gradients */
-    --gradient-warm: linear-gradient(160deg, hsl(20 20% 6%) 0%, hsl(20 18% 8%) 100%);
-    --gradient-hero: radial-gradient(ellipse 80% 60% at 50% -20%, hsl(28 40% 12% / 0.4) 0%, transparent 100%);
-    --gradient-glow: radial-gradient(circle at center, hsl(28 75% 52% / 0.1) 0%, transparent 70%);
+    /* Semantic colors - brighter for dark */
+    --success: 158 70% 45%;
+    --warning: 42 95% 55%;
+    --info: 215 90% 60%;
 
-    /* Dark shadows */
-    --shadow-xs: 0 1px 2px hsl(0 0% 0% / 0.2);
-    --shadow-sm: 0 2px 4px hsl(0 0% 0% / 0.25), 0 1px 2px hsl(0 0% 0% / 0.15);
-    --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.3), 0 2px 4px hsl(0 0% 0% / 0.2);
-    --shadow-lg: 0 8px 24px hsl(0 0% 0% / 0.35), 0 4px 8px hsl(0 0% 0% / 0.2);
-    --shadow-xl: 0 16px 48px hsl(0 0% 0% / 0.4), 0 8px 16px hsl(0 0% 0% / 0.25);
-    --shadow-glow: 0 0 0 1px hsl(28 75% 52% / 0.2), 0 4px 24px hsl(28 75% 52% / 0.12);
+    /* Note colors - richer in dark */
+    --note-quote: 32 90% 58%;
+    --note-idea: 215 90% 60%;
+    --note-question: 270 70% 62%;
+    --note-action: 158 70% 48%;
 
-    --sidebar-background: 20 18% 7%;
-    --sidebar-foreground: 35 18% 85%;
-    --sidebar-primary: 28 80% 55%;
-    --sidebar-primary-foreground: 20 20% 6%;
-    --sidebar-accent: 20 15% 12%;
-    --sidebar-accent-foreground: 35 18% 85%;
-    --sidebar-border: 20 12% 12%;
-    --sidebar-ring: 28 80% 55%;
+    /* Dark mode gradients - subtle warmth */
+    --gradient-warm: linear-gradient(160deg, hsl(25 18% 11%) 0%, hsl(25 16% 13%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(25 16% 15%) 0%, hsl(25 16% 13%) 100%);
+    --gradient-hero: radial-gradient(ellipse 80% 60% at 50% -20%, hsl(32 50% 18% / 0.5) 0%, transparent 100%);
+    --gradient-glow: radial-gradient(circle at center, hsl(32 80% 55% / 0.12) 0%, transparent 70%);
+
+    /* Dark shadows - subtle glow highlights */
+    --shadow-xs: 0 1px 2px hsl(0 0% 0% / 0.25), 0 0 0 1px hsl(38 20% 20% / 0.05);
+    --shadow-sm: 0 2px 4px hsl(0 0% 0% / 0.3), 0 0 0 1px hsl(38 20% 22% / 0.08);
+    --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.35), 0 0 0 1px hsl(38 20% 22% / 0.1);
+    --shadow-lg: 0 8px 24px hsl(0 0% 0% / 0.4), 0 0 0 1px hsl(38 20% 24% / 0.1);
+    --shadow-xl: 0 16px 48px hsl(0 0% 0% / 0.5), 0 0 0 1px hsl(38 20% 24% / 0.1);
+    --shadow-glow: 0 0 0 1px hsl(32 80% 55% / 0.25), 0 4px 24px hsl(32 80% 55% / 0.15);
+    --shadow-inner: inset 0 1px 2px hsl(0 0% 0% / 0.15);
+
+    --sidebar-background: 25 17% 12%;
+    --sidebar-foreground: 38 20% 88%;
+    --sidebar-primary: 32 85% 58%;
+    --sidebar-primary-foreground: 25 30% 8%;
+    --sidebar-accent: 25 14% 16%;
+    --sidebar-accent-foreground: 38 20% 88%;
+    --sidebar-border: 25 12% 18%;
+    --sidebar-ring: 32 85% 58%;
   }
 }
 
