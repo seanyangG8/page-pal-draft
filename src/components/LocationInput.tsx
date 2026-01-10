@@ -136,8 +136,8 @@ export function LocationInput({
           </>
         ) : (
           <>
-            <div className="w-32 space-y-1">
-              <Label className="text-xs text-muted-foreground">Page</Label>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground h-4">Page</Label>
               <div className="flex items-center gap-0.5">
                 <Button
                   type="button"
@@ -177,7 +177,7 @@ export function LocationInput({
               </div>
             </div>
             <div className="flex-1 space-y-1">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
+              <Label className="text-xs text-muted-foreground h-4 flex items-center gap-1">
                 <BookOpen className="w-3 h-3" />
                 Chapter
               </Label>
