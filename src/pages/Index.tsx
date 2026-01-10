@@ -131,7 +131,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <Header 
         hasBooks={books.length > 0} 
         onShowWelcome={() => setShowWelcome(true)} 
@@ -140,36 +140,58 @@ const Index = () => {
       <main className="container py-8 pb-24">
         {/* Hero section for empty state or when showWelcome is true */}
         {(books.length === 0 && notes.length === 0) || showWelcome ? (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center animate-fade-up gradient-hero rounded-3xl -mx-4 px-4 py-12">
-            <div className="w-24 h-24 rounded-2xl gradient-amber flex items-center justify-center mb-8 shadow-elevated animate-float shine">
-              <Sparkles className="w-12 h-12 text-primary-foreground" />
-            </div>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 tracking-tight">
-              Welcome to <span className="text-gradient">Marginalia</span>
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-lg mb-10 leading-relaxed">
-              Your personal companion for capturing and organizing thoughts from every book you read.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <button 
-                onClick={() => {
-                  setAddBookOpen(true);
-                  setShowWelcome(false);
-                }}
-                className="inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl font-semibold text-primary-foreground gradient-amber shadow-elevated hover:shadow-glow transition-all duration-300 hover:-translate-y-1 hover:scale-105"
-              >
-                <BookOpen className="w-5 h-5" />
-                Add a book
-              </button>
-              {showWelcome && books.length > 0 && (
+          <div className="relative flex flex-col items-center justify-center min-h-[65vh] text-center animate-fade-up -mx-4 px-6 py-16 overflow-hidden">
+            {/* Background decorations */}
+            <div className="absolute inset-0 gradient-hero opacity-80" />
+            <div className="absolute inset-0 pattern-dots opacity-50" />
+            
+            {/* Decorative glow */}
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="relative z-10">
+              {/* Hero icon */}
+              <div className="w-28 h-28 rounded-3xl gradient-primary flex items-center justify-center mb-10 shadow-float animate-float mx-auto">
+                <Sparkles className="w-14 h-14 text-primary-foreground" />
+              </div>
+              
+              {/* Title with decorative elements */}
+              <div className="mb-6">
+                <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-foreground tracking-tight leading-tight">
+                  Welcome to{' '}
+                  <span className="text-gradient relative">
+                    Marginalia
+                    <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M2 5.5C50 2 150 2 198 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-primary/30"/>
+                    </svg>
+                  </span>
+                </h1>
+              </div>
+              
+              <p className="text-lg md:text-xl text-muted-foreground max-w-lg mx-auto mb-12 leading-relaxed">
+                Your personal companion for capturing and organizing thoughts from every book you read.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <button 
-                  onClick={() => setShowWelcome(false)}
-                  className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl font-medium text-muted-foreground hover:text-foreground bg-secondary hover:bg-secondary/80 transition-all duration-200"
+                  onClick={() => {
+                    setAddBookOpen(true);
+                    setShowWelcome(false);
+                  }}
+                  className="group inline-flex items-center gap-3 px-8 py-4 rounded-2xl font-semibold text-primary-foreground gradient-primary shadow-float hover:shadow-glow transition-all duration-300 hover:-translate-y-1 press-effect"
                 >
-                  <Library className="w-4 h-4" />
-                  Back to Library
+                  <BookOpen className="w-5 h-5 transition-transform group-hover:rotate-6" />
+                  Add your first book
                 </button>
-              )}
+                {showWelcome && books.length > 0 && (
+                  <button 
+                    onClick={() => setShowWelcome(false)}
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-muted-foreground hover:text-foreground bg-secondary/80 hover:bg-secondary transition-all duration-200 press-effect"
+                  >
+                    <Library className="w-4 h-4" />
+                    Back to Library
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ) : (
@@ -177,22 +199,22 @@ const Index = () => {
             {/* Tabs and search */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'library' | 'notes' | 'feed' | 'friends')} className="w-full sm:w-auto">
-                <TabsList className="bg-secondary/80 shadow-soft p-1">
-                  <TabsTrigger value="library" className="gap-2 data-[state=active]:shadow-card">
+                <TabsList className="bg-secondary/70 shadow-soft p-1.5 rounded-xl">
+                  <TabsTrigger value="library" className="gap-2 rounded-lg data-[state=active]:shadow-card data-[state=active]:bg-card">
                     <Library className="w-4 h-4" />
-                    Library
+                    <span className="hidden sm:inline">Library</span>
                   </TabsTrigger>
-                  <TabsTrigger value="notes" className="gap-2 data-[state=active]:shadow-card">
+                  <TabsTrigger value="notes" className="gap-2 rounded-lg data-[state=active]:shadow-card data-[state=active]:bg-card">
                     <Search className="w-4 h-4" />
-                    Notes
+                    <span className="hidden sm:inline">Notes</span>
                   </TabsTrigger>
-                  <TabsTrigger value="feed" className="gap-2 data-[state=active]:shadow-card">
+                  <TabsTrigger value="feed" className="gap-2 rounded-lg data-[state=active]:shadow-card data-[state=active]:bg-card">
                     <Rss className="w-4 h-4" />
-                    Feed
+                    <span className="hidden sm:inline">Feed</span>
                   </TabsTrigger>
-                  <TabsTrigger value="friends" className="gap-2 data-[state=active]:shadow-card">
+                  <TabsTrigger value="friends" className="gap-2 rounded-lg data-[state=active]:shadow-card data-[state=active]:bg-card">
                     <Users className="w-4 h-4" />
-                    Friends
+                    <span className="hidden sm:inline">Friends</span>
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -212,7 +234,7 @@ const Index = () => {
                         variant="outline"
                         size="icon"
                         onClick={() => setShowFilters(!showFilters)}
-                        className={showFilters ? 'bg-primary/10' : ''}
+                        className={`rounded-lg ${showFilters ? 'bg-primary/10 border-primary/30' : ''}`}
                       >
                         <Filter className="w-4 h-4" />
                       </Button>
@@ -220,13 +242,15 @@ const Index = () => {
                         variant="outline"
                         size="icon"
                         onClick={() => setExportOpen(true)}
-                    >
-                      <Download className="w-4 h-4" />
-                    </Button>
+                        className="rounded-lg"
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
                       <Button
                         variant="outline"
                         size="icon"
                         onClick={() => setImportOpen(true)}
+                        className="rounded-lg"
                       >
                         <Upload className="w-4 h-4" />
                       </Button>
@@ -245,7 +269,7 @@ const Index = () => {
 
             {/* Filters Panel */}
             {activeTab === 'notes' && showFilters && (
-              <div className="mb-6">
+              <div className="mb-6 animate-fade-in">
                 <FilterPanel
                   books={books}
                   onFilterChange={setActiveFilters}
@@ -256,30 +280,36 @@ const Index = () => {
 
             {/* Library tab */}
             {activeTab === 'library' && (
-              <div className="library-bg wall-texture rounded-2xl -mx-2 px-2 py-6 sm:-mx-4 sm:px-4">
-                {isLoading ? (
-                  <BookshelfSkeleton />
-                ) : books.length === 0 ? (
-                  <EmptyState
-                    icon={BookOpen}
-                    title="Your library is empty"
-                    description="Add books to start capturing your reading notes and highlights."
-                    actionLabel="Add a book"
-                    onAction={() => setAddBookOpen(true)}
-                  />
-                ) : (
-                  <Bookshelf
-                    books={books.filter(b => 
-                      !searchQuery || 
-                      b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      b.author.toLowerCase().includes(searchQuery.toLowerCase())
-                    )}
-                    onBookClick={(bookId) => navigate(`/book/${bookId}`)}
-                    onDeleteBook={handleDeleteBook}
-                    onEditBook={handleEditBook}
-                    onReorder={() => setBooks(getBooks())}
-                  />
-                )}
+              <div className="relative rounded-2xl -mx-2 px-2 py-8 sm:-mx-4 sm:px-4 overflow-hidden">
+                {/* Subtle wall background */}
+                <div className="absolute inset-0 bg-gradient-to-b from-secondary/30 via-secondary/20 to-transparent rounded-2xl" />
+                <div className="absolute inset-0 pattern-dots opacity-30" />
+                
+                <div className="relative z-10">
+                  {isLoading ? (
+                    <BookshelfSkeleton />
+                  ) : books.length === 0 ? (
+                    <EmptyState
+                      icon={BookOpen}
+                      title="Your library is empty"
+                      description="Add books to start capturing your reading notes and highlights."
+                      actionLabel="Add a book"
+                      onAction={() => setAddBookOpen(true)}
+                    />
+                  ) : (
+                    <Bookshelf
+                      books={books.filter(b => 
+                        !searchQuery || 
+                        b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        b.author.toLowerCase().includes(searchQuery.toLowerCase())
+                      )}
+                      onBookClick={(bookId) => navigate(`/book/${bookId}`)}
+                      onDeleteBook={handleDeleteBook}
+                      onEditBook={handleEditBook}
+                      onReorder={() => setBooks(getBooks())}
+                    />
+                  )}
+                </div>
               </div>
             )}
 
@@ -287,7 +317,7 @@ const Index = () => {
             {activeTab === 'notes' && (
               <>
                 {isLoading ? (
-                  <div className="space-y-3 max-w-2xl mx-auto">
+                  <div className="space-y-4 max-w-2xl mx-auto">
                     {[...Array(3)].map((_, i) => (
                       <NoteCardSkeleton key={i} />
                     ))}
@@ -299,12 +329,12 @@ const Index = () => {
                     description={searchQuery ? 'Try a different search term.' : 'Start adding notes from your books to see them here.'}
                   />
                 ) : (
-                  <div className="space-y-3 max-w-2xl mx-auto">
+                  <div className="space-y-4 max-w-2xl mx-auto">
                     {filteredNotes.map((note, index) => (
                       <div 
                         key={note.id}
                         className="animate-fade-up"
-                        style={{ animationDelay: `${index * 50}ms` }}
+                        style={{ animationDelay: `${index * 60}ms` }}
                       >
                         <NoteCard
                           note={note}
@@ -324,12 +354,16 @@ const Index = () => {
 
             {/* Feed tab */}
             {activeTab === 'feed' && (
-              <SocialFeed />
+              <div className="animate-fade-in">
+                <SocialFeed />
+              </div>
             )}
 
             {/* Friends tab */}
             {activeTab === 'friends' && (
-              <FriendsPanel />
+              <div className="animate-fade-in">
+                <FriendsPanel />
+              </div>
             )}
           </>
         )}
