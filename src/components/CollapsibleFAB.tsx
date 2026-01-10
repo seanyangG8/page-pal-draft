@@ -144,11 +144,12 @@ export function CollapsibleFAB({
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
           "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
-          "bg-muted text-muted-foreground hover:bg-foreground hover:text-background hover:scale-105",
+          "bg-[hsl(0_45%_85%)] text-[hsl(0_40%_35%)] hover:bg-[hsl(0_50%_75%)] hover:scale-105",
+          "dark:bg-[hsl(0_35%_30%)] dark:text-[hsl(0_30%_85%)] dark:hover:bg-[hsl(0_40%_40%)]",
           isExpanded 
             ? "opacity-100 -translate-y-16 translate-x-0 pointer-events-auto" 
             : "opacity-0 translate-y-0 translate-x-0 pointer-events-none",
-          dragTarget === 'record' && "scale-110 ring-4 ring-foreground/20"
+          dragTarget === 'record' && "scale-110 ring-4 ring-[hsl(0_40%_70%)]/30"
         )}
         style={{ bottom: '0', right: '0' }}
       >
@@ -163,11 +164,12 @@ export function CollapsibleFAB({
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
           "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
-          "bg-muted text-muted-foreground hover:bg-foreground hover:text-background hover:scale-105",
+          "bg-[hsl(220_10%_88%)] text-[hsl(220_10%_40%)] hover:bg-[hsl(220_10%_78%)] hover:scale-105",
+          "dark:bg-[hsl(220_10%_25%)] dark:text-[hsl(220_10%_80%)] dark:hover:bg-[hsl(220_10%_35%)]",
           isExpanded 
             ? "opacity-100 -translate-y-12 -translate-x-12 pointer-events-auto" 
             : "opacity-0 translate-y-0 translate-x-0 pointer-events-none",
-          dragTarget === 'camera' && "scale-110 ring-4 ring-foreground/20"
+          dragTarget === 'camera' && "scale-110 ring-4 ring-[hsl(220_10%_70%)]/30"
         )}
         style={{ bottom: '0', right: '0' }}
       >
@@ -182,11 +184,12 @@ export function CollapsibleFAB({
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
           "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
-          "bg-muted text-muted-foreground hover:bg-foreground hover:text-background hover:scale-105",
+          "bg-[hsl(35_40%_88%)] text-[hsl(35_40%_35%)] hover:bg-[hsl(35_45%_78%)] hover:scale-105",
+          "dark:bg-[hsl(35_30%_25%)] dark:text-[hsl(35_30%_85%)] dark:hover:bg-[hsl(35_35%_35%)]",
           isExpanded 
             ? "opacity-100 translate-y-0 -translate-x-16 pointer-events-auto" 
             : "opacity-0 translate-y-0 translate-x-0 pointer-events-none",
-          dragTarget === 'note' && "scale-110 ring-4 ring-foreground/20"
+          dragTarget === 'note' && "scale-110 ring-4 ring-[hsl(35_40%_70%)]/30"
         )}
         style={{ bottom: '0', right: '0' }}
       >
