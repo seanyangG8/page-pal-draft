@@ -50,32 +50,13 @@ const noteTypes: { type: NoteType; icon: typeof Quote; label: string }[] = [
   { type: 'action', icon: CheckCircle, label: 'Action' },
 ];
 
-// AI Enhance dropdown component
-function AIEnhanceDropdown({ onAction }: { onAction: (action: string) => void }) {
+// AI Enhance button component
+function AIEnhanceButton({ onClick }: { onClick: () => void }) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className="w-full gap-2">
-          <Wand2 className="w-4 h-4" />
-          Enhance with AI
-          <ChevronDown className="w-3 h-3 ml-auto" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-48">
-        <DropdownMenuItem onClick={() => onAction('summarise')}>
-          Summarise
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onAction('explain')}>
-          Explain
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onAction('action')}>
-          Turn into action
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onAction('questions')}>
-          Generate questions
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button type="button" variant="outline" size="sm" className="w-full gap-2" onClick={onClick}>
+      <Wand2 className="w-4 h-4" />
+      Enhance with AI
+    </Button>
   );
 }
 
@@ -345,12 +326,9 @@ export function AddNoteDialog({
                     />
                   </div>
 
-                  {/* AI Enhance dropdown - only show when there's content */}
+                  {/* AI Enhance button - only show when there's content */}
                   {content.trim() && (
-                    <AIEnhanceDropdown onAction={(action) => {
-                      // Store the action type for AITextActions to use
-                      setShowAIEditor(true);
-                    }} />
+                    <AIEnhanceButton onClick={() => setShowAIEditor(true)} />
                   )}
                 </>
               )}
