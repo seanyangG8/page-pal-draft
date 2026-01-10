@@ -107,104 +107,76 @@ export function CollapsibleFAB({
     <div 
       ref={containerRef}
       className="fixed bottom-6 right-6 z-50"
-      onMouseEnter={() => !isDragging && setIsExpanded(true)}
-      onMouseLeave={() => !isDragging && setIsExpanded(false)}
     >
-      {/* Action buttons - appear on expand */}
-      <div 
+      {/* Action buttons - arc pattern: top, diagonal-left, left */}
+      {/* Top - Voice Recording */}
+      <Button
+        data-action="record"
+        size="icon"
+        onClick={() => handleAction(onStartRecording)}
+        onMouseEnter={() => setIsExpanded(true)}
         className={cn(
-          "absolute bottom-16 right-0 flex flex-col gap-3 items-end transition-all duration-300",
+          "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
+          "bg-primary hover:bg-primary/90",
           isExpanded 
-            ? "opacity-100 translate-y-0 pointer-events-auto" 
-            : "opacity-0 translate-y-4 pointer-events-none"
+            ? "opacity-100 -translate-y-16 translate-x-0 pointer-events-auto" 
+            : "opacity-0 translate-y-0 translate-x-0 pointer-events-none",
+          dragTarget === 'record' && "scale-110 ring-4 ring-primary/30"
         )}
+        style={{ bottom: '0', right: '0' }}
       >
-        {/* Voice Recording */}
-        <div className="flex items-center gap-3">
-          <span 
-            className={cn(
-              "text-sm font-medium px-3 py-1.5 rounded-lg bg-card shadow-md border border-border transition-all",
-              dragTarget === 'record' ? "bg-primary text-primary-foreground scale-105" : "text-foreground"
-            )}
-          >
-            Voice memo
-          </span>
-          <Button
-            data-action="record"
-            size="icon"
-            onClick={() => handleAction(onStartRecording)}
-            className={cn(
-              "h-12 w-12 rounded-full shadow-lg transition-all duration-200",
-              dragTarget === 'record' 
-                ? "bg-primary scale-110 ring-4 ring-primary/30" 
-                : "bg-primary hover:bg-primary/90"
-            )}
-          >
-            <Mic className="w-5 h-5" />
-          </Button>
-        </div>
+        <Mic className="w-5 h-5" />
+      </Button>
 
-        {/* Camera Capture */}
-        <div className="flex items-center gap-3">
-          <span 
-            className={cn(
-              "text-sm font-medium px-3 py-1.5 rounded-lg bg-card shadow-md border border-border transition-all",
-              dragTarget === 'camera' ? "bg-secondary scale-105" : "text-foreground"
-            )}
-          >
-            Take photo
-          </span>
-          <Button
-            data-action="camera"
-            size="icon"
-            onClick={() => handleAction(onOpenCamera)}
-            className={cn(
-              "h-12 w-12 rounded-full shadow-lg transition-all duration-200",
-              dragTarget === 'camera' 
-                ? "bg-secondary scale-110 ring-4 ring-secondary/50" 
-                : "bg-secondary hover:bg-secondary/90 text-secondary-foreground"
-            )}
-          >
-            <Camera className="w-5 h-5" />
-          </Button>
-        </div>
+      {/* Diagonal top-left - Camera */}
+      <Button
+        data-action="camera"
+        size="icon"
+        onClick={() => handleAction(onOpenCamera)}
+        onMouseEnter={() => setIsExpanded(true)}
+        className={cn(
+          "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
+          "bg-secondary hover:bg-secondary/90 text-secondary-foreground",
+          isExpanded 
+            ? "opacity-100 -translate-y-12 -translate-x-12 pointer-events-auto" 
+            : "opacity-0 translate-y-0 translate-x-0 pointer-events-none",
+          dragTarget === 'camera' && "scale-110 ring-4 ring-secondary/50"
+        )}
+        style={{ bottom: '0', right: '0' }}
+      >
+        <Camera className="w-5 h-5" />
+      </Button>
 
-        {/* Add Note */}
-        <div className="flex items-center gap-3">
-          <span 
-            className={cn(
-              "text-sm font-medium px-3 py-1.5 rounded-lg bg-card shadow-md border border-border transition-all",
-              dragTarget === 'note' ? "bg-accent text-accent-foreground scale-105" : "text-foreground"
-            )}
-          >
-            Write note
-          </span>
-          <Button
-            data-action="note"
-            size="icon"
-            variant="outline"
-            onClick={() => handleAction(onAddNote)}
-            className={cn(
-              "h-12 w-12 rounded-full shadow-lg bg-background transition-all duration-200",
-              dragTarget === 'note' 
-                ? "scale-110 ring-4 ring-accent/30 border-accent" 
-                : ""
-            )}
-          >
-            <PenLine className="w-5 h-5" />
-          </Button>
-        </div>
-      </div>
+      {/* Left - Write Note */}
+      <Button
+        data-action="note"
+        size="icon"
+        variant="outline"
+        onClick={() => handleAction(onAddNote)}
+        onMouseEnter={() => setIsExpanded(true)}
+        className={cn(
+          "absolute h-11 w-11 rounded-full shadow-lg bg-background transition-all duration-300",
+          isExpanded 
+            ? "opacity-100 translate-y-0 -translate-x-16 pointer-events-auto" 
+            : "opacity-0 translate-y-0 translate-x-0 pointer-events-none",
+          dragTarget === 'note' && "scale-110 ring-4 ring-accent/30 border-accent"
+        )}
+        style={{ bottom: '0', right: '0' }}
+      >
+        <PenLine className="w-5 h-5" />
+      </Button>
 
       {/* Main FAB button */}
       <Button
         size="icon"
         onClick={handleMainClick}
+        onMouseEnter={() => setIsExpanded(true)}
+        onMouseLeave={() => !isDragging && setIsExpanded(false)}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         className={cn(
-          "h-14 w-14 rounded-full shadow-xl transition-all duration-300",
+          "relative h-14 w-14 rounded-full shadow-xl transition-all duration-300",
           isExpanded 
             ? "bg-muted hover:bg-muted/90 text-muted-foreground rotate-45" 
             : "bg-primary hover:bg-primary/90 rotate-0",
