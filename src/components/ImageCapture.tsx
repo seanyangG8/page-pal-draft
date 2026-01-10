@@ -370,7 +370,7 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
                   onClick={() => onUseAsText(capturedImage.extractedText || '')}
                 >
                   <Wand2 className="w-3 h-3" />
-                  Enhance with AI
+                  Enhance
                 </Button>
               </div>
             )}

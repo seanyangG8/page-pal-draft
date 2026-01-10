@@ -86,7 +86,7 @@ function TranscriptEditor({
               onClick={() => onUseAsText(transcript)}
             >
               <Wand2 className="w-3 h-3" />
-              Enhance with AI
+              Enhance
             </Button>
           )}
         </div>
@@ -134,7 +134,7 @@ function ManualTranscriptEntry({
               onClick={() => onUseAsText(text)}
             >
               <Wand2 className="w-3 h-3 mr-1" />
-              Enhance with AI
+              Enhance
             </Button>
           )}
         </div>

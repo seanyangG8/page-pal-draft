@@ -55,7 +55,7 @@ function AIEnhanceButton({ onClick }: { onClick: () => void }) {
   return (
     <Button type="button" variant="outline" size="sm" className="w-full gap-2" onClick={onClick}>
       <Wand2 className="w-4 h-4" />
-      Enhance with AI
+      Enhance
     </Button>
   );
 }
