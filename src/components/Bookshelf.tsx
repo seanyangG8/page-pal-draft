@@ -96,26 +96,26 @@ function BookSpine({
         <GripVertical className="w-3 h-3 text-muted-foreground" />
       </div>
       
-      {/* Book standing upright */}
+      {/* Book standing upright - tilted, straightens on hover */}
       <div 
-        className="relative cursor-pointer transition-all duration-300 group-hover:-translate-y-3"
+        className="relative cursor-pointer"
         onClick={onClick}
-        style={{ perspective: '600px' }}
+        style={{ perspective: '800px' }}
       >
         {/* Book with cover image or colored spine */}
         {book.coverUrl ? (
-          // Show book cover at an angle - fixed size container
+          // Show book cover tilted
           <div 
-            className="relative w-14 sm:w-16 md:w-20 h-24 sm:h-28 md:h-36"
+            className="relative w-14 sm:w-16 md:w-20 h-24 sm:h-28 md:h-36 transition-transform duration-300 ease-out group-hover:-translate-y-2"
             style={{
               transformStyle: 'preserve-3d',
+              transform: 'rotateY(-25deg)',
             }}
           >
-            {/* Book cover - starts tilted, straightens on hover */}
+            {/* Book cover */}
             <div
-              className="book-cover absolute inset-0 rounded-sm shadow-lg overflow-hidden transition-transform duration-300 group-hover:[transform:rotateY(-3deg)]"
+              className="book-cover absolute inset-0 rounded-sm shadow-lg overflow-hidden transition-transform duration-300 group-hover:[transform:rotateY(15deg)]"
               style={{
-                transform: 'rotateY(-18deg)',
                 transformOrigin: 'left center',
               }}
             >
@@ -127,30 +127,27 @@ function BookSpine({
               {/* Lighting overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-transparent to-white/10" />
             </div>
-            {/* Page edges - more visible with shadow */}
+            {/* Page edges - visible with shadow */}
             <div 
-              className="absolute top-1 -right-1 h-[calc(100%-8px)] w-3 bg-gradient-to-r from-stone-200 via-stone-100 to-stone-50 dark:from-stone-300 dark:via-stone-200 dark:to-stone-100 rounded-r-sm shadow-md border-r border-stone-300/50"
-              style={{
-                transform: 'translateZ(-2px)',
-              }}
+              className="absolute top-1 -right-1.5 h-[calc(100%-8px)] w-3 bg-gradient-to-r from-stone-200 via-stone-100 to-stone-50 dark:from-stone-300 dark:via-stone-200 dark:to-stone-100 rounded-r-sm shadow-md border-r border-stone-300/50"
             >
               {/* Page lines */}
-              <div className="absolute inset-y-2 left-0 w-px bg-stone-300/50" />
-              <div className="absolute inset-y-2 left-0.5 w-px bg-stone-300/30" />
+              <div className="absolute inset-y-2 left-0.5 w-px bg-stone-300/40" />
+              <div className="absolute inset-y-2 left-1 w-px bg-stone-300/20" />
             </div>
           </div>
         ) : (
-          // Show colored spine (no cover) - same fixed size and angle
+          // Show colored spine (no cover) - tilted
           <div 
-            className="relative w-14 sm:w-16 md:w-20 h-24 sm:h-28 md:h-36"
+            className="relative w-14 sm:w-16 md:w-20 h-24 sm:h-28 md:h-36 transition-transform duration-300 ease-out group-hover:-translate-y-2"
             style={{
               transformStyle: 'preserve-3d',
+              transform: 'rotateY(-25deg)',
             }}
           >
             <div 
-              className={`book-cover absolute inset-0 bg-gradient-to-b ${getSpineColor(book.title)} rounded-sm shadow-lg flex flex-col items-center justify-center overflow-hidden transition-transform duration-300 group-hover:[transform:rotateY(-3deg)]`}
+              className={`book-cover absolute inset-0 bg-gradient-to-b ${getSpineColor(book.title)} rounded-sm shadow-lg flex flex-col items-center justify-center overflow-hidden transition-transform duration-300 group-hover:[transform:rotateY(15deg)]`}
               style={{
-                transform: 'rotateY(-18deg)',
                 transformOrigin: 'left center',
               }}
             >
@@ -172,16 +169,13 @@ function BookSpine({
               <div className="absolute bottom-2 left-1 right-1 h-0.5 bg-amber-300/30 rounded-full" />
             </div>
             
-            {/* Page edges - more visible with shadow */}
+            {/* Page edges - visible with shadow */}
             <div 
-              className="absolute top-1 -right-1 h-[calc(100%-8px)] w-3 bg-gradient-to-r from-stone-200 via-stone-100 to-stone-50 dark:from-stone-300 dark:via-stone-200 dark:to-stone-100 rounded-r-sm shadow-md border-r border-stone-300/50"
-              style={{
-                transform: 'translateZ(-2px)',
-              }}
+              className="absolute top-1 -right-1.5 h-[calc(100%-8px)] w-3 bg-gradient-to-r from-stone-200 via-stone-100 to-stone-50 dark:from-stone-300 dark:via-stone-200 dark:to-stone-100 rounded-r-sm shadow-md border-r border-stone-300/50"
             >
               {/* Page lines */}
-              <div className="absolute inset-y-2 left-0 w-px bg-stone-300/50" />
-              <div className="absolute inset-y-2 left-0.5 w-px bg-stone-300/30" />
+              <div className="absolute inset-y-2 left-0.5 w-px bg-stone-300/40" />
+              <div className="absolute inset-y-2 left-1 w-px bg-stone-300/20" />
             </div>
           </div>
         )}
@@ -432,26 +426,26 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
               )}
             </div>
             
-            {/* Wooden shelf - subtle and refined */}
-            <div className="relative h-3 sm:h-4 bg-gradient-to-b from-stone-400 to-stone-500 dark:from-stone-600 dark:to-stone-700 rounded-sm shadow-md">
+            {/* Wooden shelf - warm brown */}
+            <div className="relative h-3 sm:h-4 bg-gradient-to-b from-amber-700 to-amber-800 dark:from-amber-800 dark:to-amber-900 rounded-sm shadow-md">
               {/* Shelf highlight */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-b from-white/20 to-transparent rounded-t-sm" />
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-b from-amber-500/30 to-transparent rounded-t-sm" />
               
               {/* Shelf front edge */}
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-black/20" />
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-900/50" />
               
               {/* Shelf shadow underneath */}
               <div className="absolute -bottom-2 left-6 right-6 h-2 bg-gradient-to-b from-black/10 to-transparent blur-sm" />
             </div>
             
             {/* Shelf bracket left */}
-            <div className="absolute -bottom-3 left-8 w-3 h-5 bg-gradient-to-b from-stone-500 to-stone-600 dark:from-stone-600 dark:to-stone-700 rounded-b-sm shadow-sm">
-              <div className="absolute inset-x-0 top-0 h-0.5 bg-white/10" />
+            <div className="absolute -bottom-3 left-8 w-3 h-5 bg-gradient-to-b from-amber-700 to-amber-900 dark:from-amber-800 dark:to-amber-950 rounded-b-sm shadow-sm">
+              <div className="absolute inset-x-0 top-0 h-0.5 bg-amber-500/20" />
             </div>
             
             {/* Shelf bracket right */}
-            <div className="absolute -bottom-3 right-8 w-3 h-5 bg-gradient-to-b from-stone-500 to-stone-600 dark:from-stone-600 dark:to-stone-700 rounded-b-sm shadow-sm">
-              <div className="absolute inset-x-0 top-0 h-0.5 bg-white/10" />
+            <div className="absolute -bottom-3 right-8 w-3 h-5 bg-gradient-to-b from-amber-700 to-amber-900 dark:from-amber-800 dark:to-amber-950 rounded-b-sm shadow-sm">
+              <div className="absolute inset-x-0 top-0 h-0.5 bg-amber-500/20" />
             </div>
           </div>
         </div>
