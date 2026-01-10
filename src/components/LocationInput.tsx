@@ -1,13 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Clock, FileText, Minus, Plus } from 'lucide-react';
+import { Clock, FileText, Minus, Plus } from 'lucide-react';
 import { BookFormat } from '@/types';
+import { ChapterInput, ChapterData, parseChapterInput, formatChapterDisplay } from './ChapterInput';
 
 export interface LocationData {
   page?: string;
   chapter?: string;
+  chapterData?: ChapterData;
   section?: string;
   timestamp?: string;
   freeform?: string;
@@ -59,6 +61,22 @@ export function LocationInput({
 }: LocationInputProps) {
   const isAudiobook = bookFormat === 'audiobook';
   
+  // Initialize chapter data from value
+  const chapterData: ChapterData = useMemo(() => {
+    if (value.chapterData) return value.chapterData;
+    if (value.chapter) return parseChapterInput(value.chapter);
+    return { chapter_number: null, chapter_title: null, chapter_raw: null, chapter_display: '' };
+  }, [value.chapterData, value.chapter]);
+  
+  // Handle chapter change
+  const handleChapterChange = useCallback((newChapterData: ChapterData) => {
+    onChange({ 
+      ...value, 
+      chapter: newChapterData.chapter_display,
+      chapterData: newChapterData
+    });
+  }, [value, onChange]);
+  
   // Handle page stepper
   const handlePageStep = useCallback((delta: number) => {
     const currentPage = parseInt(value.page || '0', 10);
@@ -86,22 +104,30 @@ export function LocationInput({
     onChange({ ...value, page: cleanedValue });
   }, [value, onChange]);
   
-  // Handle smart paste/input for chapter field
+  // Handle smart paste/input for chapter field (for combined inputs)
   const handleChapterInput = useCallback((inputValue: string) => {
     // Check if this looks like a combined input
     if (/(?:p\.?|page|pg\.?)\s*\d+/i.test(inputValue)) {
       const parsed = parseSmartInput(inputValue);
+      const chapterParsed = parsed.chapter ? parseChapterInput(parsed.chapter) : chapterData;
       onChange({ 
         ...value, 
         page: parsed.page || value.page,
-        chapter: parsed.chapter || value.chapter,
+        chapter: chapterParsed.chapter_display,
+        chapterData: chapterParsed,
         timestamp: parsed.timestamp || value.timestamp
       });
       return;
     }
     
-    onChange({ ...value, chapter: inputValue });
-  }, [value, onChange]);
+    // Use the new chapter parser
+    const parsed = parseChapterInput(inputValue);
+    onChange({ 
+      ...value, 
+      chapter: parsed.chapter_display,
+      chapterData: parsed
+    });
+  }, [value, onChange, chapterData]);
 
   if (compact) {
     // Compact mode: single row with labels and most relevant fields
@@ -121,16 +147,11 @@ export function LocationInput({
                 className="h-9 text-sm bg-background"
               />
             </div>
-            <div className="flex-1 space-y-1">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <BookOpen className="w-3 h-3" />
-                Chapter
-              </Label>
-              <Input
-                placeholder="Ch 3"
-                value={value.chapter || ''}
-                onChange={(e) => handleChapterInput(e.target.value)}
-                className="h-9 text-sm bg-background"
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground mb-1 block">Chapter</Label>
+              <ChapterInput
+                value={chapterData}
+                onChange={handleChapterChange}
               />
             </div>
           </>
@@ -179,23 +200,11 @@ export function LocationInput({
                 </Button>
               </div>
             </div>
-            <div className="flex-1 space-y-1">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <BookOpen className="w-3 h-3" />
-                Chapter
-              </Label>
-              <Input
-                placeholder="Ch 3"
-                value={value.chapter || ''}
-                onChange={(e) => handleChapterInput(e.target.value)}
-                onPaste={(e) => {
-                  const pasted = e.clipboardData.getData('text');
-                  if (/(?:p\.?|page|pg\.?)\s*\d+/i.test(pasted)) {
-                    e.preventDefault();
-                    handleChapterInput(pasted);
-                  }
-                }}
-                className="h-9 text-sm bg-background"
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground mb-1 block">Chapter</Label>
+              <ChapterInput
+                value={chapterData}
+                onChange={handleChapterChange}
               />
             </div>
           </>
@@ -223,15 +232,10 @@ export function LocationInput({
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs flex items-center gap-1.5">
-                <BookOpen className="w-3 h-3" />
-                Chapter
-              </Label>
-              <Input
-                placeholder="Ch 3"
-                value={value.chapter || ''}
-                onChange={(e) => handleChapterInput(e.target.value)}
-                className="h-9 text-sm bg-background"
+              <Label className="text-xs">Chapter</Label>
+              <ChapterInput
+                value={chapterData}
+                onChange={handleChapterChange}
               />
             </div>
           </>
@@ -278,22 +282,10 @@ export function LocationInput({
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs flex items-center gap-1.5">
-                <BookOpen className="w-3 h-3" />
-                Chapter
-              </Label>
-              <Input
-                placeholder="Ch 3"
-                value={value.chapter || ''}
-                onChange={(e) => handleChapterInput(e.target.value)}
-                onPaste={(e) => {
-                  const pasted = e.clipboardData.getData('text');
-                  if (/(?:p\.?|page|pg\.?)\s*\d+/i.test(pasted)) {
-                    e.preventDefault();
-                    handleChapterInput(pasted);
-                  }
-                }}
-                className="h-9 text-sm bg-background"
+              <Label className="text-xs">Chapter</Label>
+              <ChapterInput
+                value={chapterData}
+                onChange={handleChapterChange}
               />
             </div>
           </>
@@ -343,9 +335,15 @@ export function parseLocation(locationString: string): LocationData {
   const timestampMatch = locationString.match(/\d{1,2}:\d{2}(:\d{2})?/);
   if (timestampMatch) data.timestamp = timestampMatch[0];
   
-  // Try to extract chapter
-  const chapterMatch = locationString.match(/ch(apter)?\.?\s*\d+/i);
-  if (chapterMatch) data.chapter = chapterMatch[0];
+  // Try to extract chapter - use the new parser
+  // First check for "Ch X" or "Ch X — Title" pattern
+  const chapterPattern = /ch(?:apter)?\.?\s*\d+(?:\s*[—–-]\s*[^,]+)?/i;
+  const chapterMatch = locationString.match(chapterPattern);
+  if (chapterMatch) {
+    const chapterParsed = parseChapterInput(chapterMatch[0]);
+    data.chapter = chapterParsed.chapter_display;
+    data.chapterData = chapterParsed;
+  }
   
   // If we couldn't parse anything, store as freeform
   if (!data.page && !data.timestamp && !data.chapter) {
