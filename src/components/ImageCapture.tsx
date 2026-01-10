@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Camera, Upload, X, Pencil, Type, RotateCcw, Check, Wand2 } from 'lucide-react';
+import { Camera, Upload, X, Highlighter, Type, RotateCcw, Check, Wand2, Square, Move } from 'lucide-react';
 
 interface ImageCaptureProps {
   onCapture: (data: { url: string; extractedText?: string }) => void;
@@ -10,15 +10,26 @@ interface ImageCaptureProps {
   onUseAsText?: (text: string) => void;
 }
 
+interface SelectionRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }: ImageCaptureProps) {
-  const [isDrawing, setIsDrawing] = useState(false);
   const [showTextInput, setShowTextInput] = useState(false);
   const [manualText, setManualText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawMode, setIsDrawMode] = useState(false);
-  const [drawPaths, setDrawPaths] = useState<{ x: number; y: number }[][]>([]);
-  const [currentPath, setCurrentPath] = useState<{ x: number; y: number }[]>([]);
+  const imageRef = useRef<HTMLImageElement>(null);
+  
+  // Selection state
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selections, setSelections] = useState<SelectionRect[]>([]);
+  const [currentSelection, setCurrentSelection] = useState<SelectionRect | null>(null);
+  const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -28,6 +39,7 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
     reader.onload = (event) => {
       const url = event.target?.result as string;
       onCapture({ url, extractedText: undefined });
+      setSelections([]);
     };
     reader.readAsDataURL(file);
   }, [onCapture]);
@@ -41,6 +53,7 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
     reader.onload = (event) => {
       const url = event.target?.result as string;
       onCapture({ url, extractedText: undefined });
+      setSelections([]);
     };
     reader.readAsDataURL(file);
   }, [onCapture]);
@@ -66,52 +79,44 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
     };
   };
 
-  const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDrawMode) return;
+  const startSelection = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isSelectMode) return;
     const coords = getCanvasCoords(e);
     if (!coords) return;
-    setIsDrawing(true);
-    setCurrentPath([coords]);
+    setIsSelecting(true);
+    setStartPoint(coords);
+    setCurrentSelection({ x: coords.x, y: coords.y, width: 0, height: 0 });
   };
 
-  const draw = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDrawing || !isDrawMode) return;
+  const updateSelection = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isSelecting || !isSelectMode || !startPoint) return;
     const coords = getCanvasCoords(e);
     if (!coords) return;
-    setCurrentPath(prev => [...prev, coords]);
     
-    // Draw on canvas
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!ctx || currentPath.length < 1) return;
-    
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    
-    const lastPoint = currentPath[currentPath.length - 1];
-    ctx.beginPath();
-    ctx.moveTo(lastPoint.x, lastPoint.y);
-    ctx.lineTo(coords.x, coords.y);
-    ctx.stroke();
+    setCurrentSelection({
+      x: Math.min(startPoint.x, coords.x),
+      y: Math.min(startPoint.y, coords.y),
+      width: Math.abs(coords.x - startPoint.x),
+      height: Math.abs(coords.y - startPoint.y),
+    });
   };
 
-  const stopDrawing = () => {
-    if (currentPath.length > 0) {
-      setDrawPaths(prev => [...prev, currentPath]);
+  const endSelection = () => {
+    if (currentSelection && currentSelection.width > 10 && currentSelection.height > 10) {
+      setSelections(prev => [...prev, currentSelection]);
     }
-    setIsDrawing(false);
-    setCurrentPath([]);
+    setIsSelecting(false);
+    setCurrentSelection(null);
+    setStartPoint(null);
   };
 
-  const clearDrawings = () => {
-    setDrawPaths([]);
-    setCurrentPath([]);
-    redrawCanvas();
+  const clearSelections = () => {
+    setSelections([]);
+    setCurrentSelection(null);
   };
 
-  const redrawCanvas = () => {
+  // Draw selections on canvas
+  useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!ctx || !capturedImage) return;
@@ -119,10 +124,23 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
     const img = new Image();
     img.onload = () => {
       ctx.clearRect(0, 0, canvas!.width, canvas!.height);
-      ctx.drawImage(img, 0, 0, canvas!.width, canvas!.height);
+      
+      // Draw all saved selections as highlights
+      [...selections, currentSelection].filter(Boolean).forEach(sel => {
+        if (!sel) return;
+        // Yellow highlight overlay
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.35)';
+        ctx.fillRect(sel.x, sel.y, sel.width, sel.height);
+        // Border
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+        ctx.strokeRect(sel.x, sel.y, sel.width, sel.height);
+        ctx.setLineDash([]);
+      });
     };
     img.src = capturedImage.url;
-  };
+  }, [capturedImage, selections, currentSelection]);
 
   const handleSaveText = () => {
     if (capturedImage && manualText.trim()) {
@@ -174,7 +192,7 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
 
   return (
     <div className="space-y-4">
-      {/* Image preview with drawing canvas */}
+      {/* Image preview with selection canvas */}
       <div className="relative rounded-xl overflow-hidden bg-secondary">
         <Button
           type="button"
@@ -187,8 +205,9 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
         </Button>
         
         <div className="relative">
-          {/* Base image - always behind canvas */}
+          {/* Base image */}
           <img 
+            ref={imageRef}
             src={capturedImage.url} 
             alt="Captured" 
             className="w-full h-auto max-h-[300px] object-contain"
@@ -196,7 +215,6 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
               const canvas = canvasRef.current;
               const img = e.currentTarget;
               if (canvas) {
-                // Set canvas dimensions to match image
                 const aspectRatio = img.naturalWidth / img.naturalHeight;
                 const maxWidth = 600;
                 const width = Math.min(img.naturalWidth, maxWidth);
@@ -207,39 +225,39 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
             }}
           />
           
-          {/* Transparent canvas overlay for drawing */}
+          {/* Selection canvas overlay */}
           <canvas
             ref={canvasRef}
-            className={`absolute inset-0 w-full h-full ${isDrawMode ? 'cursor-crosshair z-10' : 'pointer-events-none'}`}
-            onMouseDown={startDrawing}
-            onMouseMove={draw}
-            onMouseUp={stopDrawing}
-            onMouseLeave={stopDrawing}
-            onTouchStart={startDrawing}
-            onTouchMove={draw}
-            onTouchEnd={stopDrawing}
+            className={`absolute inset-0 w-full h-full ${isSelectMode ? 'cursor-crosshair z-10' : 'pointer-events-none'}`}
+            onMouseDown={startSelection}
+            onMouseMove={updateSelection}
+            onMouseUp={endSelection}
+            onMouseLeave={endSelection}
+            onTouchStart={startSelection}
+            onTouchMove={updateSelection}
+            onTouchEnd={endSelection}
           />
         </div>
         
-        {/* Drawing tools */}
+        {/* Selection tools */}
         <div className="absolute bottom-2 left-2 right-2 flex justify-center gap-2 z-20">
           <Button
             type="button"
-            variant={isDrawMode ? 'default' : 'secondary'}
+            variant={isSelectMode ? 'default' : 'secondary'}
             size="sm"
             className="gap-1.5"
-            onClick={() => setIsDrawMode(!isDrawMode)}
+            onClick={() => setIsSelectMode(!isSelectMode)}
           >
-            <Pencil className="w-3 h-3" />
-            {isDrawMode ? 'Done' : 'Mark up'}
+            <Highlighter className="w-3 h-3" />
+            {isSelectMode ? 'Done' : 'Select text'}
           </Button>
-          {isDrawMode && (
+          {selections.length > 0 && (
             <Button
               type="button"
               variant="secondary"
               size="sm"
               className="gap-1.5"
-              onClick={clearDrawings}
+              onClick={clearSelections}
             >
               <RotateCcw className="w-3 h-3" />
               Clear
@@ -247,6 +265,21 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
           )}
         </div>
       </div>
+
+      {/* Selection hint */}
+      {isSelectMode && selections.length === 0 && (
+        <p className="text-xs text-center text-muted-foreground">
+          Draw a rectangle around the text you want to capture
+        </p>
+      )}
+
+      {/* Selection count indicator */}
+      {selections.length > 0 && (
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Square className="w-4 h-4 text-amber-500" />
+          <span>{selections.length} region{selections.length > 1 ? 's' : ''} selected</span>
+        </div>
+      )}
 
       {/* Manual text extraction */}
       {showTextInput ? (
@@ -300,7 +333,6 @@ export function ImageCapture({ onCapture, capturedImage, onClear, onUseAsText }:
                   setShowTextInput(true);
                 }}
               >
-                <Pencil className="w-3 h-3 mr-1" />
                 Edit
               </Button>
               {onUseAsText && (
