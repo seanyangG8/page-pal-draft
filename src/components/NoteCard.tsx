@@ -2,8 +2,7 @@ import { Note, NoteType } from '@/types';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Quote, Lightbulb, HelpCircle, CheckCircle, MoreVertical, Trash2, Bookmark, Image, Mic, Clock, Lock, Globe } from 'lucide-react';
+import { Quote, Lightbulb, HelpCircle, CheckCircle, MoreVertical, Trash2, Bookmark, Image, Mic, Clock, Lock, Globe, Pencil } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -17,6 +16,7 @@ interface NoteCardProps {
   note: Note;
   onDelete: () => void;
   onUpdate?: (note: Note) => void;
+  onEdit?: () => void;
   showBookTitle?: string;
 }
 
@@ -27,7 +27,7 @@ const noteTypeConfig: Record<NoteType, { icon: typeof Quote; label: string; clas
   action: { icon: CheckCircle, label: 'Action', className: 'note-badge-action' },
 };
 
-export function NoteCard({ note, onDelete, onUpdate, showBookTitle }: NoteCardProps) {
+export function NoteCard({ note, onDelete, onUpdate, onEdit, showBookTitle }: NoteCardProps) {
   const config = noteTypeConfig[note.type];
   const Icon = config.icon;
 
@@ -131,6 +131,12 @@ export function NoteCard({ note, onDelete, onUpdate, showBookTitle }: NoteCardPr
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {onEdit && (
+              <DropdownMenuItem onClick={onEdit} className="gap-2">
+                <Pencil className="w-4 h-4" />
+                Edit note
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem 
               onClick={() => onUpdate?.({ ...note, isPrivate: !note.isPrivate })}
               className="gap-2"

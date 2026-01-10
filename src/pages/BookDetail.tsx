@@ -3,13 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { NoteCard } from '@/components/NoteCard';
 import { AddNoteDialog } from '@/components/AddNoteDialog';
+import { EditNoteDialog } from '@/components/EditNoteDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { FloatingRecorder } from '@/components/FloatingRecorder';
 import { FloatingCamera } from '@/components/FloatingCamera';
 import { SearchBar } from '@/components/SearchBar';
 import { Button } from '@/components/ui/button';
 import { Book, Note, NoteType, MediaType } from '@/types';
-import { getBooks, getNotesForBook, addNote, deleteNote } from '@/lib/store';
+import { getBooks, getNotesForBook, addNote, deleteNote, updateNote } from '@/lib/store';
 import { ArrowLeft, BookOpen, PenLine, Quote, Lightbulb, HelpCircle, CheckCircle, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -31,6 +32,7 @@ const BookDetail = () => {
   const [activeFilter, setActiveFilter] = useState<'all' | NoteType>('all');
   const [pendingRecording, setPendingRecording] = useState<{ url: string; duration: number; transcript?: string } | null>(null);
   const [pendingImage, setPendingImage] = useState<{ url: string; extractedText?: string } | null>(null);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
 
   useEffect(() => {
     if (!bookId) return;
@@ -84,6 +86,12 @@ const BookDetail = () => {
     deleteNote(noteId);
     setNotes(prev => prev.filter(n => n.id !== noteId));
     toast.success('Note deleted');
+  };
+
+  const handleUpdateNote = (updatedNote: Note) => {
+    updateNote(updatedNote.id, updatedNote);
+    setNotes(prev => prev.map(n => n.id === updatedNote.id ? updatedNote : n));
+    toast.success('Note updated');
   };
 
   const filteredNotes = notes.filter(note => {
@@ -197,6 +205,8 @@ const BookDetail = () => {
                 <NoteCard
                   note={note}
                   onDelete={() => handleDeleteNote(note.id)}
+                  onUpdate={handleUpdateNote}
+                  onEdit={() => setEditingNote(note)}
                 />
               </div>
             ))}
@@ -239,6 +249,15 @@ const BookDetail = () => {
         bookFormat={book.format}
         initialRecording={pendingRecording}
         initialImage={pendingImage}
+      />
+
+      {/* Edit note dialog */}
+      <EditNoteDialog
+        open={!!editingNote}
+        onOpenChange={(open) => !open && setEditingNote(null)}
+        note={editingNote}
+        onSave={handleUpdateNote}
+        bookFormat={book.format}
       />
     </div>
   );
