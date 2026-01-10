@@ -14,36 +14,36 @@
   :root {
     /* Modern warm palette - refined cream & terracotta */
     --background: 40 33% 97%;
-    --foreground: 25 25% 14%;
+    --foreground: 20 35% 10%;
 
     --card: 40 40% 99%;
-    --card-foreground: 25 25% 14%;
+    --card-foreground: 20 35% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 25 25% 14%;
+    --popover-foreground: 20 35% 10%;
 
-    /* Rich terracotta primary - modern & warm */
-    --primary: 22 65% 40%;
-    --primary-foreground: 40 40% 98%;
+    /* Rich terracotta primary - high contrast */
+    --primary: 20 72% 38%;
+    --primary-foreground: 0 0% 100%;
 
     /* Soft warm secondary */
     --secondary: 40 25% 93%;
-    --secondary-foreground: 25 20% 25%;
+    --secondary-foreground: 20 30% 18%;
 
-    /* Refined muted tones */
+    /* Refined muted tones - higher contrast */
     --muted: 40 18% 90%;
-    --muted-foreground: 25 12% 45%;
+    --muted-foreground: 20 18% 35%;
 
     /* Warm copper accent */
-    --accent: 25 75% 48%;
-    --accent-foreground: 40 40% 98%;
+    --accent: 22 70% 42%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 40 20% 88%;
-    --input: 40 20% 88%;
-    --ring: 22 65% 40%;
+    --border: 40 20% 85%;
+    --input: 40 20% 85%;
+    --ring: 20 72% 38%;
 
     --radius: 0.625rem;
 
@@ -60,10 +60,10 @@
 
     /* Modern gradients */
     --gradient-warm: linear-gradient(160deg, hsl(40 33% 97%) 0%, hsl(38 28% 95%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(22 65% 42%) 0%, hsl(25 70% 36%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(20 72% 40%) 0%, hsl(25 75% 34%) 100%);
     --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(40 30% 98%) 100%);
-    --gradient-hero: radial-gradient(ellipse 80% 60% at 50% -20%, hsl(25 50% 92% / 0.5) 0%, transparent 100%);
-    --gradient-glow: radial-gradient(circle at center, hsl(25 75% 48% / 0.15) 0%, transparent 70%);
+    --gradient-hero: radial-gradient(ellipse 80% 60% at 50% -20%, hsl(25 40% 88% / 0.6) 0%, transparent 100%);
+    --gradient-glow: radial-gradient(circle at center, hsl(22 70% 42% / 0.12) 0%, transparent 70%);
 
     /* Modern shadows with color */
     --shadow-xs: 0 1px 2px hsl(25 25% 14% / 0.04);
@@ -330,15 +330,24 @@
   .gradient-warm { background: var(--gradient-warm); }
   .gradient-accent { background: var(--gradient-accent); }
   .gradient-hero { background: var(--gradient-hero); }
+  .gradient-amber { 
+    background: linear-gradient(135deg, hsl(20 72% 40%) 0%, hsl(28 75% 35%) 100%);
+  }
+  .dark .gradient-amber {
+    background: linear-gradient(135deg, hsl(32 85% 58%) 0%, hsl(38 80% 50%) 100%);
+  }
 
   /* Typography */
   .font-display { font-family: var(--font-display); }
   .font-body { font-family: var(--font-body); }
 
-  /* Text gradient */
+  /* Text gradient - rich terracotta */
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: var(--gradient-accent);
+    background-image: linear-gradient(135deg, hsl(20 72% 40%) 0%, hsl(28 75% 35%) 100%);
+  }
+  .dark .text-gradient {
+    background-image: linear-gradient(135deg, hsl(32 85% 58%) 0%, hsl(38 80% 52%) 100%);
   }
 
   /* Smooth transitions */
