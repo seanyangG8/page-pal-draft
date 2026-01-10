@@ -59,9 +59,9 @@ export function LocationInput({
           </>
         ) : (
           <>
-            <div className="w-24">
+            <div className="w-28">
               <div className="relative">
-                <Hash className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-sm">#</span>
                 <Input
                   placeholder="e.g. 42"
                   value={value.page || ''}
@@ -70,13 +70,13 @@ export function LocationInput({
                     let val = e.target.value.replace(/^p\.?\s*/i, '');
                     onChange({ ...value, page: val });
                   }}
-                  className="pl-8 h-9 text-sm bg-background"
+                  className="pl-7 h-9 text-sm bg-background"
                 />
               </div>
             </div>
             <div className="flex-1">
               <div className="relative">
-                <BookOpen className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <BookOpen className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="e.g. Ch 3"
                   value={value.chapter || ''}
