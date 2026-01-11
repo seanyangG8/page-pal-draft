@@ -143,6 +143,10 @@ export function CollapsibleFAB({
         data-action="record"
         size="icon"
         onClick={() => handleAction(onStartRecording)}
+        onTouchEnd={(e) => {
+          e.stopPropagation();
+          handleAction(onStartRecording);
+        }}
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
           "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
@@ -163,6 +167,10 @@ export function CollapsibleFAB({
         data-action="camera"
         size="icon"
         onClick={() => handleAction(onOpenCamera)}
+        onTouchEnd={(e) => {
+          e.stopPropagation();
+          handleAction(onOpenCamera);
+        }}
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
           "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
@@ -183,6 +191,10 @@ export function CollapsibleFAB({
         data-action="note"
         size="icon"
         onClick={() => handleAction(onAddNote)}
+        onTouchEnd={(e) => {
+          e.stopPropagation();
+          handleAction(onAddNote);
+        }}
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
           "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
