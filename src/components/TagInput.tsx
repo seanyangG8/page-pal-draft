@@ -86,7 +86,7 @@ export function TagInput({
     <div ref={containerRef} className={cn('space-y-2', className)}>
       {/* Tag chips and input */}
       <div 
-        className="flex flex-wrap gap-1.5 p-2 min-h-[42px] rounded-lg border border-input bg-background cursor-text"
+        className="flex flex-wrap gap-1.5 px-3 py-2 min-h-[42px] rounded-md border border-input bg-background cursor-text"
         onClick={() => inputRef.current?.focus()}
       >
         {tags.map(tag => (
