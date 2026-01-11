@@ -291,8 +291,8 @@ function FeedItemCard({
 
           {/* Book visual for started/finished */}
           {(item.type === 'started_reading' || item.type === 'finished_book') && item.book && (
-            <div className="mt-3 flex items-center gap-3 p-3 bg-secondary/50 dark:bg-secondary/30 rounded-lg border border-border/30">
-              <div className="w-10 h-14 bg-gradient-to-br from-primary/20 to-primary/30 rounded flex items-center justify-center">
+            <div className="mt-3 flex items-center gap-3 p-3 bg-secondary/30 rounded-lg">
+              <div className="w-10 h-14 bg-gradient-to-br from-primary/20 to-primary/40 rounded flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-primary" />
               </div>
               <div>
@@ -304,7 +304,7 @@ function FeedItemCard({
 
           {/* Milestone */}
           {item.type === 'milestone' && (
-            <div className="mt-3 p-4 bg-gradient-to-r from-secondary to-muted dark:from-amber-950/30 dark:to-amber-900/20 rounded-lg text-center border border-border/30">
+            <div className="mt-3 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-lg text-center">
               <span className="text-2xl">
                 {item.milestone?.type === 'books_read' && '📚'}
                 {item.milestone?.type === 'notes_count' && '📝'}

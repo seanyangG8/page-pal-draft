@@ -58,12 +58,12 @@ const DialogContent = React.forwardRef<
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col space-y-2 px-5 pt-5 text-center sm:text-left", className)} {...props} />
+  <div className={cn("flex flex-col space-y-2 px-6 pt-6 text-center sm:text-left", className)} {...props} />
 );
 DialogHeader.displayName = "DialogHeader";
 
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end gap-2 px-5 pb-5 pt-2", className)} {...props} />
+  <div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end gap-2 px-6 pb-6 pt-2", className)} {...props} />
 );
 DialogFooter.displayName = "DialogFooter";
 
@@ -89,7 +89,7 @@ DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
 // New: Dialog body for content with proper padding
 const DialogBody = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("px-5 py-2", className)} {...props} />
+  <div className={cn("px-6 py-2", className)} {...props} />
 );
 DialogBody.displayName = "DialogBody";
 

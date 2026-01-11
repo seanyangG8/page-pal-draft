@@ -282,7 +282,7 @@ export function AddNoteDialog({
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4 mt-2 px-5 pb-2">
+        <div className="space-y-4 mt-2">
           {/* Step 1: Capture Mode Tabs */}
           <Tabs value={captureMode} onValueChange={(v) => setCaptureMode(v as typeof captureMode)}>
             <TabsList className="grid w-full grid-cols-3">

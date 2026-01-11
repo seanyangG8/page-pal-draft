@@ -55,7 +55,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
           </DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 mt-2 px-5 pb-2">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input
@@ -122,7 +122,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
             />
           </div>
           
-          <DialogFooter className="mt-6 px-0">
+          <DialogFooter className="mt-6">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

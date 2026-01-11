@@ -28,8 +28,8 @@
     --popover: 45 50% 99%;
     --popover-foreground: 24 30% 12%;
 
-    /* Primary - Warm brown ink */
-    --primary: 24 55% 38%;
+    /* Primary - Rich terracotta/rust ink */
+    --primary: 16 65% 42%;
     --primary-foreground: 45 40% 98%;
 
     /* Secondary - Soft parchment */
@@ -40,8 +40,8 @@
     --muted: 38 22% 88%;
     --muted-foreground: 24 15% 40%;
 
-    /* Accent - Warm brown accent */
-    --accent: 28 50% 42%;
+    /* Accent - Burnished copper */
+    --accent: 24 60% 48%;
     --accent-foreground: 45 40% 98%;
 
     /* Destructive */
@@ -51,7 +51,7 @@
     /* Borders - Soft sepia lines */
     --border: 36 25% 82%;
     --input: 38 28% 85%;
-    --ring: 24 55% 38%;
+    --ring: 16 65% 42%;
 
     --radius: 0.75rem;
 
@@ -61,7 +61,7 @@
     --info: 210 75% 52%;
 
     /* Note type colors - Rich and distinct */
-    --note-quote: 28 70% 45%;
+    --note-quote: 24 80% 50%;
     --note-idea: 210 80% 52%;
     --note-question: 265 55% 52%;
     --note-action: 152 55% 40%;
@@ -70,9 +70,9 @@
     --gradient-warm: linear-gradient(165deg, hsl(42 38% 96%) 0%, hsl(38 32% 93%) 100%);
     --gradient-card: linear-gradient(180deg, hsl(44 45% 99%) 0%, hsl(42 38% 96%) 100%);
     --gradient-hero: radial-gradient(ellipse 100% 80% at 50% -30%, hsl(28 45% 88% / 0.7) 0%, transparent 70%);
-    --gradient-glow: radial-gradient(circle at center, hsl(28 50% 42% / 0.1) 0%, transparent 60%);
-    --gradient-primary: linear-gradient(135deg, hsl(24 55% 38%) 0%, hsl(28 58% 32%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(28 50% 42%) 0%, hsl(32 55% 36%) 100%);
+    --gradient-glow: radial-gradient(circle at center, hsl(24 60% 48% / 0.1) 0%, transparent 60%);
+    --gradient-primary: linear-gradient(135deg, hsl(16 65% 42%) 0%, hsl(20 68% 36%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(24 60% 48%) 0%, hsl(28 65% 42%) 100%);
 
     /* Paper texture overlay */
     --paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
@@ -83,7 +83,7 @@
     --shadow-md: 0 4px 16px hsl(24 30% 20% / 0.06), 0 2px 6px hsl(24 30% 20% / 0.04);
     --shadow-lg: 0 12px 32px hsl(24 30% 20% / 0.08), 0 4px 12px hsl(24 30% 20% / 0.05);
     --shadow-xl: 0 20px 48px hsl(24 30% 20% / 0.1), 0 8px 20px hsl(24 30% 20% / 0.06);
-    --shadow-glow: 0 0 0 1px hsl(24 55% 38% / 0.12), 0 4px 20px hsl(24 55% 38% / 0.18);
+    --shadow-glow: 0 0 0 1px hsl(16 65% 42% / 0.12), 0 4px 20px hsl(16 65% 42% / 0.18);
     --shadow-inner: inset 0 2px 4px hsl(24 30% 20% / 0.05);
     --shadow-book: 0 8px 24px hsl(24 30% 20% / 0.12), 0 2px 8px hsl(24 30% 20% / 0.08);
 
@@ -94,12 +94,12 @@
     /* Sidebar */
     --sidebar-background: 42 35% 97%;
     --sidebar-foreground: 24 25% 18%;
-    --sidebar-primary: 24 55% 38%;
+    --sidebar-primary: 16 65% 42%;
     --sidebar-primary-foreground: 45 40% 98%;
     --sidebar-accent: 40 28% 93%;
     --sidebar-accent-foreground: 24 25% 22%;
     --sidebar-border: 38 22% 88%;
-    --sidebar-ring: 24 55% 38%;
+    --sidebar-ring: 16 65% 42%;
   }
 
   .dark {

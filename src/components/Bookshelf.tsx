@@ -96,27 +96,28 @@ function BookSpine({
         <GripVertical className="w-3 h-3 text-muted-foreground" />
       </div>
       
-      {/* Book standing upright - tilted, straightens on hover */}
+      {/* Book standing upright */}
       <div 
-        className="relative cursor-pointer"
+        className="relative cursor-pointer transition-all duration-300 hover:-translate-y-3 hover:scale-105 [&:hover_.book-cover]:!transform-none [&:hover_.book-cover]:[transform:rotateY(-5deg)_!important]"
         onClick={onClick}
-        style={{ perspective: '800px' }}
       >
         {/* Book with cover image or colored spine */}
         {book.coverUrl ? (
-          // Show book cover tilted
+          // Show book cover at a slight angle - fixed size container
           <div 
-            className="relative w-14 sm:w-16 md:w-20 h-24 sm:h-28 md:h-36 transition-transform duration-300 ease-out group-hover:-translate-y-2"
+            className="relative w-16 sm:w-20 md:w-24 h-32 sm:h-40 md:h-48"
             style={{
+              perspective: '400px',
               transformStyle: 'preserve-3d',
-              transform: 'rotateY(-25deg)',
             }}
           >
-            {/* Book cover */}
+            {/* Book cover - fixed dimensions */}
             <div
-              className="book-cover absolute inset-0 rounded-sm shadow-lg overflow-hidden transition-transform duration-300 group-hover:[transform:rotateY(15deg)]"
+              className="book-cover absolute inset-0 rounded-sm shadow-lg overflow-hidden transition-transform duration-300"
               style={{
+                transform: 'rotateY(-20deg)',
                 transformOrigin: 'left center',
+                boxShadow: '4px 2px 10px rgba(0,0,0,0.35)',
               }}
             >
               <img 
@@ -125,30 +126,31 @@ function BookSpine({
                 className="w-full h-full object-cover pointer-events-none"
               />
               {/* Lighting overlay */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-transparent to-white/10" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-white/10" />
             </div>
-            {/* Page edges - visible with shadow */}
+            {/* Page edges */}
             <div 
-              className="absolute top-1 -right-1.5 h-[calc(100%-8px)] w-3 bg-gradient-to-r from-stone-200 via-stone-100 to-stone-50 dark:from-stone-300 dark:via-stone-200 dark:to-stone-100 rounded-r-sm shadow-md border-r border-stone-300/50"
-            >
-              {/* Page lines */}
-              <div className="absolute inset-y-2 left-0.5 w-px bg-stone-300/40" />
-              <div className="absolute inset-y-2 left-1 w-px bg-stone-300/20" />
-            </div>
+              className="absolute top-1 right-0 h-[calc(100%-8px)] w-1.5 bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-100 dark:to-amber-200 rounded-r-sm"
+              style={{
+                boxShadow: '1px 0 3px rgba(0,0,0,0.15)',
+              }}
+            />
           </div>
         ) : (
-          // Show colored spine (no cover) - tilted
+          // Show colored spine (no cover) - same fixed size and angle
           <div 
-            className="relative w-14 sm:w-16 md:w-20 h-24 sm:h-28 md:h-36 transition-transform duration-300 ease-out group-hover:-translate-y-2"
+            className="relative w-16 sm:w-20 md:w-24 h-32 sm:h-40 md:h-48"
             style={{
+              perspective: '400px',
               transformStyle: 'preserve-3d',
-              transform: 'rotateY(-25deg)',
             }}
           >
             <div 
-              className={`book-cover absolute inset-0 bg-gradient-to-b ${getSpineColor(book.title)} rounded-sm shadow-lg flex flex-col items-center justify-center overflow-hidden transition-transform duration-300 group-hover:[transform:rotateY(15deg)]`}
+              className={`book-cover absolute inset-0 bg-gradient-to-b ${getSpineColor(book.title)} rounded-sm shadow-lg flex flex-col items-center justify-center overflow-hidden transition-transform duration-300`}
               style={{
+                transform: 'rotateY(-20deg)',
                 transformOrigin: 'left center',
+                boxShadow: '4px 2px 10px rgba(0,0,0,0.35), inset -2px 0 4px rgba(255,255,255,0.1)',
               }}
             >
               {/* Spine texture overlay */}
@@ -159,37 +161,36 @@ function BookSpine({
                 className="absolute inset-0 flex items-center justify-center"
                 style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
               >
-                <span className="text-[9px] sm:text-[10px] font-medium text-white/90 px-1 text-center leading-tight line-clamp-3 rotate-180">
+                <span className="text-[10px] sm:text-xs font-medium text-white/90 px-1 text-center leading-tight line-clamp-3 rotate-180">
                   {book.title}
                 </span>
               </div>
               
               {/* Decorative lines */}
-              <div className="absolute top-2 left-1 right-1 h-0.5 bg-amber-300/30 rounded-full" />
-              <div className="absolute bottom-2 left-1 right-1 h-0.5 bg-amber-300/30 rounded-full" />
+              <div className="absolute top-3 left-1 right-1 h-0.5 bg-amber-300/30 rounded-full" />
+              <div className="absolute bottom-3 left-1 right-1 h-0.5 bg-amber-300/30 rounded-full" />
             </div>
             
-            {/* Page edges - visible with shadow */}
+            {/* Page edges */}
             <div 
-              className="absolute top-1 -right-1.5 h-[calc(100%-8px)] w-3 bg-gradient-to-r from-stone-200 via-stone-100 to-stone-50 dark:from-stone-300 dark:via-stone-200 dark:to-stone-100 rounded-r-sm shadow-md border-r border-stone-300/50"
-            >
-              {/* Page lines */}
-              <div className="absolute inset-y-2 left-0.5 w-px bg-stone-300/40" />
-              <div className="absolute inset-y-2 left-1 w-px bg-stone-300/20" />
-            </div>
+              className="absolute top-1 right-0 h-[calc(100%-8px)] w-1.5 bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-100 dark:to-amber-200 rounded-r-sm"
+              style={{
+                boxShadow: '1px 0 3px rgba(0,0,0,0.15)',
+              }}
+            />
           </div>
         )}
       </div>
 
       {/* Hover actions */}
-      <div className="absolute -top-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10">
+      <div className="absolute -top-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="secondary" size="icon" className="h-7 w-7 shadow-card rounded-full">
-              <MoreVertical className="w-3.5 h-3.5" />
+            <Button variant="secondary" size="icon" className="h-6 w-6 shadow-md">
+              <MoreVertical className="w-3 h-3" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="center" className="w-36">
+          <DropdownMenuContent align="center">
             {onEdit && (
               <>
                 <DropdownMenuItem 
@@ -197,9 +198,8 @@ function BookSpine({
                     e.stopPropagation();
                     onEdit();
                   }}
-                  className="gap-2 cursor-pointer"
                 >
-                  <Pencil className="w-4 h-4" />
+                  <Pencil className="w-4 h-4 mr-2" />
                   Edit book
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -210,9 +210,9 @@ function BookSpine({
                 e.stopPropagation();
                 onDelete();
               }}
-              className="text-destructive focus:text-destructive gap-2 cursor-pointer"
+              className="text-destructive focus:text-destructive"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-4 h-4 mr-2" />
               Delete book
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -221,7 +221,7 @@ function BookSpine({
 
       {/* Note count badge */}
       {book.notesCount > 0 && (
-        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-soft">
+        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-medium px-1.5 py-0.5 rounded-full shadow-sm">
           {book.notesCount}
         </div>
       )}
@@ -377,7 +377,7 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {shelves.map((shelfBooks, shelfIndex) => (
         <div 
           key={shelfIndex}
@@ -387,12 +387,12 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
           {/* Shelf with books */}
           <div className="relative">
             {/* Books container */}
-            <div className="flex items-end justify-start gap-2 sm:gap-3 px-6 pb-4 min-h-[9rem] sm:min-h-[11rem] md:min-h-[13rem] overflow-x-auto overflow-y-hidden scrollbar-hide">
+            <div className="flex items-end justify-start gap-2 sm:gap-3 px-4 pb-3 min-h-[10rem] sm:min-h-[12rem] md:min-h-[14rem] overflow-x-auto overflow-y-hidden scrollbar-hide">
               {shelfBooks.map((book, bookIndex) => (
                 <div 
                   key={book.id}
                   className="flex-shrink-0 animate-fade-up"
-                  style={{ animationDelay: `${bookIndex * 60}ms` }}
+                  style={{ animationDelay: `${bookIndex * 50}ms` }}
                 >
                   <BookSpine 
                     book={book} 
@@ -418,42 +418,38 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
               {/* Empty shelf message */}
               {shelfBooks.length === 0 && (
                 <div className="flex items-center justify-center w-full h-52 text-muted-foreground/50">
-                  <div className="flex flex-col items-center gap-3">
-                    <BookOpen className="w-10 h-10" />
-                    <span className="text-sm font-medium">Your shelf awaits...</span>
+                  <div className="flex flex-col items-center gap-2">
+                    <BookOpen className="w-8 h-8" />
+                    <span className="text-sm">Your shelf awaits...</span>
                   </div>
                 </div>
               )}
             </div>
             
-            {/* Wooden shelf - warm brown */}
-            <div className="relative h-3 sm:h-4 bg-gradient-to-b from-amber-700 to-amber-800 dark:from-amber-800 dark:to-amber-900 rounded-sm shadow-md">
-              {/* Shelf highlight */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-b from-amber-500/30 to-transparent rounded-t-sm" />
+            {/* Wooden shelf */}
+            <div className="relative h-4 sm:h-5 bg-gradient-to-b from-amber-800 via-amber-700 to-amber-900 dark:from-amber-900 dark:via-amber-800 dark:to-amber-950 rounded-sm shadow-lg">
+              {/* Wood grain texture */}
+              <div className="absolute inset-0 opacity-30 bg-[repeating-linear-gradient(90deg,transparent,transparent_20px,rgba(0,0,0,0.1)_20px,rgba(0,0,0,0.1)_40px)]" />
               
-              {/* Shelf front edge */}
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-900/50" />
+              {/* Shelf highlight */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-b from-amber-600/50 to-transparent rounded-t-sm" />
               
               {/* Shelf shadow underneath */}
-              <div className="absolute -bottom-2 left-6 right-6 h-2 bg-gradient-to-b from-black/10 to-transparent blur-sm" />
+              <div className="absolute -bottom-2 left-2 right-2 h-2 bg-gradient-to-b from-black/20 to-transparent blur-sm" />
             </div>
             
             {/* Shelf bracket left */}
-            <div className="absolute -bottom-3 left-8 w-3 h-5 bg-gradient-to-b from-amber-700 to-amber-900 dark:from-amber-800 dark:to-amber-950 rounded-b-sm shadow-sm">
-              <div className="absolute inset-x-0 top-0 h-0.5 bg-amber-500/20" />
-            </div>
+            <div className="absolute -bottom-3 left-4 w-3 h-6 bg-gradient-to-b from-amber-900 to-amber-950 rounded-b-sm shadow-md" />
             
             {/* Shelf bracket right */}
-            <div className="absolute -bottom-3 right-8 w-3 h-5 bg-gradient-to-b from-amber-700 to-amber-900 dark:from-amber-800 dark:to-amber-950 rounded-b-sm shadow-sm">
-              <div className="absolute inset-x-0 top-0 h-0.5 bg-amber-500/20" />
-            </div>
+            <div className="absolute -bottom-3 right-4 w-3 h-6 bg-gradient-to-b from-amber-900 to-amber-950 rounded-b-sm shadow-md" />
           </div>
         </div>
       ))}
       
       {/* Touch drag instruction toast */}
       {touchDragId && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-foreground/90 text-background px-5 py-2.5 rounded-full text-sm font-medium shadow-float z-50 animate-fade-in">
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-foreground/90 text-background px-4 py-2 rounded-full text-sm font-medium shadow-lg z-50 animate-fade-in">
           Drag to reorder • Release to drop
         </div>
       )}

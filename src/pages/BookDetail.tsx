@@ -119,56 +119,37 @@ const BookDetail = () => {
             variant="ghost"
             size="sm"
             onClick={() => navigate('/')}
-            className="mb-6 -ml-2 text-muted-foreground hover:text-foreground gap-2 rounded-lg"
+            className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 mr-2" />
             Back to library
           </Button>
 
-          {/* Book header card */}
-          <div className="relative rounded-2xl bg-gradient-to-br from-secondary/50 via-card to-card border border-border/40 p-6 sm:p-8 shadow-soft overflow-hidden animate-fade-in">
-            {/* Background decoration */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-primary/5 to-transparent rounded-full blur-3xl pointer-events-none" />
-            
-            <div className="relative flex items-start gap-6 sm:gap-8">
-              {/* Book cover with 3D effect */}
-              <div className="hidden sm:block flex-shrink-0" style={{ perspective: '500px' }}>
-                <div 
-                  className="w-28 h-40 rounded-lg shadow-book overflow-hidden transition-transform duration-300 hover:scale-105"
-                  style={{ 
-                    transform: 'rotateY(-8deg)',
-                    transformOrigin: 'left center'
-                  }}
-                >
-                  {book.coverUrl ? (
-                    <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                      <BookOpen className="w-10 h-10 text-muted-foreground/50" />
-                    </div>
-                  )}
+          <div className="flex items-start gap-6 animate-fade-in">
+            {/* Book cover */}
+            <div className="hidden sm:block w-24 h-36 rounded-lg bg-gradient-to-br from-secondary to-muted flex-shrink-0 shadow-card overflow-hidden">
+              {book.coverUrl ? (
+                <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <BookOpen className="w-8 h-8 text-muted-foreground/50" />
                 </div>
-                {/* Page edges */}
-                <div className="absolute top-2 -right-1 w-1 h-36 bg-gradient-to-r from-amber-100 to-amber-50 dark:from-amber-200 dark:to-amber-100 rounded-r-sm" />
-              </div>
+              )}
+            </div>
 
-              {/* Book details */}
-              <div className="flex-1 min-w-0">
-                <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 leading-tight">
-                  {book.title}
-                </h1>
-                <p className="text-lg sm:text-xl text-muted-foreground font-medium mb-4">
-                  by {book.author}
-                </p>
-                
-                {/* Stats */}
-                <div className="flex items-center gap-4 text-sm">
-                  <span className="flex items-center gap-2 px-3 py-1.5 bg-secondary/60 rounded-full text-muted-foreground">
-                    <PenLine className="w-4 h-4" />
-                    <span className="font-medium">{notes.length}</span>
-                    <span>{notes.length === 1 ? 'note' : 'notes'}</span>
-                  </span>
-                </div>
+            {/* Book details */}
+            <div className="flex-1 min-w-0">
+              <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-1">
+                {book.title}
+              </h1>
+              <p className="text-lg text-muted-foreground mb-3">
+                {book.author}
+              </p>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <PenLine className="w-4 h-4" />
+                  {notes.length} {notes.length === 1 ? 'note' : 'notes'}
+                </span>
               </div>
             </div>
           </div>
@@ -176,7 +157,7 @@ const BookDetail = () => {
 
         {/* Search and filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="w-full sm:w-72">
+          <div className="w-full sm:w-64">
             <SearchBar 
               value={searchQuery}
               onChange={setSearchQuery}
@@ -184,16 +165,14 @@ const BookDetail = () => {
             />
           </div>
           
-          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
+          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
             {noteFilters.map(({ type, label, icon: Icon }) => (
               <Button
                 key={type}
                 variant={activeFilter === type ? 'default' : 'secondary'}
                 size="sm"
                 onClick={() => setActiveFilter(type)}
-                className={`flex-shrink-0 gap-1.5 rounded-full px-4 transition-all ${
-                  activeFilter === type ? 'shadow-soft' : ''
-                }`}
+                className="flex-shrink-0 gap-1.5"
               >
                 {Icon && <Icon className="w-3.5 h-3.5" />}
                 {label}
@@ -201,9 +180,6 @@ const BookDetail = () => {
             ))}
           </div>
         </div>
-
-        {/* Divider */}
-        <div className="divider-gradient mb-6" />
 
         {/* Notes list */}
         {notes.length === 0 ? (
@@ -221,12 +197,12 @@ const BookDetail = () => {
             description="Try adjusting your search or filter."
           />
         ) : (
-          <div className="space-y-4 max-w-2xl">
+          <div className="space-y-3 max-w-2xl">
             {filteredNotes.map((note, index) => (
               <div 
                 key={note.id}
                 className="animate-fade-up"
-                style={{ animationDelay: `${index * 40}ms` }}
+                style={{ animationDelay: `${index * 30}ms` }}
               >
                 <NoteCard
                   note={note}
