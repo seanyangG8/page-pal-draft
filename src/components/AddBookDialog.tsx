@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BookFormat } from '@/types';
-import { BookOpen, Smartphone, Headphones, Book, Loader2, Search } from 'lucide-react';
+import { BookOpen, Smartphone, Headphones, Book, Loader2, Search, Camera, Upload, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface AddBookDialogProps {
   open: boolean;
@@ -35,8 +36,14 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
   const [suggestions, setSuggestions] = useState<BookSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   // Search Google Books API when title changes
   useEffect(() => {
@@ -113,6 +120,80 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
     setShowSuggestions(false);
   };
 
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error('Failed to access camera:', error);
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  };
+
+  const captureFromCamera = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setCapturedImage(dataUrl);
+        stopCamera();
+        processImage(dataUrl);
+      }
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        setCapturedImage(dataUrl);
+        processImage(dataUrl);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const processImage = async (imageData: string) => {
+    setIsProcessingImage(true);
+    // TODO: When Cloud is enabled, send image to AI for book recognition
+    // For now, just show the captured image as a preview
+    setTimeout(() => {
+      setIsProcessingImage(false);
+      // Placeholder: In the future, AI will extract title, author, etc.
+    }, 1000);
+  };
+
+  const clearCapturedImage = () => {
+    setCapturedImage(null);
+    setIsProcessingImage(false);
+  };
+
+  // Clean up camera on unmount or dialog close
+  useEffect(() => {
+    if (!open) {
+      stopCamera();
+      setCapturedImage(null);
+      setIsCameraOpen(false);
+    }
+  }, [open]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !author.trim()) return;
@@ -145,6 +226,116 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6">
+          {/* Camera/Upload section */}
+          <Collapsible open={isCameraOpen} onOpenChange={setIsCameraOpen}>
+            <CollapsibleTrigger asChild>
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="w-full justify-between"
+              >
+                <span className="flex items-center gap-2">
+                  <Camera className="w-4 h-4" />
+                  Scan book cover
+                </span>
+                {isCameraOpen ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-3">
+              <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/30">
+                {capturedImage ? (
+                  <div className="relative">
+                    <img 
+                      src={capturedImage} 
+                      alt="Captured book cover" 
+                      className="w-full max-h-48 object-contain rounded-lg"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8"
+                      onClick={clearCapturedImage}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                    {isProcessingImage && (
+                      <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-lg">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Analyzing cover...
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : streamRef.current ? (
+                  <div className="relative">
+                    <video 
+                      ref={videoRef} 
+                      autoPlay 
+                      playsInline 
+                      className="w-full rounded-lg"
+                    />
+                    <div className="flex justify-center gap-2 mt-2">
+                      <Button
+                        type="button"
+                        onClick={captureFromCamera}
+                        className="gap-2"
+                      >
+                        <Camera className="w-4 h-4" />
+                        Capture
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={stopCamera}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="flex-1 gap-2"
+                      onClick={startCamera}
+                    >
+                      <Camera className="w-4 h-4" />
+                      Take Photo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="flex-1 gap-2"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="w-4 h-4" />
+                      Upload
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground text-center">
+                  {capturedImage 
+                    ? "AI recognition requires Cloud to be enabled" 
+                    : "Take or upload a photo of the book cover"
+                  }
+                </p>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
           {/* Title with suggestions */}
           <div className="space-y-2 relative" ref={suggestionsRef}>
             <Label htmlFor="title">Title</Label>
