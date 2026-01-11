@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BookFormat } from '@/types';
-import { BookOpen, Smartphone, Headphones, Book, Loader2, Search, Camera, X, ArrowLeft, Check } from 'lucide-react';
+import { BookOpen, Smartphone, Headphones, Book, Loader2, Search, Camera, X, ArrowLeft, Check, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AddBookDialogProps {
@@ -36,6 +36,9 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
   const [isSearching, setIsSearching] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editAuthor, setEditAuthor] = useState('');
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -363,7 +366,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
           {view === 'confirm' && selectedBook && (
             <div className="space-y-5 mt-4">
               {/* Book preview */}
-              <div className="flex gap-4 p-4 rounded-xl bg-muted/30 border border-border">
+              <div className="flex gap-4 p-4 rounded-xl bg-muted/30 border border-border relative">
                 {selectedBook.coverUrl ? (
                   <img 
                     src={selectedBook.coverUrl} 
@@ -376,12 +379,70 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                   </div>
                 )}
                 <div className="flex-1 min-w-0 py-1">
-                  <h3 className="font-semibold text-base line-clamp-2">{selectedBook.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{selectedBook.author}</p>
-                  {selectedBook.isbn && (
-                    <p className="text-xs text-muted-foreground mt-2">ISBN: {selectedBook.isbn}</p>
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <Input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        placeholder="Title"
+                        className="h-8 text-sm"
+                      />
+                      <Input
+                        value={editAuthor}
+                        onChange={(e) => setEditAuthor(e.target.value)}
+                        placeholder="Author"
+                        className="h-8 text-sm"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-7 text-xs"
+                          onClick={() => setIsEditing(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => {
+                            if (editTitle.trim() && editAuthor.trim()) {
+                              setSelectedBook({
+                                ...selectedBook,
+                                title: editTitle.trim(),
+                                author: editAuthor.trim(),
+                              });
+                              setIsEditing(false);
+                            }
+                          }}
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <h3 className="font-semibold text-base line-clamp-2">{selectedBook.title}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">{selectedBook.author}</p>
+                      {selectedBook.isbn && (
+                        <p className="text-xs text-muted-foreground mt-2">ISBN: {selectedBook.isbn}</p>
+                      )}
+                    </>
                   )}
                 </div>
+                {!isEditing && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditTitle(selectedBook.title);
+                      setEditAuthor(selectedBook.author);
+                      setIsEditing(true);
+                    }}
+                    className="absolute top-3 right-3 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               {/* Format selector */}
