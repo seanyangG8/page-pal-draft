@@ -110,7 +110,9 @@ export function CollapsibleFAB({
 
   const handleMainClick = () => {
     if (!isDragging) {
-      setIsExpanded(!isExpanded);
+      // Direct click opens add note dialog
+      onAddNote();
+      setIsExpanded(false);
     }
   };
 
@@ -206,13 +208,11 @@ export function CollapsibleFAB({
         onTouchEnd={handleTouchEnd}
         className={cn(
           "relative h-14 w-14 rounded-full shadow-xl transition-all duration-300",
-          isExpanded 
-            ? "bg-muted hover:bg-muted/90 text-muted-foreground rotate-45" 
-            : "bg-primary hover:bg-primary/90 rotate-0",
+          "bg-primary hover:bg-primary/90",
           isDragging && "scale-110"
         )}
       >
-        <Plus className="w-6 h-6 transition-transform duration-300" />
+        <Plus className="w-6 h-6" />
       </Button>
 
       {/* Drag hint for mobile */}
