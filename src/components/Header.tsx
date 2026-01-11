@@ -48,13 +48,22 @@ export function Header({ showSearch, onSearchClick, onShowWelcome, hasBooks }: H
     <header className="sticky top-0 z-50 w-full glass">
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
-        <a href="/" className="flex items-center gap-3 group">
+        <button 
+          onClick={() => {
+            if (onShowWelcome) {
+              onShowWelcome();
+            } else {
+              navigate('/');
+            }
+          }} 
+          className="flex items-center gap-3 group"
+        >
           <div className="relative w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-card group-hover:shadow-elevated transition-all duration-300 group-hover:scale-105">
             <BookMarked className="w-5 h-5 text-primary-foreground" />
             {/* Glow effect on hover */}
             <div className="absolute inset-0 rounded-xl bg-primary/20 blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col text-left">
             <span className="font-display text-xl font-bold text-foreground tracking-tight">
               Marginalia
             </span>
@@ -62,7 +71,7 @@ export function Header({ showSearch, onSearchClick, onShowWelcome, hasBooks }: H
               Reading Notes
             </span>
           </div>
-        </a>
+        </button>
 
         {/* Right side actions */}
         <div className="flex items-center gap-1.5">
