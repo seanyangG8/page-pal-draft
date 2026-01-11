@@ -6,31 +6,31 @@ import { cn } from '@/lib/utils';
 interface FloatingRecorderProps {
   onRecordingComplete: (data: { url: string; duration: number; transcript?: string }) => void;
   className?: string;
+  /** If true, the recorder opens in expanded state and starts recording immediately on mount. */
+  autoStart?: boolean;
 }
 
 // Check for Web Speech API support
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-export function FloatingRecorder({ onRecordingComplete, className }: FloatingRecorderProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function FloatingRecorder({
+  onRecordingComplete,
+  className,
+  autoStart = false,
+}: FloatingRecorderProps) {
+  const [isExpanded, setIsExpanded] = useState(autoStart);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [liveTranscript, setLiveTranscript] = useState('');
   const [finalTranscript, setFinalTranscript] = useState('');
-  
+
+  const autoStartRef = useRef(false);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const recognitionRef = useRef<any>(null);
   const streamRef = useRef<MediaStream | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (recognitionRef.current) recognitionRef.current.stop();
-      if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
-    };
-  }, []);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -61,7 +61,7 @@ export function FloatingRecorder({ onRecordingComplete, className }: FloatingRec
         onRecordingComplete({ url, duration: recordingTime, transcript: transcript || undefined });
         stream.getTracks().forEach(track => track.stop());
         streamRef.current = null;
-        
+
         // Reset state
         setIsExpanded(false);
         setRecordingTime(0);
@@ -80,7 +80,7 @@ export function FloatingRecorder({ onRecordingComplete, className }: FloatingRec
         recognition.onresult = (event: any) => {
           let interim = '';
           let final = '';
-          
+
           for (let i = 0; i < event.results.length; i++) {
             const result = event.results[i];
             if (result.isFinal) {
@@ -89,7 +89,7 @@ export function FloatingRecorder({ onRecordingComplete, className }: FloatingRec
               interim += result[0].transcript;
             }
           }
-          
+
           setFinalTranscript(prev => {
             if (final && !prev.includes(final.trim())) {
               return prev + final;
@@ -117,6 +117,21 @@ export function FloatingRecorder({ onRecordingComplete, className }: FloatingRec
       console.error('Failed to start recording:', err);
     }
   }, [onRecordingComplete, recordingTime, finalTranscript]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (recognitionRef.current) recognitionRef.current.stop();
+      if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!autoStart || autoStartRef.current) return;
+    autoStartRef.current = true;
+    setIsExpanded(true);
+    startRecording();
+  }, [autoStart, startRecording]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
