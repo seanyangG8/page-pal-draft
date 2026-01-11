@@ -105,7 +105,7 @@ function BookSpine({
         {book.coverUrl ? (
           // Show book cover at a slight angle - fixed size container
           <div 
-            className="relative w-16 sm:w-20 md:w-24 h-[122px] sm:h-[152px] md:h-[182px]"
+            className="relative w-16 sm:w-20 md:w-24 h-[110px] sm:h-[137px] md:h-[164px]"
             style={{
               perspective: '400px',
               transformStyle: 'preserve-3d',
@@ -139,7 +139,7 @@ function BookSpine({
         ) : (
           // Show colored spine (no cover) - same fixed size and angle
           <div 
-            className="relative w-16 sm:w-20 md:w-24 h-[122px] sm:h-[152px] md:h-[182px]"
+            className="relative w-16 sm:w-20 md:w-24 h-[110px] sm:h-[137px] md:h-[164px]"
             style={{
               perspective: '400px',
               transformStyle: 'preserve-3d',
