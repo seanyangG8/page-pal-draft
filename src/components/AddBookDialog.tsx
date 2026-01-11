@@ -38,7 +38,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Search Open Library API when title changes
+  // Search Google Books API when title changes
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -47,31 +47,40 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
     if (title.trim().length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
+      setIsSearching(false);
       return;
     }
 
+    setIsSearching(true);
     searchTimeoutRef.current = setTimeout(async () => {
-      setIsSearching(true);
       try {
         const response = await fetch(
-          `https://openlibrary.org/search.json?title=${encodeURIComponent(title)}&limit=5`
+          `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(title)}&maxResults=5`
         );
+        
+        if (!response.ok) {
+          throw new Error('API request failed');
+        }
+        
         const data = await response.json();
         
-        const bookSuggestions: BookSuggestion[] = data.docs?.slice(0, 5).map((doc: any) => ({
-          title: doc.title,
-          author: doc.author_name?.[0] || 'Unknown Author',
-          coverUrl: doc.cover_i 
-            ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
-            : undefined,
-          isbn: doc.isbn?.[0],
-        })) || [];
+        const bookSuggestions: BookSuggestion[] = data.items?.slice(0, 5).map((item: any) => {
+          const volumeInfo = item.volumeInfo;
+          return {
+            title: volumeInfo.title,
+            author: volumeInfo.authors?.[0] || 'Unknown Author',
+            coverUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:'),
+            isbn: volumeInfo.industryIdentifiers?.find((id: any) => id.type === 'ISBN_13')?.identifier ||
+                  volumeInfo.industryIdentifiers?.find((id: any) => id.type === 'ISBN_10')?.identifier,
+          };
+        }) || [];
         
         setSuggestions(bookSuggestions);
         setShowSuggestions(bookSuggestions.length > 0);
       } catch (error) {
         console.error('Failed to fetch book suggestions:', error);
         setSuggestions([]);
+        setShowSuggestions(false);
       } finally {
         setIsSearching(false);
       }
