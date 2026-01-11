@@ -6,7 +6,7 @@ import { AddNoteDialog } from '@/components/AddNoteDialog';
 import { EditNoteDialog } from '@/components/EditNoteDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { CollapsibleFAB } from '@/components/CollapsibleFAB';
-import { VoiceMemoRecorder } from '@/components/VoiceMemoRecorder';
+import { FloatingRecorder } from '@/components/FloatingRecorder';
 import { SearchBar } from '@/components/SearchBar';
 import { Button } from '@/components/ui/button';
 import { Book, Note, NoteType, MediaType } from '@/types';
@@ -33,7 +33,7 @@ const BookDetail = () => {
   const [pendingRecording, setPendingRecording] = useState<{ url: string; duration: number; transcript?: string } | null>(null);
   const [pendingImage, setPendingImage] = useState<{ url: string; extractedText?: string } | null>(null);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
+  const [showRecorder, setShowRecorder] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -237,17 +237,27 @@ const BookDetail = () => {
         className="hidden"
       />
 
+      {/* Floating Recorder */}
+      {showRecorder && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <FloatingRecorder
+            onRecordingComplete={(data) => {
+              setShowRecorder(false);
+              handleQuickRecording(data);
+            }}
+          />
+        </div>
+      )}
+
       {/* Collapsible FAB */}
-      <CollapsibleFAB
-        onAddNote={() => setAddNoteOpen(true)}
-        onStartRecording={() => {
-          setPendingRecording(null);
-          setAddNoteOpen(true);
-          // The AddNoteDialog will handle the recording
-        }}
-        onOpenCamera={() => cameraInputRef.current?.click()}
-        cameraInputRef={cameraInputRef}
-      />
+      {!showRecorder && (
+        <CollapsibleFAB
+          onAddNote={() => setAddNoteOpen(true)}
+          onStartRecording={() => setShowRecorder(true)}
+          onOpenCamera={() => cameraInputRef.current?.click()}
+          cameraInputRef={cameraInputRef}
+        />
+      )}
 
       {/* Add note dialog */}
       <AddNoteDialog
