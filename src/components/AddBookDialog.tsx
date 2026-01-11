@@ -2,11 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { BookFormat } from '@/types';
-import { BookOpen, Smartphone, Headphones, Book, Loader2, Search, Camera, Upload, X, ChevronDown } from 'lucide-react';
+import { BookOpen, Smartphone, Headphones, Book, Loader2, Search, Camera, Upload, X, ArrowLeft, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface AddBookDialogProps {
   open: boolean;
@@ -21,29 +19,28 @@ interface BookSuggestion {
   isbn?: string;
 }
 
-const formatOptions: { value: BookFormat; label: string; icon: typeof Book; description: string }[] = [
-  { value: 'physical', label: 'Physical', icon: Book, description: 'Paper book' },
-  { value: 'ebook', label: 'E-book', icon: Smartphone, description: 'Digital reader' },
-  { value: 'audiobook', label: 'Audiobook', icon: Headphones, description: 'Audio format' },
+const formatOptions: { value: BookFormat; label: string; icon: typeof Book }[] = [
+  { value: 'physical', label: 'Physical', icon: Book },
+  { value: 'ebook', label: 'E-book', icon: Smartphone },
+  { value: 'audiobook', label: 'Audiobook', icon: Headphones },
 ];
 
+type ViewState = 'search' | 'camera' | 'confirm';
+
 export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps) {
+  const [view, setView] = useState<ViewState>('search');
   const [title, setTitle] = useState('');
-  const [author, setAuthor] = useState('');
+  const [selectedBook, setSelectedBook] = useState<BookSuggestion | null>(null);
   const [format, setFormat] = useState<BookFormat>('physical');
-  const [coverUrl, setCoverUrl] = useState('');
-  const [isbn, setIsbn] = useState('');
   const [suggestions, setSuggestions] = useState<BookSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Search Google Books API when title changes
   useEffect(() => {
@@ -53,7 +50,6 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
 
     if (title.trim().length < 2) {
       setSuggestions([]);
-      setShowSuggestions(false);
       setIsSearching(false);
       return;
     }
@@ -62,16 +58,14 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         const response = await fetch(
-          `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(title)}&maxResults=5`
+          `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(title)}&maxResults=6`
         );
         
-        if (!response.ok) {
-          throw new Error('API request failed');
-        }
+        if (!response.ok) throw new Error('API request failed');
         
         const data = await response.json();
         
-        const bookSuggestions: BookSuggestion[] = data.items?.slice(0, 5).map((item: any) => {
+        const bookSuggestions: BookSuggestion[] = data.items?.slice(0, 6).map((item: any) => {
           const volumeInfo = item.volumeInfo;
           return {
             title: volumeInfo.title,
@@ -83,11 +77,9 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
         }) || [];
         
         setSuggestions(bookSuggestions);
-        setShowSuggestions(bookSuggestions.length > 0);
       } catch (error) {
         console.error('Failed to fetch book suggestions:', error);
         setSuggestions([]);
-        setShowSuggestions(false);
       } finally {
         setIsSearching(false);
       }
@@ -100,27 +92,20 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
     };
   }, [title]);
 
-  // Close suggestions when clicking outside
+  // Focus input when dialog opens
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
+    if (open && view === 'search') {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [open, view]);
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const selectSuggestion = (suggestion: BookSuggestion) => {
-    setTitle(suggestion.title);
-    setAuthor(suggestion.author);
-    if (suggestion.coverUrl) setCoverUrl(suggestion.coverUrl);
-    if (suggestion.isbn) setIsbn(suggestion.isbn);
-    setShowSuggestions(false);
+  const selectBook = (book: BookSuggestion) => {
+    setSelectedBook(book);
+    setView('confirm');
   };
 
   const startCamera = async () => {
+    setView('camera');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'environment' } 
@@ -160,6 +145,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setView('camera');
       const reader = new FileReader();
       reader.onload = (event) => {
         const dataUrl = event.target?.result as string;
@@ -173,304 +159,297 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
   const processImage = async (imageData: string) => {
     setIsProcessingImage(true);
     // TODO: When Cloud is enabled, send image to AI for book recognition
-    // For now, just show the captured image as a preview
     setTimeout(() => {
       setIsProcessingImage(false);
-      // Placeholder: In the future, AI will extract title, author, etc.
-    }, 1000);
+    }, 1500);
   };
 
-  const clearCapturedImage = () => {
+  const resetDialog = () => {
+    setView('search');
+    setTitle('');
+    setSelectedBook(null);
+    setFormat('physical');
+    setSuggestions([]);
     setCapturedImage(null);
-    setIsProcessingImage(false);
+    stopCamera();
   };
 
-  // Clean up camera on unmount or dialog close
+  // Clean up on dialog close
   useEffect(() => {
     if (!open) {
-      stopCamera();
-      setCapturedImage(null);
-      setIsCameraOpen(false);
+      resetDialog();
     }
   }, [open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !author.trim()) return;
+  const handleSubmit = () => {
+    if (!selectedBook) return;
     
     onAdd({
-      title: title.trim(),
-      author: author.trim(),
+      title: selectedBook.title,
+      author: selectedBook.author,
       format,
-      coverUrl: coverUrl.trim() || undefined,
-      isbn: isbn.trim() || undefined,
+      coverUrl: selectedBook.coverUrl,
+      isbn: selectedBook.isbn,
     });
     
-    setTitle('');
-    setAuthor('');
-    setFormat('physical');
-    setCoverUrl('');
-    setIsbn('');
-    setSuggestions([]);
+    resetDialog();
     onOpenChange(false);
+  };
+
+  const goBack = () => {
+    if (view === 'confirm') {
+      setSelectedBook(null);
+      setView('search');
+    } else if (view === 'camera') {
+      stopCamera();
+      setCapturedImage(null);
+      setView('search');
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md overflow-hidden">
+        <DialogHeader className="pb-0">
           <DialogTitle className="flex items-center gap-2 font-display text-xl">
+            {view !== 'search' && (
+              <button 
+                onClick={goBack}
+                className="p-1 -ml-1 rounded-md hover:bg-accent transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            )}
             <BookOpen className="w-5 h-5 text-primary" />
-            Add a new book
+            {view === 'confirm' ? 'Confirm book' : 'Add a book'}
           </DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6">
-          {/* Camera/Upload section - compact inline style */}
-          <Collapsible open={isCameraOpen} onOpenChange={setIsCameraOpen}>
-            <CollapsibleTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  "group flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors",
-                  isCameraOpen && "text-foreground"
-                )}
-              >
-                <div className="p-1.5 rounded-md bg-muted group-hover:bg-accent transition-colors">
-                  <Camera className="w-3.5 h-3.5" />
-                </div>
-                <span>Scan cover</span>
-                <ChevronDown className={cn(
-                  "w-3.5 h-3.5 transition-transform duration-200",
-                  isCameraOpen && "rotate-180"
-                )} />
-              </button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-3 animate-in slide-in-from-top-2 duration-200">
-              <div className="rounded-xl border border-dashed border-border p-4 space-y-3 bg-gradient-to-b from-muted/50 to-transparent">
-                {capturedImage ? (
-                  <div className="relative">
-                    <img 
-                      src={capturedImage} 
-                      alt="Captured book cover" 
-                      className="w-full max-h-48 object-contain rounded-lg"
-                    />
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="icon"
-                      className="absolute top-2 right-2 h-8 w-8"
-                      onClick={clearCapturedImage}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                    {isProcessingImage && (
-                      <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-lg">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Analyzing cover...
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : streamRef.current ? (
-                  <div className="relative">
-                    <video 
-                      ref={videoRef} 
-                      autoPlay 
-                      playsInline 
-                      className="w-full rounded-lg"
-                    />
-                    <div className="flex justify-center gap-2 mt-2">
-                      <Button
-                        type="button"
-                        onClick={captureFromCamera}
-                        className="gap-2"
-                      >
-                        <Camera className="w-4 h-4" />
-                        Capture
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={stopCamera}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-3 py-2">
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={startCamera}
-                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border bg-background hover:bg-accent hover:border-primary/30 transition-all group"
-                      >
-                        <div className="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                          <Camera className="w-5 h-5" />
-                        </div>
-                        <span className="text-xs font-medium">Take Photo</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border bg-background hover:bg-accent hover:border-primary/30 transition-all group"
-                      >
-                        <div className="p-3 rounded-full bg-secondary text-secondary-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                          <Upload className="w-5 h-5" />
-                        </div>
-                        <span className="text-xs font-medium">Upload</span>
-                      </button>
-                    </div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Photo of the book cover
-                    </p>
-                  </div>
-                )}
-                {capturedImage && (
-                  <p className="text-xs text-muted-foreground text-center">
-                    AI recognition requires Cloud to be enabled
-                  </p>
-                )}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-          {/* Title with suggestions */}
-          <div className="space-y-2 relative" ref={suggestionsRef}>
-            <Label htmlFor="title">Title</Label>
-            <div className="relative">
-              <Input
-                id="title"
-                placeholder="Start typing to search..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                className="bg-background pr-10"
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                {isSearching ? (
-                  <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
-                ) : (
-                  <Search className="w-4 h-4 text-muted-foreground" />
-                )}
-              </div>
-            </div>
-            
-            {/* Suggestions dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
-                {suggestions.map((suggestion, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => selectSuggestion(suggestion)}
-                    className={cn(
-                      "w-full flex items-center gap-3 p-3 text-left hover:bg-accent transition-colors",
-                      index !== suggestions.length - 1 && "border-b border-border"
-                    )}
-                  >
-                    {suggestion.coverUrl ? (
-                      <img 
-                        src={suggestion.coverUrl} 
-                        alt={suggestion.title}
-                        className="w-10 h-14 object-cover rounded shadow-sm"
-                      />
-                    ) : (
-                      <div className="w-10 h-14 bg-muted rounded flex items-center justify-center">
-                        <Book className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{suggestion.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{suggestion.author}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="author">Author</Label>
-            <Input
-              id="author"
-              placeholder="Who wrote it?"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              className="bg-background"
-            />
-          </div>
-
-          {/* Book format selector */}
-          <div className="space-y-2">
-            <Label>Format</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {formatOptions.map(({ value, label, icon: Icon, description }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setFormat(value)}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-lg border transition-all ${
-                    format === value 
-                      ? 'border-primary bg-primary/5 text-primary' 
-                      : 'border-border hover:border-primary/50 hover:bg-secondary/50'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="text-xs font-medium">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="cover">Cover URL (optional)</Label>
-            <div className="flex gap-2">
-              <Input
-                id="cover"
-                placeholder="https://..."
-                value={coverUrl}
-                onChange={(e) => setCoverUrl(e.target.value)}
-                className="bg-background flex-1"
-              />
-              {coverUrl && (
-                <img 
-                  src={coverUrl} 
-                  alt="Cover preview" 
-                  className="w-11 h-11 object-cover rounded border border-border"
+        <div className="px-6 pb-6">
+          {/* Search View */}
+          {view === 'search' && (
+            <div className="space-y-4 mt-4">
+              {/* Search input */}
+              <div className="relative">
+                <Input
+                  ref={inputRef}
+                  placeholder="Search by title..."
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="bg-background pr-10 h-12 text-base"
                 />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {isSearching ? (
+                    <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+                  ) : (
+                    <Search className="w-5 h-5 text-muted-foreground" />
+                  )}
+                </div>
+              </div>
+
+              {/* Results */}
+              {suggestions.length > 0 ? (
+                <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                  {suggestions.map((book, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => selectBook(book)}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:bg-accent hover:border-primary/30 transition-all text-left"
+                    >
+                      {book.coverUrl ? (
+                        <img 
+                          src={book.coverUrl} 
+                          alt={book.title}
+                          className="w-12 h-16 object-cover rounded-md shadow-sm"
+                        />
+                      ) : (
+                        <div className="w-12 h-16 bg-muted rounded-md flex items-center justify-center">
+                          <Book className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm line-clamp-2">{book.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{book.author}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : title.length >= 2 && !isSearching ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No books found. Try a different search.
+                </p>
+              ) : (
+                <div className="py-8 text-center space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Start typing to search for books
+                  </p>
+                  <div className="flex items-center gap-3 justify-center">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="text-xs text-muted-foreground">or</span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+                </div>
+              )}
+
+              {/* Camera/Upload options */}
+              {(suggestions.length === 0 || title.length < 2) && (
+                <div className="flex gap-3 justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={startCamera}
+                    className="flex flex-col items-center gap-2 p-4 rounded-xl border border-dashed border-border hover:bg-accent hover:border-primary/30 transition-all group"
+                  >
+                    <div className="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <Camera className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-medium">Take Photo</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex flex-col items-center gap-2 p-4 rounded-xl border border-dashed border-border hover:bg-accent hover:border-primary/30 transition-all group"
+                  >
+                    <div className="p-3 rounded-full bg-secondary text-secondary-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <Upload className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-medium">Upload</span>
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </div>
               )}
             </div>
-          </div>
+          )}
 
-          <div className="space-y-2">
-            <Label htmlFor="isbn">ISBN (optional)</Label>
-            <Input
-              id="isbn"
-              placeholder="978-..."
-              value={isbn}
-              onChange={(e) => setIsbn(e.target.value)}
-              className="bg-background"
-            />
-          </div>
-          
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!title.trim() || !author.trim()}>
-              Add book
-            </Button>
-          </div>
-        </form>
+          {/* Camera View */}
+          {view === 'camera' && (
+            <div className="space-y-4 mt-4">
+              {capturedImage ? (
+                <div className="relative">
+                  <img 
+                    src={capturedImage} 
+                    alt="Captured book cover" 
+                    className="w-full aspect-[3/4] object-contain rounded-xl bg-muted"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-2 right-2"
+                    onClick={() => setCapturedImage(null)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                  {isProcessingImage && (
+                    <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center rounded-xl gap-2">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      <p className="text-sm font-medium">Analyzing cover...</p>
+                    </div>
+                  )}
+                  {!isProcessingImage && (
+                    <div className="mt-4 p-4 rounded-xl bg-muted/50 border border-dashed border-border text-center">
+                      <p className="text-sm text-muted-foreground">
+                        AI recognition requires Cloud to be enabled
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2"
+                        onClick={goBack}
+                      >
+                        Search manually instead
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="relative">
+                  <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline 
+                    className="w-full aspect-[3/4] object-cover rounded-xl bg-muted"
+                  />
+                  <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                    <Button
+                      type="button"
+                      size="lg"
+                      onClick={captureFromCamera}
+                      className="rounded-full w-16 h-16 p-0"
+                    >
+                      <Camera className="w-6 h-6" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Confirm View */}
+          {view === 'confirm' && selectedBook && (
+            <div className="space-y-5 mt-4">
+              {/* Book preview */}
+              <div className="flex gap-4 p-4 rounded-xl bg-muted/30 border border-border">
+                {selectedBook.coverUrl ? (
+                  <img 
+                    src={selectedBook.coverUrl} 
+                    alt={selectedBook.title}
+                    className="w-20 h-28 object-cover rounded-lg shadow-md"
+                  />
+                ) : (
+                  <div className="w-20 h-28 bg-muted rounded-lg flex items-center justify-center">
+                    <Book className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 py-1">
+                  <h3 className="font-semibold text-base line-clamp-2">{selectedBook.title}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{selectedBook.author}</p>
+                  {selectedBook.isbn && (
+                    <p className="text-xs text-muted-foreground mt-2">ISBN: {selectedBook.isbn}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Format selector */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Format</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {formatOptions.map(({ value, label, icon: Icon }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setFormat(value)}
+                      className={cn(
+                        "flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all",
+                        format === value 
+                          ? 'border-primary bg-primary/5 text-primary' 
+                          : 'border-border hover:border-primary/50 hover:bg-accent'
+                      )}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span className="text-xs font-medium">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Add button */}
+              <Button 
+                onClick={handleSubmit} 
+                className="w-full h-12 text-base gap-2"
+              >
+                <Check className="w-5 h-5" />
+                Add to library
+              </Button>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
