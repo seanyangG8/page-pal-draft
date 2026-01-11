@@ -64,7 +64,7 @@ export function EditBookDialog({ book, open, onOpenChange, onSave }: EditBookDia
           </DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+        <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6">
           <div className="space-y-2">
             <Label htmlFor="edit-title">Title</Label>
             <Input

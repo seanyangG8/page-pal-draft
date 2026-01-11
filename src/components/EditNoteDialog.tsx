@@ -90,7 +90,7 @@ export function EditNoteDialog({
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4 mt-2">
+        <div className="space-y-4 px-6 pb-6">
           {/* Content */}
           <div className="space-y-2">
             <Label htmlFor="edit-content" className="text-sm font-medium">Content</Label>
