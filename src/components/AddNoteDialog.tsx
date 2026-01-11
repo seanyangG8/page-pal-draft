@@ -401,6 +401,19 @@ export function AddNoteDialog({
             />
           )}
 
+          {/* Bookmark - always visible when content exists */}
+          {hasContent && !showAIEditor && (
+            <div className="space-y-2">
+              <Label className="text-sm">Bookmark</Label>
+              <LocationInput
+                value={location}
+                onChange={setLocation}
+                bookFormat={bookFormat}
+                compact
+              />
+            </div>
+          )}
+
           {/* Add Details Section - collapsible, never auto-expand */}
           {hasContent && !showAIEditor && (
             <Collapsible open={showRefine} onOpenChange={setShowRefine}>
@@ -419,17 +432,6 @@ export function AddNoteDialog({
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-4 pt-3">
-                {/* Bookmark */}
-                <div className="space-y-2">
-                  <Label className="text-sm">Bookmark</Label>
-                  <LocationInput
-                    value={location}
-                    onChange={setLocation}
-                    bookFormat={bookFormat}
-                    compact
-                  />
-                </div>
-
                 {/* Tags */}
                 <div className="space-y-2">
                   <Label className="text-sm">Tags</Label>
