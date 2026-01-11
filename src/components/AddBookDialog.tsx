@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BookFormat } from '@/types';
-import { BookOpen, Smartphone, Headphones, Book, Loader2, Search, Camera, Upload, X, ArrowLeft, Check } from 'lucide-react';
+import { BookOpen, Smartphone, Headphones, Book, Loader2, Search, Camera, X, ArrowLeft, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AddBookDialogProps {
@@ -37,7 +37,6 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -139,20 +138,6 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
         stopCamera();
         processImage(dataUrl);
       }
-    }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setView('camera');
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const dataUrl = event.target?.result as string;
-        setCapturedImage(dataUrl);
-        processImage(dataUrl);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
@@ -294,35 +279,18 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
 
               {/* Camera/Upload options */}
               {(suggestions.length === 0 || title.length < 2) && (
-                <div className="flex gap-3 justify-center pt-2">
-                  <button
-                    type="button"
-                    onClick={startCamera}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl border border-dashed border-border hover:bg-accent hover:border-primary/30 transition-all group"
-                  >
-                    <div className="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                      <Camera className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-medium">Take Photo</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl border border-dashed border-border hover:bg-accent hover:border-primary/30 transition-all group"
-                  >
-                    <div className="p-3 rounded-full bg-secondary text-secondary-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                      <Upload className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-medium">Upload</span>
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </div>
+              <div className="flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={startCamera}
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl border border-dashed border-border hover:bg-accent hover:border-primary/30 transition-all group"
+                >
+                  <div className="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <Camera className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-medium">Take Photo</span>
+                </button>
+              </div>
               )}
             </div>
           )}
