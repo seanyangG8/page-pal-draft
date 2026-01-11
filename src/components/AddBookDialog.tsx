@@ -39,6 +39,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editAuthor, setEditAuthor] = useState('');
+  const [editCoverUrl, setEditCoverUrl] = useState('');
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -367,7 +368,21 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
             <div className="space-y-5 mt-4">
               {/* Book preview */}
               <div className="flex gap-4 p-4 rounded-xl bg-muted/30 border border-border relative">
-                {selectedBook.coverUrl ? (
+                {isEditing ? (
+                  <div className="relative">
+                    {editCoverUrl ? (
+                      <img 
+                        src={editCoverUrl} 
+                        alt="Cover preview"
+                        className="w-20 h-28 object-cover rounded-lg shadow-md"
+                      />
+                    ) : (
+                      <div className="w-20 h-28 bg-muted rounded-lg flex items-center justify-center">
+                        <Book className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                ) : selectedBook.coverUrl ? (
                   <img 
                     src={selectedBook.coverUrl} 
                     alt={selectedBook.title}
@@ -393,6 +408,12 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                         placeholder="Author"
                         className="h-8 text-sm"
                       />
+                      <Input
+                        value={editCoverUrl}
+                        onChange={(e) => setEditCoverUrl(e.target.value)}
+                        placeholder="Cover URL (optional)"
+                        className="h-8 text-sm"
+                      />
                       <div className="flex gap-2">
                         <Button
                           size="sm"
@@ -411,6 +432,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                                 ...selectedBook,
                                 title: editTitle.trim(),
                                 author: editAuthor.trim(),
+                                coverUrl: editCoverUrl.trim() || undefined,
                               });
                               setIsEditing(false);
                             }
@@ -436,6 +458,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                     onClick={() => {
                       setEditTitle(selectedBook.title);
                       setEditAuthor(selectedBook.author);
+                      setEditCoverUrl(selectedBook.coverUrl || '');
                       setIsEditing(true);
                     }}
                     className="absolute top-3 right-3 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
