@@ -241,6 +241,7 @@ const BookDetail = () => {
       {showRecorder && (
         <div className="fixed bottom-6 right-6 z-50">
           <FloatingRecorder
+            autoStart
             onRecordingComplete={(data) => {
               setShowRecorder(false);
               handleQuickRecording(data);
