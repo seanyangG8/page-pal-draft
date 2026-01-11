@@ -55,7 +55,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
           </DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+        <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6">
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input
@@ -122,14 +122,14 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
             />
           </div>
           
-          <DialogFooter className="mt-6">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={!title.trim() || !author.trim()}>
               Add book
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
