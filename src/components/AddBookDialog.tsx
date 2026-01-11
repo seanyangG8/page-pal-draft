@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BookFormat } from '@/types';
-import { BookOpen, Smartphone, Headphones, Book, Loader2, Search, Camera, Upload, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { BookOpen, Smartphone, Headphones, Book, Loader2, Search, Camera, Upload, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -226,27 +226,28 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6">
-          {/* Camera/Upload section */}
+          {/* Camera/Upload section - compact inline style */}
           <Collapsible open={isCameraOpen} onOpenChange={setIsCameraOpen}>
             <CollapsibleTrigger asChild>
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full justify-between"
-              >
-                <span className="flex items-center gap-2">
-                  <Camera className="w-4 h-4" />
-                  Scan book cover
-                </span>
-                {isCameraOpen ? (
-                  <ChevronUp className="w-4 h-4" />
-                ) : (
-                  <ChevronDown className="w-4 h-4" />
+              <button
+                type="button"
+                className={cn(
+                  "group flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors",
+                  isCameraOpen && "text-foreground"
                 )}
-              </Button>
+              >
+                <div className="p-1.5 rounded-md bg-muted group-hover:bg-accent transition-colors">
+                  <Camera className="w-3.5 h-3.5" />
+                </div>
+                <span>Scan cover</span>
+                <ChevronDown className={cn(
+                  "w-3.5 h-3.5 transition-transform duration-200",
+                  isCameraOpen && "rotate-180"
+                )} />
+              </button>
             </CollapsibleTrigger>
-            <CollapsibleContent className="mt-3">
-              <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/30">
+            <CollapsibleContent className="mt-3 animate-in slide-in-from-top-2 duration-200">
+              <div className="rounded-xl border border-dashed border-border p-4 space-y-3 bg-gradient-to-b from-muted/50 to-transparent">
                 {capturedImage ? (
                   <div className="relative">
                     <img 
@@ -299,25 +300,29 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                     </div>
                   </div>
                 ) : (
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="flex-1 gap-2"
-                      onClick={startCamera}
-                    >
-                      <Camera className="w-4 h-4" />
-                      Take Photo
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="flex-1 gap-2"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload className="w-4 h-4" />
-                      Upload
-                    </Button>
+                  <div className="flex flex-col items-center gap-3 py-2">
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={startCamera}
+                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border bg-background hover:bg-accent hover:border-primary/30 transition-all group"
+                      >
+                        <div className="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                          <Camera className="w-5 h-5" />
+                        </div>
+                        <span className="text-xs font-medium">Take Photo</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border bg-background hover:bg-accent hover:border-primary/30 transition-all group"
+                      >
+                        <div className="p-3 rounded-full bg-secondary text-secondary-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                          <Upload className="w-5 h-5" />
+                        </div>
+                        <span className="text-xs font-medium">Upload</span>
+                      </button>
+                    </div>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -325,14 +330,16 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                       onChange={handleFileUpload}
                       className="hidden"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Photo of the book cover
+                    </p>
                   </div>
                 )}
-                <p className="text-xs text-muted-foreground text-center">
-                  {capturedImage 
-                    ? "AI recognition requires Cloud to be enabled" 
-                    : "Take or upload a photo of the book cover"
-                  }
-                </p>
+                {capturedImage && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    AI recognition requires Cloud to be enabled
+                  </p>
+                )}
               </div>
             </CollapsibleContent>
           </Collapsible>
