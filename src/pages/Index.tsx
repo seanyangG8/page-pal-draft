@@ -187,69 +187,71 @@ const Index = () => {
           </div>
         ) : (
           <>
-            {/* Tabs and search */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
-              {/* Desktop tabs - hidden on mobile */}
-              {!isMobile && (
-                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'library' | 'notes' | 'feed' | 'friends')} className="w-full sm:w-auto">
-                  <TabsList className="bg-secondary/80 shadow-soft p-1">
-                    <TabsTrigger value="library" className="gap-2 data-[state=active]:shadow-card">
-                      <Library className="w-4 h-4" />
-                      Library
-                    </TabsTrigger>
-                    <TabsTrigger value="notes" className="gap-2 data-[state=active]:shadow-card">
-                      <Search className="w-4 h-4" />
-                      Notes
-                    </TabsTrigger>
-                    <TabsTrigger value="feed" className="gap-2 data-[state=active]:shadow-card">
-                      <Rss className="w-4 h-4" />
-                      Feed
-                    </TabsTrigger>
-                    <TabsTrigger value="friends" className="gap-2 data-[state=active]:shadow-card">
-                      <Users className="w-4 h-4" />
-                      Friends
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              )}
+            {/* Sticky search and tabs section */}
+            <div className="sticky top-12 md:top-14 z-40 -mx-4 md:-mx-6 px-4 md:px-6 py-3 bg-background/95 backdrop-blur-md">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                {/* Desktop tabs - hidden on mobile */}
+                {!isMobile && (
+                  <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'library' | 'notes' | 'feed' | 'friends')} className="w-full sm:w-auto">
+                    <TabsList className="bg-secondary/80 shadow-soft p-1">
+                      <TabsTrigger value="library" className="gap-2 data-[state=active]:shadow-card">
+                        <Library className="w-4 h-4" />
+                        Library
+                      </TabsTrigger>
+                      <TabsTrigger value="notes" className="gap-2 data-[state=active]:shadow-card">
+                        <Search className="w-4 h-4" />
+                        Notes
+                      </TabsTrigger>
+                      <TabsTrigger value="feed" className="gap-2 data-[state=active]:shadow-card">
+                        <Rss className="w-4 h-4" />
+                        Feed
+                      </TabsTrigger>
+                      <TabsTrigger value="friends" className="gap-2 data-[state=active]:shadow-card">
+                        <Users className="w-4 h-4" />
+                        Friends
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                )}
 
-              {(activeTab === 'library' || activeTab === 'notes') && (
-                <div className="flex items-center gap-2">
-                  <div className="w-full sm:w-72">
-                    <SearchBar 
-                      value={searchQuery}
-                      onChange={setSearchQuery}
-                      placeholder={activeTab === 'library' ? 'Search books...' : 'Search notes...'}
-                    />
+                {(activeTab === 'library' || activeTab === 'notes') && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-full sm:w-72">
+                      <SearchBar 
+                        value={searchQuery}
+                        onChange={setSearchQuery}
+                        placeholder={activeTab === 'library' ? 'Search books...' : 'Search notes...'}
+                      />
+                    </div>
+                    {activeTab === 'notes' && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setShowFilters(!showFilters)}
+                          className={showFilters ? 'bg-primary/10' : ''}
+                        >
+                          <Filter className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setExportOpen(true)}
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setImportOpen(true)}
+                        >
+                          <Upload className="w-4 h-4" />
+                        </Button>
+                      </>
+                    )}
                   </div>
-                  {activeTab === 'notes' && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setShowFilters(!showFilters)}
-                        className={showFilters ? 'bg-primary/10' : ''}
-                      >
-                        <Filter className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setExportOpen(true)}
-                    >
-                      <Download className="w-4 h-4" />
-                    </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setImportOpen(true)}
-                      >
-                        <Upload className="w-4 h-4" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Review Widget */}
@@ -273,7 +275,7 @@ const Index = () => {
             {/* Library tab */}
             {activeTab === 'library' && (
               <PullToRefresh onRefresh={handleRefresh}>
-                <div className="library-bg wall-texture rounded-2xl -mx-2 px-2 py-6 sm:-mx-4 sm:px-4">
+                <div className="library-bg wall-texture rounded-2xl -mx-2 px-2 py-3 sm:-mx-4 sm:px-4 mt-2">
                   {isLoading ? (
                     <BookshelfSkeleton />
                   ) : books.length === 0 ? (
