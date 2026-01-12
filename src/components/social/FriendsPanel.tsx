@@ -113,57 +113,65 @@ function FriendCard({
 }) {
   return (
     <Card 
-      className="p-4 bg-card border-border/50 hover:shadow-card transition-all duration-200 cursor-pointer hover:bg-accent/5"
+      className="p-3 sm:p-4 bg-card border-border/50 hover:shadow-card transition-all duration-200 cursor-pointer hover:bg-accent/5 active:scale-[0.98]"
       onClick={() => onProfileClick(friend)}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         {/* Avatar */}
-        <div className="flex-shrink-0">
-          <Avatar className="h-12 w-12 ring-2 ring-transparent group-hover:ring-primary/30 transition-all">
-            <AvatarImage src={friend.avatarUrl} alt={friend.name} />
-            <AvatarFallback className="bg-primary/10 text-primary font-medium">
-              {friend.name.split(' ').map(n => n[0]).join('')}
-            </AvatarFallback>
-          </Avatar>
-        </div>
+        <Avatar className="h-11 w-11 sm:h-12 sm:w-12 flex-shrink-0">
+          <AvatarImage src={friend.avatarUrl} alt={friend.name} />
+          <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
+            {friend.name.split(' ').map(n => n[0]).join('')}
+          </AvatarFallback>
+        </Avatar>
         
+        {/* Content - stacked layout */}
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-foreground truncate">
-            {friend.name}
-          </p>
-          <p className="text-sm text-muted-foreground">@{friend.username}</p>
-          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-[15px] text-foreground leading-tight">
+                {friend.name}
+              </p>
+              <p className="text-[13px] text-muted-foreground">@{friend.username}</p>
+            </div>
+            
+            {/* Follow button */}
+            <Button 
+              variant={friend.isFollowing ? "secondary" : "default"}
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFollow(friend.id);
+              }}
+              className="flex-shrink-0 h-8 text-xs px-3"
+            >
+              {friend.isFollowing ? (
+                <>
+                  <UserCheck className="w-3.5 h-3.5 mr-1" />
+                  Following
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-3.5 h-3.5 mr-1" />
+                  Follow
+                </>
+              )}
+            </Button>
+          </div>
+          
+          {/* Stats row - separate line */}
+          <div className="flex items-center gap-2 mt-1.5 text-[12px] text-muted-foreground">
+            <span className="flex items-center gap-1 bg-muted/50 px-1.5 py-0.5 rounded">
               <BookOpen className="w-3 h-3" />
               {friend.booksRead} books
             </span>
             {friend.currentlyReading && (
-              <span className="truncate">Reading: {friend.currentlyReading}</span>
+              <span className="truncate text-muted-foreground/80">
+                📖 {friend.currentlyReading}
+              </span>
             )}
           </div>
         </div>
-        
-        <Button 
-          variant={friend.isFollowing ? "secondary" : "default"}
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFollow(friend.id);
-          }}
-          className="flex-shrink-0"
-        >
-          {friend.isFollowing ? (
-            <>
-              <UserCheck className="w-4 h-4 mr-1" />
-              Following
-            </>
-          ) : (
-            <>
-              <UserPlus className="w-4 h-4 mr-1" />
-              Follow
-            </>
-          )}
-        </Button>
       </div>
     </Card>
   );
