@@ -81,6 +81,22 @@ function NoteTypeSelector({
   const [showChips, setShowChips] = useState(false);
   const currentType = noteTypes.find(t => t.type === type);
   const Icon = currentType?.icon || Lightbulb;
+  
+  // Get color classes for the current type
+  const getTypeColorClasses = (noteType: NoteType) => {
+    switch (noteType) {
+      case 'quote':
+        return 'text-amber-700 dark:text-amber-400';
+      case 'idea':
+        return 'text-blue-700 dark:text-blue-400';
+      case 'question':
+        return 'text-purple-700 dark:text-purple-400';
+      case 'action':
+        return 'text-emerald-700 dark:text-emerald-400';
+      default:
+        return 'text-primary';
+    }
+  };
 
   if (showChips) {
     return (
@@ -115,7 +131,7 @@ function NoteTypeSelector({
   return (
     <div className="flex items-center gap-2 text-sm">
       <span className="text-muted-foreground">Type:</span>
-      <span className="flex items-center gap-1.5 font-medium">
+      <span className={`flex items-center gap-1.5 font-medium ${getTypeColorClasses(type)}`}>
         <Icon className="w-3.5 h-3.5" />
         {currentType?.label}
         {!typeManuallySet && <span className="text-xs text-muted-foreground">(auto)</span>}
