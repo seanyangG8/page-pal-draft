@@ -239,6 +239,7 @@ export function AddNoteDialog({
   };
 
   const hasContent = content.trim() || imageData || audioData;
+  const hasSubstantialContent = (content.trim().length > 20) || imageData || audioData;
 
   const handleSave = (addAnother = false) => {
     if (!hasContent) return;
@@ -401,29 +402,7 @@ export function AddNoteDialog({
             </TabsContent>
           </Tabs>
 
-          {/* Note Type - compact single row with Change button */}
-          {hasContent && !showAIEditor && (
-            <NoteTypeSelector
-              type={type}
-              typeManuallySet={typeManuallySet}
-              onTypeChange={handleTypeChange}
-            />
-          )}
-
-          {/* Bookmark - always visible when content exists */}
-          {hasContent && !showAIEditor && (
-            <div className="space-y-2">
-              <Label className="text-sm">Bookmark</Label>
-              <LocationInput
-                value={location}
-                onChange={setLocation}
-                bookFormat={bookFormat}
-                compact
-              />
-            </div>
-          )}
-
-          {/* Add Details Section - collapsible, never auto-expand */}
+          {/* Refinement section - only show after substantial content or when user expands */}
           {hasContent && !showAIEditor && (
             <Collapsible open={showRefine} onOpenChange={setShowRefine}>
               <CollapsibleTrigger asChild>
@@ -435,12 +414,31 @@ export function AddNoteDialog({
                 >
                   <span className="flex items-center gap-2">
                     <Plus className="w-4 h-4" />
-                    Add details (optional)
+                    Add details
+                    {!showRefine && <span className="text-xs">(type, location, tags)</span>}
                   </span>
                   {showRefine ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-4 pt-3">
+                {/* Note Type */}
+                <NoteTypeSelector
+                  type={type}
+                  typeManuallySet={typeManuallySet}
+                  onTypeChange={handleTypeChange}
+                />
+
+                {/* Bookmark */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Bookmark</Label>
+                  <LocationInput
+                    value={location}
+                    onChange={setLocation}
+                    bookFormat={bookFormat}
+                    compact
+                  />
+                </div>
+
                 {/* Tags */}
                 <div className="space-y-2">
                   <Label className="text-sm">Tags</Label>
