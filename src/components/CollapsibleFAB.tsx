@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, X, Mic, Camera, PenLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useHaptic } from '@/hooks/use-haptic';
 
 interface CollapsibleFABProps {
   onAddNote: () => void;
@@ -18,9 +19,11 @@ export function CollapsibleFAB({
   cameraInputRef 
 }: CollapsibleFABProps) {
   const isMobile = useIsMobile();
+  const { light, medium, selection } = useHaptic();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragTarget, setDragTarget] = useState<string | null>(null);
+  const [prevDragTarget, setPrevDragTarget] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
@@ -61,6 +64,7 @@ export function CollapsibleFAB({
     touchStartRef.current = { x: touch.clientX, y: touch.clientY };
     
     longPressTimerRef.current = window.setTimeout(() => {
+      medium();
       setIsDragging(true);
       setIsExpanded(true);
     }, 300);
@@ -75,11 +79,15 @@ export function CollapsibleFAB({
     
     // Find which action button we're over
     const actionButton = elements.find(el => el.hasAttribute('data-action'));
-    if (actionButton) {
-      setDragTarget(actionButton.getAttribute('data-action'));
-    } else {
-      setDragTarget(null);
+    const newTarget = actionButton ? actionButton.getAttribute('data-action') : null;
+    
+    // Haptic feedback when changing targets
+    if (newTarget !== prevDragTarget && newTarget) {
+      selection();
+      setPrevDragTarget(newTarget);
     }
+    
+    setDragTarget(newTarget);
   };
 
   // Handle touch end
@@ -90,7 +98,8 @@ export function CollapsibleFAB({
     }
 
     if (isDragging && dragTarget) {
-      // Execute the action
+      // Execute the action with haptic
+      light();
       switch (dragTarget) {
         case 'record':
           onStartRecording();
@@ -107,18 +116,21 @@ export function CollapsibleFAB({
     
     setIsDragging(false);
     setDragTarget(null);
+    setPrevDragTarget(null);
     touchStartRef.current = null;
   };
 
   const handleMainClick = () => {
     if (!isDragging) {
       // Direct click opens add note dialog
+      medium();
       onAddNote();
       setIsExpanded(false);
     }
   };
 
   const handleAction = (action: () => void) => {
+    light();
     action();
     setIsExpanded(false);
   };

@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useHaptic } from '@/hooks/use-haptic';
 
 interface NoteCardProps {
   note: Note;
@@ -36,10 +37,13 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, onClick, showBookTi
   const config = noteTypeConfig[note.type];
   const Icon = config.icon;
   const isMobile = useIsMobile();
+  const { light, warning, error } = useHaptic();
   
   // Swipe state
   const [swipeX, setSwipeX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
+  const [hasTriggeredThreshold, setHasTriggeredThreshold] = useState(false);
+  const [hasTriggeredDelete, setHasTriggeredDelete] = useState(false);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -52,6 +56,8 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, onClick, showBookTi
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     setIsSwiping(false);
+    setHasTriggeredThreshold(false);
+    setHasTriggeredDelete(false);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -66,6 +72,16 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, onClick, showBookTi
       // Limit swipe to -DELETE_THRESHOLD with resistance
       const clampedX = Math.max(deltaX, -DELETE_THRESHOLD - 20);
       setSwipeX(clampedX);
+      
+      // Haptic feedback at thresholds
+      if (Math.abs(clampedX) >= SWIPE_THRESHOLD && !hasTriggeredThreshold) {
+        light();
+        setHasTriggeredThreshold(true);
+      }
+      if (Math.abs(clampedX) >= DELETE_THRESHOLD && !hasTriggeredDelete) {
+        warning();
+        setHasTriggeredDelete(true);
+      }
     }
   };
 
@@ -73,7 +89,8 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, onClick, showBookTi
     if (!isMobile || !isSwiping) return;
     
     if (Math.abs(swipeX) >= DELETE_THRESHOLD) {
-      // Delete action
+      // Delete action with haptic
+      error();
       onDelete();
     } else if (Math.abs(swipeX) >= SWIPE_THRESHOLD) {
       // Snap to show actions

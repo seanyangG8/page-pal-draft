@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { BookFormat } from '@/types';
 import { BookOpen, Smartphone, Headphones, Book, Loader2, Search, Camera, X, ArrowLeft, Check, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useHaptic } from '@/hooks/use-haptic';
 
 interface AddBookDialogProps {
   open: boolean;
@@ -33,6 +34,7 @@ const formatOptions: { value: BookFormat; label: string; icon: typeof Book }[] =
 type ViewState = 'search' | 'camera' | 'confirm';
 
 export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps) {
+  const { success } = useHaptic();
   const [view, setView] = useState<ViewState>('search');
   const [title, setTitle] = useState('');
   const [selectedBook, setSelectedBook] = useState<BookSuggestion | null>(null);
@@ -177,6 +179,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
   const handleSubmit = () => {
     if (!selectedBook) return;
     
+    success();
     onAdd({
       title: selectedBook.title,
       author: selectedBook.author,

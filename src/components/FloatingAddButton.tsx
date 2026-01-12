@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useHaptic } from '@/hooks/use-haptic';
 import { cn } from '@/lib/utils';
 
 interface FloatingAddButtonProps {
@@ -10,10 +11,16 @@ interface FloatingAddButtonProps {
 
 export function FloatingAddButton({ onClick, label }: FloatingAddButtonProps) {
   const isMobile = useIsMobile();
+  const { medium } = useHaptic();
+  
+  const handleClick = () => {
+    medium();
+    onClick();
+  };
   
   return (
     <Button
-      onClick={onClick}
+      onClick={handleClick}
       size="lg"
       className={cn(
         "fixed right-4 md:right-6 h-14 rounded-full shadow-elevated hover:shadow-glow btn-glow gap-2 px-6 animate-fade-up z-40 transition-all duration-300 hover:scale-105 active:scale-95 group touch-manipulation",

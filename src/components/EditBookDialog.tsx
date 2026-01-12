@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Book, BookFormat } from '@/types';
 import { Pencil, Smartphone, Headphones, Book as BookIcon } from 'lucide-react';
+import { useHaptic } from '@/hooks/use-haptic';
 
 interface EditBookDialogProps {
   book: Book | null;
@@ -25,6 +26,7 @@ const formatOptions: { value: BookFormat; label: string; icon: typeof BookIcon; 
 ];
 
 export function EditBookDialog({ book, open, onOpenChange, onSave }: EditBookDialogProps) {
+  const { success } = useHaptic();
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [format, setFormat] = useState<BookFormat>('physical');
@@ -46,6 +48,7 @@ export function EditBookDialog({ book, open, onOpenChange, onSave }: EditBookDia
     e.preventDefault();
     if (!book || !title.trim() || !author.trim()) return;
     
+    success();
     onSave(book.id, {
       title: title.trim(),
       author: author.trim(),

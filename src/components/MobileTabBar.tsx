@@ -1,5 +1,6 @@
 import { Library, FileText, Rss, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useHaptic } from '@/hooks/use-haptic';
 
 type TabValue = 'library' | 'notes' | 'feed' | 'friends';
 
@@ -16,6 +17,15 @@ const tabs = [
 ];
 
 export function MobileTabBar({ activeTab, onTabChange }: MobileTabBarProps) {
+  const { selection } = useHaptic();
+
+  const handleTabChange = (tab: TabValue) => {
+    if (tab !== activeTab) {
+      selection();
+      onTabChange(tab);
+    }
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
       {/* Backdrop blur layer */}
@@ -30,7 +40,7 @@ export function MobileTabBar({ activeTab, onTabChange }: MobileTabBarProps) {
           return (
             <button
               key={tab.value}
-              onClick={() => onTabChange(tab.value)}
+              onClick={() => handleTabChange(tab.value)}
               className={cn(
                 "flex flex-col items-center justify-center gap-0.5 px-4 py-2 min-w-[64px] rounded-xl transition-all duration-200",
                 "active:scale-95 touch-manipulation",

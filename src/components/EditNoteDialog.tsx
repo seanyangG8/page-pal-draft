@@ -15,6 +15,7 @@ import { TagInput } from './TagInput';
 import { LocationInput, LocationData, formatLocation, parseLocation } from './LocationInput';
 import { getTypeStyles } from '@/lib/noteTypeInference';
 import { getNotes } from '@/lib/store';
+import { useHaptic } from '@/hooks/use-haptic';
 
 interface EditNoteDialogProps {
   open: boolean;
@@ -38,6 +39,7 @@ export function EditNoteDialog({
   onSave,
   bookFormat = 'physical'
 }: EditNoteDialogProps) {
+  const { success } = useHaptic();
   const [content, setContent] = useState('');
   const [type, setType] = useState<NoteType>('idea');
   const [location, setLocation] = useState<LocationData>({});
@@ -68,6 +70,7 @@ export function EditNoteDialog({
   const handleSave = () => {
     if (!note || !content.trim()) return;
     
+    success();
     const locationString = formatLocation(location);
     
     onSave({
