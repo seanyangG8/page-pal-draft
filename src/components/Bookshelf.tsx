@@ -150,20 +150,17 @@ function BookSpine({
       {/* Book standing upright */}
       <div 
         className={cn(
-          "relative cursor-pointer transition-all duration-300",
-          // Desktop hover effects
-          !isMobile && "hover:-translate-y-3 hover:scale-105",
+          "relative cursor-pointer transition-all duration-300 ease-out",
+          // Desktop hover effects - rise and scale
+          !isMobile && "hover:-translate-y-2 hover:scale-[1.03]",
           // Mobile: press makes it rise and expand like desktop hover
-          isMobile && isPressed && "-translate-y-2 scale-105",
-          // Flatten the book cover angle on hover/press
-          "[&:hover_.book-cover]:[transform:rotateY(-8deg)_!important]",
-          isMobile && isPressed && "[&_.book-cover]:[transform:rotateY(-8deg)_!important]"
+          isMobile && isPressed && "-translate-y-1.5 scale-[1.03]"
         )}
         onClick={() => !showMobileMenu && onClick()}
       >
         {/* Book with cover image or colored spine */}
         {book.coverUrl ? (
-          // Show book cover at a slight angle - larger touch target on mobile
+          // Show book cover at a slight angle
           <div 
             className={cn(
               "relative",
@@ -174,11 +171,16 @@ function BookSpine({
               transformStyle: 'preserve-3d',
             }}
           >
-            {/* Book cover - fixed dimensions */}
+            {/* Book cover - uses CSS for hover transform */}
             <div
-              className="book-cover absolute inset-0 rounded-sm shadow-lg overflow-hidden transition-transform duration-300"
+              className={cn(
+                "book-cover absolute inset-0 rounded-sm shadow-lg overflow-hidden transition-transform duration-300",
+                // Default tilt, flatten on hover/press
+                !isMobile && "group-hover:[transform:rotateY(-10deg)]",
+                isMobile && isPressed ? "[transform:rotateY(-10deg)]" : "[transform:rotateY(-20deg)]",
+                !isMobile && !isPressed && "[transform:rotateY(-20deg)]"
+              )}
               style={{
-                transform: 'rotateY(-20deg)',
                 transformOrigin: 'left center',
                 boxShadow: '4px 2px 10px rgba(0,0,0,0.35)',
               }}
@@ -212,9 +214,14 @@ function BookSpine({
             }}
           >
             <div 
-              className={`book-cover absolute inset-0 bg-gradient-to-b ${getSpineColor(book.title)} rounded-sm shadow-lg flex flex-col items-center justify-center overflow-hidden transition-transform duration-300`}
+              className={cn(
+                `book-cover absolute inset-0 bg-gradient-to-b ${getSpineColor(book.title)} rounded-sm shadow-lg flex flex-col items-center justify-center overflow-hidden transition-transform duration-300`,
+                // Default tilt, flatten on hover/press
+                !isMobile && "group-hover:[transform:rotateY(-10deg)]",
+                isMobile && isPressed ? "[transform:rotateY(-10deg)]" : "[transform:rotateY(-20deg)]",
+                !isMobile && !isPressed && "[transform:rotateY(-20deg)]"
+              )}
               style={{
-                transform: 'rotateY(-20deg)',
                 transformOrigin: 'left center',
                 boxShadow: '4px 2px 10px rgba(0,0,0,0.35), inset -2px 0 4px rgba(255,255,255,0.1)',
               }}
