@@ -17,13 +17,14 @@ import { ExportDialog } from '@/components/ExportDialog';
 import { ImportDialog } from '@/components/ImportDialog';
 import { SocialFeed } from '@/components/social/SocialFeed';
 import { FriendsPanel } from '@/components/social/FriendsPanel';
+import { MobileTabBar } from '@/components/MobileTabBar';
 import { Book, Note, BookFormat } from '@/types';
 import { getBooks, addBook, deleteBook, updateBook, getNotes, deleteNote, updateNote, searchNotes, saveBooks, saveNotes } from '@/lib/store';
 import { BookOpen, Search, Library, Sparkles, Filter, Download, Upload, Users, Rss } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-
+import { useIsMobile } from '@/hooks/use-mobile';
 const Index = () => {
   const navigate = useNavigate();
   const [books, setBooks] = useState<Book[]>([]);
@@ -130,6 +131,8 @@ const Index = () => {
     return books.find(b => b.id === bookId)?.title || 'Unknown';
   };
 
+  const isMobile = useIsMobile();
+
   return (
     <div className="min-h-screen">
       <Header 
@@ -137,7 +140,7 @@ const Index = () => {
         onShowWelcome={() => setShowWelcome(true)} 
       />
       
-      <main className="container py-8 pb-24">
+      <main className="container py-6 md:py-8 pb-24 md:pb-24 px-4 md:px-6">
         {/* Hero section for empty state or when showWelcome is true */}
         {(books.length === 0 && notes.length === 0) || showWelcome ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center animate-fade-up gradient-hero rounded-3xl -mx-4 px-4 py-12">
@@ -175,27 +178,30 @@ const Index = () => {
         ) : (
           <>
             {/* Tabs and search */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'library' | 'notes' | 'feed' | 'friends')} className="w-full sm:w-auto">
-                <TabsList className="bg-secondary/80 shadow-soft p-1">
-                  <TabsTrigger value="library" className="gap-2 data-[state=active]:shadow-card">
-                    <Library className="w-4 h-4" />
-                    Library
-                  </TabsTrigger>
-                  <TabsTrigger value="notes" className="gap-2 data-[state=active]:shadow-card">
-                    <Search className="w-4 h-4" />
-                    Notes
-                  </TabsTrigger>
-                  <TabsTrigger value="feed" className="gap-2 data-[state=active]:shadow-card">
-                    <Rss className="w-4 h-4" />
-                    Feed
-                  </TabsTrigger>
-                  <TabsTrigger value="friends" className="gap-2 data-[state=active]:shadow-card">
-                    <Users className="w-4 h-4" />
-                    Friends
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
+              {/* Desktop tabs - hidden on mobile */}
+              {!isMobile && (
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'library' | 'notes' | 'feed' | 'friends')} className="w-full sm:w-auto">
+                  <TabsList className="bg-secondary/80 shadow-soft p-1">
+                    <TabsTrigger value="library" className="gap-2 data-[state=active]:shadow-card">
+                      <Library className="w-4 h-4" />
+                      Library
+                    </TabsTrigger>
+                    <TabsTrigger value="notes" className="gap-2 data-[state=active]:shadow-card">
+                      <Search className="w-4 h-4" />
+                      Notes
+                    </TabsTrigger>
+                    <TabsTrigger value="feed" className="gap-2 data-[state=active]:shadow-card">
+                      <Rss className="w-4 h-4" />
+                      Feed
+                    </TabsTrigger>
+                    <TabsTrigger value="friends" className="gap-2 data-[state=active]:shadow-card">
+                      <Users className="w-4 h-4" />
+                      Friends
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              )}
 
               {(activeTab === 'library' || activeTab === 'notes') && (
                 <div className="flex items-center gap-2">
@@ -334,6 +340,14 @@ const Index = () => {
           </>
         )}
       </main>
+
+      {/* Mobile bottom tab bar */}
+      {isMobile && !(books.length === 0 && notes.length === 0) && !showWelcome && (
+        <MobileTabBar 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab} 
+        />
+      )}
 
       {/* Floating add button */}
       {(books.length > 0 || notes.length > 0) && activeTab === 'library' && (
