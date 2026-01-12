@@ -13,7 +13,6 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerDescription,
-  DrawerFooter,
 } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 
@@ -209,9 +208,9 @@ export function ResponsiveDialogFooter({
 
   if (isMobile) {
     return (
-      <DrawerFooter className={cn("flex-shrink-0 px-4 pt-2 pb-safe border-t border-border/50 bg-background", className)}>
+      <div className={cn("flex-shrink-0 flex flex-col gap-2 px-4 pt-3 pb-4 pb-safe border-t border-border/50 bg-background", className)}>
         {children}
-      </DrawerFooter>
+      </div>
     );
   }
 

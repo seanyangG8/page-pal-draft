@@ -509,21 +509,13 @@ export function AddNoteDialog({
         {/* Action Buttons - Sticky footer */}
         {!showAIEditor && (
           <ResponsiveDialogFooter>
-            <Button 
-              type="button" 
-              variant="ghost" 
-              onClick={() => { resetForm(); onOpenChange(false); }}
-              className="sm:flex-shrink-0"
-            >
-              Cancel
-            </Button>
-            <div className="flex flex-1 gap-2 sm:flex-initial">
+            <div className="flex gap-2 w-full">
               <Button
                 type="button"
                 variant="outline"
                 disabled={!hasContent}
                 onClick={() => handleSave(true)}
-                className="flex-1 gap-1.5 touch-manipulation"
+                className="flex-1 gap-1.5 touch-manipulation h-11"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">Save & add another</span>
@@ -533,12 +525,20 @@ export function AddNoteDialog({
                 type="button"
                 disabled={!hasContent}
                 onClick={() => handleSave(false)}
-                className="flex-1 gap-1.5 touch-manipulation"
+                className="flex-1 gap-1.5 touch-manipulation h-11"
               >
                 <Save className="w-4 h-4" />
                 Save
               </Button>
             </div>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              onClick={() => { resetForm(); onOpenChange(false); }}
+              className="w-full h-10 text-muted-foreground"
+            >
+              Cancel
+            </Button>
           </ResponsiveDialogFooter>
         )}
       </ResponsiveDialogContent>
