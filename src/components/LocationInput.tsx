@@ -296,20 +296,6 @@ export function LocationInput({
         )}
       </div>
       
-      {!isAudiobook && (
-        <div className="space-y-1.5">
-          <Label className="text-xs flex items-center gap-1.5">
-            <FileText className="w-3 h-3" />
-            Section <span className="text-muted-foreground">(optional)</span>
-          </Label>
-          <Input
-            placeholder="Introduction, Part 2, etc."
-            value={value.section || ''}
-            onChange={(e) => onChange({ ...value, section: e.target.value })}
-            className="h-9 text-sm bg-background"
-          />
-        </div>
-      )}
     </div>
   );
 }
