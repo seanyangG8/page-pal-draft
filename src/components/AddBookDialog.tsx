@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { 
+  ResponsiveDialog, 
+  ResponsiveDialogContent, 
+  ResponsiveDialogHeader, 
+  ResponsiveDialogTitle 
+} from '@/components/ui/responsive-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BookFormat } from '@/types';
@@ -196,22 +201,22 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md overflow-hidden">
-        <DialogHeader className="pb-0">
-          <DialogTitle className="flex items-center gap-2 font-display text-xl">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="sm:max-w-md overflow-hidden">
+        <ResponsiveDialogHeader className="pb-0">
+          <ResponsiveDialogTitle className="flex items-center gap-2 font-display text-xl">
             {view !== 'search' && (
               <button 
                 onClick={goBack}
-                className="p-1 -ml-1 rounded-md hover:bg-accent transition-colors"
+                className="p-1 -ml-1 rounded-md hover:bg-accent transition-colors touch-manipulation"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
             <BookOpen className="w-5 h-5 text-primary" />
             {view === 'confirm' ? 'Confirm book' : 'Add a book'}
-          </DialogTitle>
-        </DialogHeader>
+          </ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
         
         <div className="px-6 pb-6">
           {/* Search View */}
@@ -479,7 +484,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

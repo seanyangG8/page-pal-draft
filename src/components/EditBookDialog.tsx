@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { 
+  ResponsiveDialog, 
+  ResponsiveDialogContent, 
+  ResponsiveDialogHeader, 
+  ResponsiveDialogTitle 
+} from '@/components/ui/responsive-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,14 +60,14 @@ export function EditBookDialog({ book, open, onOpenChange, onSave }: EditBookDia
   if (!book) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 font-display text-xl">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="sm:max-w-md">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="flex items-center gap-2 font-display text-xl">
             <Pencil className="w-5 h-5 text-primary" />
             Edit book
-          </DialogTitle>
-        </DialogHeader>
+          </ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6">
           <div className="space-y-2">
@@ -135,16 +140,16 @@ export function EditBookDialog({ book, open, onOpenChange, onSave }: EditBookDia
             />
           </div>
           
-          <DialogFooter className="mt-6">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+          <div className="flex gap-2 pt-4">
+            <Button type="button" variant="ghost" className="flex-1" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!title.trim() || !author.trim()}>
+            <Button type="submit" className="flex-1" disabled={!title.trim() || !author.trim()}>
               Save changes
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
