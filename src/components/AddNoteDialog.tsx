@@ -283,13 +283,15 @@ export function AddNoteDialog({
     <ResponsiveDialog open={open} onOpenChange={(open) => { if (!open) resetForm(); onOpenChange(open); }}>
       <ResponsiveDialogContent className="sm:max-w-lg">
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle className="flex items-center gap-2 font-display text-lg sm:text-xl">
-            <PenLine className="w-5 h-5 text-primary" />
-            <span className="truncate">Add note to <span className="text-primary">{bookTitle}</span></span>
+          <ResponsiveDialogTitle className="flex items-start gap-2 font-display text-lg sm:text-xl min-w-0">
+            <PenLine className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+            <span className="min-w-0 flex-1 leading-tight text-balance">
+              Add note to <span className="text-primary break-words">{bookTitle}</span>
+            </span>
           </ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
         
-        <ResponsiveDialogBody className="space-y-4">
+        <ResponsiveDialogBody className="space-y-4 pb-6">
           {/* Step 1: Capture Mode Tabs */}
           <Tabs value={captureMode} onValueChange={(v) => setCaptureMode(v as typeof captureMode)}>
             <TabsList className="grid w-full grid-cols-3">
