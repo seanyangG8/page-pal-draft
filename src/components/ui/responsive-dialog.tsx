@@ -208,7 +208,12 @@ export function ResponsiveDialogFooter({
 
   if (isMobile) {
     return (
-      <div className={cn("flex-shrink-0 flex flex-col gap-2 px-4 pt-3 pb-4 pb-safe border-t border-border/50 bg-background", className)}>
+      <div
+        className={cn(
+          "flex-shrink-0 flex flex-col gap-2 px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-border/50 bg-background",
+          className,
+        )}
+      >
         {children}
       </div>
     );
