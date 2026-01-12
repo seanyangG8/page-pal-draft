@@ -42,7 +42,8 @@ interface AddNoteDialogProps {
     transcript?: string;
     tags?: string[];
     isPrivate?: boolean;
-  }) => void;
+  }) => string; // Returns note ID
+  onUpdateLocation?: (noteId: string, location: string, timestamp?: string) => void;
   bookId: string;
   bookTitle: string;
   bookFormat?: BookFormat;
@@ -137,6 +138,7 @@ export function AddNoteDialog({
   open, 
   onOpenChange, 
   onAdd, 
+  onUpdateLocation,
   bookId,
   bookTitle, 
   bookFormat = 'physical',
@@ -144,6 +146,10 @@ export function AddNoteDialog({
   initialImage 
 }: AddNoteDialogProps) {
   const { success } = useHaptic();
+  
+  // Flow state: 'capture' or 'bookmark'
+  const [step, setStep] = useState<'capture' | 'bookmark'>('capture');
+  const [savedNoteId, setSavedNoteId] = useState<string | null>(null);
   
   // Core capture state
   const [captureMode, setCaptureMode] = useState<'text' | 'image' | 'audio'>('text');
@@ -223,6 +229,8 @@ export function AddNoteDialog({
   }, [imageData?.extractedText, typeManuallySet]);
 
   const resetForm = (keepLocationTags = false) => {
+    setStep('capture');
+    setSavedNoteId(null);
     setCaptureMode('text');
     setContent('');
     setImageData(null);
@@ -239,24 +247,22 @@ export function AddNoteDialog({
   };
 
   const hasContent = content.trim() || imageData || audioData;
-  const hasSubstantialContent = (content.trim().length > 20) || imageData || audioData;
 
   const handleSave = (addAnother = false) => {
     if (!hasContent) return;
     
     success();
-    const locationString = formatLocation(location);
     
     // Remember location/tags for next note
     setLastLocation(location);
     setLastTags(tags);
 
-    onAdd({
+    const noteId = onAdd({
       type,
       mediaType: captureMode,
       content: content.trim() || (imageData?.extractedText || audioData?.transcript || 'Voice memo'),
-      location: locationString || undefined,
-      timestamp: location.timestamp || undefined,
+      location: undefined, // Don't include location yet - we'll add it in step 2
+      timestamp: undefined,
       context: context.trim() || undefined,
       imageUrl: imageData?.url,
       extractedText: imageData?.extractedText,
@@ -270,9 +276,27 @@ export function AddNoteDialog({
     if (addAnother) {
       resetForm(true);
     } else {
-      resetForm();
-      onOpenChange(false);
+      // Show bookmark step
+      setSavedNoteId(noteId);
+      setStep('bookmark');
+      setLocation({});
     }
+  };
+
+  const handleSaveBookmark = () => {
+    if (savedNoteId && onUpdateLocation) {
+      const locationString = formatLocation(location);
+      if (locationString) {
+        onUpdateLocation(savedNoteId, locationString, location.timestamp);
+      }
+    }
+    resetForm();
+    onOpenChange(false);
+  };
+
+  const handleSkipBookmark = () => {
+    resetForm();
+    onOpenChange(false);
   };
 
   const handleTypeChange = (newType: NoteType) => {
@@ -283,263 +307,299 @@ export function AddNoteDialog({
   return (
     <ResponsiveDialog open={open} onOpenChange={(open) => { if (!open) resetForm(); onOpenChange(open); }}>
       <ResponsiveDialogContent className="sm:max-w-lg">
-        <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle className="flex items-start gap-2 font-display text-lg sm:text-xl min-w-0">
-            <PenLine className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-            <span className="min-w-0 flex-1 leading-tight text-balance">
-              Add note to <span className="text-primary break-words">{bookTitle}</span>
-            </span>
-          </ResponsiveDialogTitle>
-        </ResponsiveDialogHeader>
-        
-        <ResponsiveDialogBody className="space-y-4 pb-6">
-          {/* Step 1: Capture Mode Tabs */}
-          <Tabs value={captureMode} onValueChange={(v) => setCaptureMode(v as typeof captureMode)}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="text" className="gap-1.5 touch-manipulation">
-                <Type className="w-4 h-4" />
-                Text
-              </TabsTrigger>
-              <TabsTrigger value="image" className="gap-1.5 touch-manipulation">
-                <Camera className="w-4 h-4" />
-                Image
-              </TabsTrigger>
-              <TabsTrigger value="audio" className="gap-1.5 touch-manipulation">
-                <Mic className="w-4 h-4" />
-                Voice
-              </TabsTrigger>
-            </TabsList>
+        {step === 'capture' ? (
+          <>
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle className="flex items-start gap-2 font-display text-lg sm:text-xl min-w-0">
+                <PenLine className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                <span className="min-w-0 flex-1 leading-tight text-balance">
+                  Add note to <span className="text-primary break-words">{bookTitle}</span>
+                </span>
+              </ResponsiveDialogTitle>
+            </ResponsiveDialogHeader>
+            
+            <ResponsiveDialogBody className="space-y-4 pb-6">
+              {/* Capture Mode Tabs */}
+              <Tabs value={captureMode} onValueChange={(v) => setCaptureMode(v as typeof captureMode)}>
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="text" className="gap-1.5 touch-manipulation">
+                    <Type className="w-4 h-4" />
+                    Text
+                  </TabsTrigger>
+                  <TabsTrigger value="image" className="gap-1.5 touch-manipulation">
+                    <Camera className="w-4 h-4" />
+                    Image
+                  </TabsTrigger>
+                  <TabsTrigger value="audio" className="gap-1.5 touch-manipulation">
+                    <Mic className="w-4 h-4" />
+                    Voice
+                  </TabsTrigger>
+                </TabsList>
 
-            {/* TEXT CAPTURE */}
-            <TabsContent value="text" className="space-y-3 mt-4">
-              {showAIEditor && content.trim() ? (
-                <AITextActions
-                  originalText={content}
-                  onTextChange={(text) => {
-                    setContent(text);
-                    setShowAIEditor(false);
-                  }}
-                  onBack={() => setShowAIEditor(false)}
-                  showBackButton
-                />
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="content" className="text-sm font-medium">Content</Label>
-                    <Textarea
-                      id="content"
-                      placeholder={getPlaceholderForType(type)}
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      className="min-h-[100px] sm:min-h-[120px] bg-background resize-none text-base"
-                      autoFocus
+                {/* TEXT CAPTURE */}
+                <TabsContent value="text" className="space-y-3 mt-4">
+                  {showAIEditor && content.trim() ? (
+                    <AITextActions
+                      originalText={content}
+                      onTextChange={(text) => {
+                        setContent(text);
+                        setShowAIEditor(false);
+                      }}
+                      onBack={() => setShowAIEditor(false)}
+                      showBackButton
                     />
-                  </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="content" className="text-sm font-medium">Content</Label>
+                        <Textarea
+                          id="content"
+                          placeholder={getPlaceholderForType(type)}
+                          value={content}
+                          onChange={(e) => setContent(e.target.value)}
+                          className="min-h-[100px] sm:min-h-[120px] bg-background resize-none text-base"
+                          autoFocus
+                        />
+                      </div>
 
-                  {/* AI Enhance button - only show when there's content */}
-                  {content.trim() && (
-                    <AIEnhanceButton onClick={() => setShowAIEditor(true)} />
+                      {/* AI Enhance button - only show when there's content */}
+                      {content.trim() && (
+                        <AIEnhanceButton onClick={() => setShowAIEditor(true)} />
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </TabsContent>
+                </TabsContent>
 
-            {/* IMAGE CAPTURE */}
-            <TabsContent value="image" className="mt-4">
-              {showAIEditor && imageData?.extractedText ? (
-                <AITextActions
-                  originalText={imageData.extractedText}
-                  onTextChange={(text) => {
-                    setContent(text);
-                    setShowAIEditor(false);
-                    setCaptureMode('text');
-                  }}
-                  onBack={() => setShowAIEditor(false)}
-                  showBackButton
-                />
-              ) : (
-                <ImageCapture 
-                  onCapture={setImageData}
-                  capturedImage={imageData}
-                  onClear={() => setImageData(null)}
-                  onUseAsText={(text) => {
-                    setContent(text);
-                    setShowAIEditor(true);
-                  }}
-                />
-              )}
-            </TabsContent>
+                {/* IMAGE CAPTURE */}
+                <TabsContent value="image" className="mt-4">
+                  {showAIEditor && imageData?.extractedText ? (
+                    <AITextActions
+                      originalText={imageData.extractedText}
+                      onTextChange={(text) => {
+                        setContent(text);
+                        setShowAIEditor(false);
+                        setCaptureMode('text');
+                      }}
+                      onBack={() => setShowAIEditor(false)}
+                      showBackButton
+                    />
+                  ) : (
+                    <ImageCapture 
+                      onCapture={setImageData}
+                      capturedImage={imageData}
+                      onClear={() => setImageData(null)}
+                      onUseAsText={(text) => {
+                        setContent(text);
+                        setShowAIEditor(true);
+                      }}
+                    />
+                  )}
+                </TabsContent>
 
-            {/* VOICE CAPTURE */}
-            <TabsContent value="audio" className="mt-4">
-              {showAIEditor && audioData?.transcript ? (
-                <AITextActions
-                  originalText={audioData.transcript}
-                  onTextChange={(text) => {
-                    setContent(text);
-                    setShowAIEditor(false);
-                    setCaptureMode('text');
-                  }}
-                  onBack={() => setShowAIEditor(false)}
-                  showBackButton
-                />
-              ) : (
-                <VoiceMemoRecorder 
-                  onRecordingComplete={setAudioData}
-                  recordedAudio={audioData}
-                  onClear={() => setAudioData(null)}
-                  onTranscriptEdit={(transcript) => {
-                    if (audioData) {
-                      setAudioData({ ...audioData, transcript });
-                    }
-                  }}
-                  onUseAsText={(text) => {
-                    setContent(text);
-                    setShowAIEditor(true);
-                  }}
-                />
-              )}
-            </TabsContent>
-          </Tabs>
+                {/* VOICE CAPTURE */}
+                <TabsContent value="audio" className="mt-4">
+                  {showAIEditor && audioData?.transcript ? (
+                    <AITextActions
+                      originalText={audioData.transcript}
+                      onTextChange={(text) => {
+                        setContent(text);
+                        setShowAIEditor(false);
+                        setCaptureMode('text');
+                      }}
+                      onBack={() => setShowAIEditor(false)}
+                      showBackButton
+                    />
+                  ) : (
+                    <VoiceMemoRecorder 
+                      onRecordingComplete={setAudioData}
+                      recordedAudio={audioData}
+                      onClear={() => setAudioData(null)}
+                      onTranscriptEdit={(transcript) => {
+                        if (audioData) {
+                          setAudioData({ ...audioData, transcript });
+                        }
+                      }}
+                      onUseAsText={(text) => {
+                        setContent(text);
+                        setShowAIEditor(true);
+                      }}
+                    />
+                  )}
+                </TabsContent>
+              </Tabs>
 
-          {/* Refinement section - only show after substantial content or when user expands */}
-          {hasContent && !showAIEditor && (
-            <Collapsible open={showRefine} onOpenChange={setShowRefine}>
-              <CollapsibleTrigger asChild>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-between text-muted-foreground hover:text-foreground touch-manipulation"
-                >
-                  <span className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Add details
-                    {!showRefine && <span className="text-xs">(type, location, tags)</span>}
-                  </span>
-                  {showRefine ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-4 pt-3">
-                {/* Note Type */}
-                <NoteTypeSelector
-                  type={type}
-                  typeManuallySet={typeManuallySet}
-                  onTypeChange={handleTypeChange}
-                />
-
-                {/* Bookmark */}
-                <div className="space-y-2">
-                  <Label className="text-sm">Bookmark</Label>
-                  <LocationInput
-                    value={location}
-                    onChange={setLocation}
-                    bookFormat={bookFormat}
-                    compact
-                  />
-                </div>
-
-                {/* Tags */}
-                <div className="space-y-2">
-                  <Label className="text-sm">Tags</Label>
-                  <TagInput
-                    tags={tags}
-                    onChange={setTags}
-                    existingTags={existingTags}
-                    suggestedTags={suggestedTags}
-                    placeholder="Add tags..."
-                  />
-                </div>
-
-                {/* Why it matters */}
-                <div className="space-y-2">
-                  <Label htmlFor="context" className="text-sm">Why it matters <span className="text-muted-foreground">(optional)</span></Label>
-                  <Input
-                    id="context"
-                    placeholder="Brief note on why you're saving this..."
-                    value={context}
-                    onChange={(e) => setContext(e.target.value)}
-                    className="bg-background"
-                  />
-                </div>
-
-                {/* Advanced section with privacy */}
-                <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+              {/* Refinement section - collapsed by default */}
+              {hasContent && !showAIEditor && (
+                <Collapsible open={showRefine} onOpenChange={setShowRefine}>
                   <CollapsibleTrigger asChild>
                     <Button 
                       type="button" 
                       variant="ghost" 
                       size="sm" 
-                      className="text-xs text-muted-foreground hover:text-foreground px-0 touch-manipulation"
+                      className="w-full justify-between text-muted-foreground hover:text-foreground touch-manipulation"
                     >
-                      Advanced options
-                      {showAdvanced ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
+                      <span className="flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        Add details
+                        {!showRefine && <span className="text-xs">(type, tags)</span>}
+                      </span>
+                      {showRefine ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </Button>
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="pt-2">
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border border-border/50">
-                      <div className="flex items-center gap-3">
-                        {isPrivate ? (
-                          <Lock className="w-4 h-4 text-muted-foreground" />
-                        ) : (
-                          <Globe className="w-4 h-4 text-muted-foreground" />
-                        )}
-                        <div>
-                          <Label htmlFor="private-toggle" className="text-sm font-medium cursor-pointer">
-                            {isPrivate ? 'Private note' : 'Public note'}
-                          </Label>
-                          <p className="text-xs text-muted-foreground">
-                            {isPrivate ? 'Only you can see this' : 'Visible on your profile'}
-                          </p>
-                        </div>
-                      </div>
-                      <Switch
-                        id="private-toggle"
-                        checked={!isPrivate}
-                        onCheckedChange={(checked) => setIsPrivate(!checked)}
+                  <CollapsibleContent className="space-y-4 pt-3">
+                    {/* Note Type */}
+                    <NoteTypeSelector
+                      type={type}
+                      typeManuallySet={typeManuallySet}
+                      onTypeChange={handleTypeChange}
+                    />
+
+                    {/* Tags */}
+                    <div className="space-y-2">
+                      <Label className="text-sm">Tags</Label>
+                      <TagInput
+                        tags={tags}
+                        onChange={setTags}
+                        existingTags={existingTags}
+                        suggestedTags={suggestedTags}
+                        placeholder="Add tags..."
                       />
                     </div>
+
+                    {/* Why it matters */}
+                    <div className="space-y-2">
+                      <Label htmlFor="context" className="text-sm">Why it matters <span className="text-muted-foreground">(optional)</span></Label>
+                      <Input
+                        id="context"
+                        placeholder="Brief note on why you're saving this..."
+                        value={context}
+                        onChange={(e) => setContext(e.target.value)}
+                        className="bg-background"
+                      />
+                    </div>
+
+                    {/* Advanced section with privacy */}
+                    <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+                      <CollapsibleTrigger asChild>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-xs text-muted-foreground hover:text-foreground px-0 touch-manipulation"
+                        >
+                          Advanced options
+                          {showAdvanced ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-2">
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border border-border/50">
+                          <div className="flex items-center gap-3">
+                            {isPrivate ? (
+                              <Lock className="w-4 h-4 text-muted-foreground" />
+                            ) : (
+                              <Globe className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            <div>
+                              <Label htmlFor="private-toggle" className="text-sm font-medium cursor-pointer">
+                                {isPrivate ? 'Private note' : 'Public note'}
+                              </Label>
+                              <p className="text-xs text-muted-foreground">
+                                {isPrivate ? 'Only you can see this' : 'Visible on your profile'}
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            id="private-toggle"
+                            checked={!isPrivate}
+                            onCheckedChange={(checked) => setIsPrivate(!checked)}
+                          />
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </CollapsibleContent>
                 </Collapsible>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-        </ResponsiveDialogBody>
+              )}
+            </ResponsiveDialogBody>
 
-        {/* Action Buttons - Sticky footer */}
-        {!showAIEditor && (
-          <ResponsiveDialogFooter>
-            <div className="flex gap-2 w-full">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!hasContent}
-                onClick={() => handleSave(true)}
-                className="flex-1 gap-1.5 touch-manipulation h-11"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Save & add another</span>
-                <span className="sm:hidden">+ Another</span>
-              </Button>
-              <Button 
-                type="button"
-                disabled={!hasContent}
-                onClick={() => handleSave(false)}
-                className="flex-1 gap-1.5 touch-manipulation h-11"
-              >
-                <Save className="w-4 h-4" />
-                Save
-              </Button>
-            </div>
-            <Button 
-              type="button" 
-              variant="ghost" 
-              onClick={() => { resetForm(); onOpenChange(false); }}
-              className="w-full h-10 text-muted-foreground"
-            >
-              Cancel
-            </Button>
-          </ResponsiveDialogFooter>
+            {/* Action Buttons */}
+            {!showAIEditor && (
+              <ResponsiveDialogFooter>
+                <div className="flex gap-2 w-full">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={!hasContent}
+                    onClick={() => handleSave(true)}
+                    className="flex-1 gap-1.5 touch-manipulation h-11"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">Save & add another</span>
+                    <span className="sm:hidden">+ Another</span>
+                  </Button>
+                  <Button 
+                    type="button"
+                    disabled={!hasContent}
+                    onClick={() => handleSave(false)}
+                    className="flex-1 gap-1.5 touch-manipulation h-11"
+                  >
+                    <Save className="w-4 h-4" />
+                    Save
+                  </Button>
+                </div>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  onClick={() => { resetForm(); onOpenChange(false); }}
+                  className="w-full h-10 text-muted-foreground"
+                >
+                  Cancel
+                </Button>
+              </ResponsiveDialogFooter>
+            )}
+          </>
+        ) : (
+          /* Step 2: Bookmark */
+          <>
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle className="flex items-center gap-2 font-display text-lg sm:text-xl">
+                <CheckCircle className="w-5 h-5 text-green-500" />
+                Note saved!
+              </ResponsiveDialogTitle>
+            </ResponsiveDialogHeader>
+            
+            <ResponsiveDialogBody className="space-y-4 pb-6">
+              <p className="text-sm text-muted-foreground">
+                Where in the book is this from? (optional)
+              </p>
+              <LocationInput
+                value={location}
+                onChange={setLocation}
+                bookFormat={bookFormat}
+                compact={false}
+              />
+            </ResponsiveDialogBody>
+
+            <ResponsiveDialogFooter>
+              <div className="flex gap-2 w-full">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  onClick={handleSkipBookmark}
+                  className="flex-1 h-11 touch-manipulation"
+                >
+                  Skip
+                </Button>
+                <Button 
+                  type="button"
+                  onClick={handleSaveBookmark}
+                  className="flex-1 gap-1.5 touch-manipulation h-11"
+                >
+                  <Save className="w-4 h-4" />
+                  Done
+                </Button>
+              </div>
+            </ResponsiveDialogFooter>
+          </>
         )}
       </ResponsiveDialogContent>
     </ResponsiveDialog>

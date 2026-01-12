@@ -67,8 +67,9 @@ const BookDetail = () => {
     audioUrl?: string;
     audioDuration?: number;
     tags?: string[];
-  }) => {
-    if (!bookId) return;
+    isPrivate?: boolean;
+  }): string => {
+    if (!bookId) return '';
     
     const newNote = addNote({
       bookId,
@@ -78,6 +79,16 @@ const BookDetail = () => {
     toast.success('Note saved');
     setPendingRecording(null);
     setPendingImage(null);
+    return newNote.id;
+  };
+
+  const handleUpdateNoteLocation = (noteId: string, location: string, timestamp?: string) => {
+    const note = notes.find(n => n.id === noteId);
+    if (note) {
+      const updated = { ...note, location, timestamp };
+      updateNote(noteId, updated);
+      setNotes(prev => prev.map(n => n.id === noteId ? updated : n));
+    }
   };
 
   const handleQuickRecording = (data: { url: string; duration: number; transcript?: string }) => {
@@ -309,6 +320,7 @@ const BookDetail = () => {
           }
         }}
         onAdd={handleAddNote}
+        onUpdateLocation={handleUpdateNoteLocation}
         bookId={book.id}
         bookTitle={book.title}
         bookFormat={book.format}
