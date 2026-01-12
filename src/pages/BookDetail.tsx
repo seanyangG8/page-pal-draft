@@ -112,37 +112,37 @@ const BookDetail = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container py-8 pb-24">
+      <main className="px-4 md:px-6 lg:container py-4 md:py-6 lg:py-8 pb-28 md:pb-24">
         {/* Back button and book info */}
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate('/')}
-            className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
+            className="mb-3 md:mb-4 -ml-2 text-muted-foreground hover:text-foreground h-10 touch-manipulation"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to library
           </Button>
 
-          <div className="flex items-start gap-6 animate-fade-in">
+          <div className="flex items-start gap-4 md:gap-6 animate-fade-in">
             {/* Book cover */}
-            <div className="hidden sm:block w-24 h-36 rounded-lg bg-gradient-to-br from-secondary to-muted flex-shrink-0 shadow-card overflow-hidden">
+            <div className="hidden sm:block w-20 md:w-24 h-28 md:h-36 rounded-lg bg-gradient-to-br from-secondary to-muted flex-shrink-0 shadow-card overflow-hidden">
               {book.coverUrl ? (
                 <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <BookOpen className="w-8 h-8 text-muted-foreground/50" />
+                  <BookOpen className="w-6 md:w-8 h-6 md:h-8 text-muted-foreground/50" />
                 </div>
               )}
             </div>
 
             {/* Book details */}
             <div className="flex-1 min-w-0">
-              <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-1">
+              <h1 className="font-display text-xl md:text-2xl lg:text-3xl font-bold text-foreground mb-1 leading-tight">
                 {book.title}
               </h1>
-              <p className="text-lg text-muted-foreground mb-3">
+              <p className="text-base md:text-lg text-muted-foreground mb-2 md:mb-3">
                 {book.author}
               </p>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -156,7 +156,7 @@ const BookDetail = () => {
         </div>
 
         {/* Search and filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-4 md:mb-6">
           <div className="w-full sm:w-64">
             <SearchBar 
               value={searchQuery}
@@ -165,14 +165,14 @@ const BookDetail = () => {
             />
           </div>
           
-          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 -mx-4 px-4 md:mx-0 md:px-0">
             {noteFilters.map(({ type, label, icon: Icon }) => (
               <Button
                 key={type}
                 variant={activeFilter === type ? 'default' : 'secondary'}
                 size="sm"
                 onClick={() => setActiveFilter(type)}
-                className="flex-shrink-0 gap-1.5"
+                className="flex-shrink-0 gap-1.5 h-9 touch-manipulation"
               >
                 {Icon && <Icon className="w-3.5 h-3.5" />}
                 {label}
