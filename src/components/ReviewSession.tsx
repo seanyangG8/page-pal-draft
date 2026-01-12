@@ -98,7 +98,7 @@ export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps
       </div>
 
       {/* Card */}
-      <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+      <div className="flex-1 flex items-center justify-center p-4 overflow-y-auto overflow-x-hidden">
         <Card 
           className="w-full max-w-xl p-6 shadow-elevated cursor-pointer"
           onClick={() => !showAnswer && currentNote.aiFlashcard && setShowAnswer(true)}
@@ -179,7 +179,51 @@ export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps
       {/* Navigation and actions */}
       <div className="border-t border-border p-4">
         <div className="container max-w-2xl mx-auto">
-          <div className="flex items-center justify-between gap-4">
+          {/* Mobile: stack to avoid horizontal overflow */}
+          <div className="space-y-2 sm:hidden">
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                className="flex-1 gap-2 whitespace-normal leading-tight"
+                onClick={() => handleMarkReviewed(false)}
+              >
+                <X className="w-4 h-4" />
+                Forgot
+              </Button>
+              <Button 
+                className="flex-1 gap-2 whitespace-normal leading-tight"
+                onClick={() => handleMarkReviewed(true)}
+              >
+                <Check className="w-4 h-4" />
+                Remembered
+              </Button>
+            </div>
+
+            <div className="flex gap-2">
+              <Button 
+                variant="ghost" 
+                className="flex-1 whitespace-normal leading-tight"
+                onClick={goToPrev}
+                disabled={currentIndex === 0}
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Previous
+              </Button>
+
+              <Button 
+                variant="ghost"
+                className="flex-1 whitespace-normal leading-tight"
+                onClick={goToNext}
+                disabled={currentIndex === notes.length - 1}
+              >
+                Next
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Desktop */}
+          <div className="hidden sm:flex items-center justify-between gap-4">
             <Button 
               variant="ghost" 
               onClick={goToPrev}
