@@ -179,85 +179,46 @@ export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps
       {/* Navigation and actions */}
       <div className="border-t border-border p-4">
         <div className="container max-w-2xl mx-auto">
-          {/* Mobile: stack to avoid horizontal overflow */}
-          <div className="space-y-2 sm:hidden">
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                className="flex-1 gap-2 whitespace-normal leading-tight"
-                onClick={() => handleMarkReviewed(false)}
-              >
-                <X className="w-4 h-4" />
-                Forgot
-              </Button>
-              <Button 
-                className="flex-1 gap-2 whitespace-normal leading-tight"
-                onClick={() => handleMarkReviewed(true)}
-              >
-                <Check className="w-4 h-4" />
-                Remembered
-              </Button>
-            </div>
-
-            <div className="flex gap-2">
-              <Button 
-                variant="ghost" 
-                className="flex-1 whitespace-normal leading-tight"
-                onClick={goToPrev}
-                disabled={currentIndex === 0}
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Previous
-              </Button>
-
-              <Button 
-                variant="ghost"
-                className="flex-1 whitespace-normal leading-tight"
-                onClick={goToNext}
-                disabled={currentIndex === notes.length - 1}
-              >
-                Next
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Desktop */}
-          <div className="hidden sm:flex items-center justify-between gap-4">
+          <div className="flex items-center justify-center gap-2">
+            {/* Previous arrow pill */}
             <Button 
-              variant="ghost" 
+              variant="outline" 
+              size="icon"
+              className="rounded-full h-10 w-10 shrink-0"
               onClick={goToPrev}
               disabled={currentIndex === 0}
             >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Previous
+              <ChevronLeft className="w-5 h-5" />
             </Button>
 
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                className="gap-2"
-                onClick={() => handleMarkReviewed(false)}
-              >
-                <X className="w-4 h-4" />
-                Forgot
-              </Button>
-              <Button 
-                className="gap-2"
-                onClick={() => handleMarkReviewed(true)}
-              >
-                <Check className="w-4 h-4" />
-                Remembered
-              </Button>
-            </div>
-
+            {/* Forgot button */}
             <Button 
-              variant="ghost"
+              variant="outline" 
+              className="gap-2 flex-1 max-w-[140px]"
+              onClick={() => handleMarkReviewed(false)}
+            >
+              <X className="w-4 h-4" />
+              Forgot
+            </Button>
+
+            {/* Remembered button */}
+            <Button 
+              className="gap-2 flex-1 max-w-[160px]"
+              onClick={() => handleMarkReviewed(true)}
+            >
+              <Check className="w-4 h-4" />
+              Remembered
+            </Button>
+
+            {/* Next arrow pill */}
+            <Button 
+              variant="outline"
+              size="icon"
+              className="rounded-full h-10 w-10 shrink-0"
               onClick={goToNext}
               disabled={currentIndex === notes.length - 1}
             >
-              Next
-              <ChevronRight className="w-4 h-4 ml-1" />
+              <ChevronRight className="w-5 h-5" />
             </Button>
           </div>
         </div>
