@@ -26,11 +26,11 @@ interface NoteCardProps {
   onBookClick?: () => void;
 }
 
-const noteTypeConfig: Record<NoteType, { icon: typeof Quote; label: string; className: string; borderColor: string }> = {
-  quote: { icon: Quote, label: 'Quote', className: 'note-badge-quote', borderColor: 'border-l-amber-500 dark:border-l-amber-400' },
-  idea: { icon: Lightbulb, label: 'Idea', className: 'note-badge-idea', borderColor: 'border-l-sky-500 dark:border-l-sky-400' },
-  question: { icon: HelpCircle, label: 'Question', className: 'note-badge-question', borderColor: 'border-l-violet-500 dark:border-l-violet-400' },
-  action: { icon: CheckCircle, label: 'Action', className: 'note-badge-action', borderColor: 'border-l-emerald-500 dark:border-l-emerald-400' },
+const noteTypeConfig: Record<NoteType, { icon: typeof Quote; label: string; color: string; bgColor: string }> = {
+  quote: { icon: Quote, label: 'Quote', color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-100/80 dark:bg-amber-900/30' },
+  idea: { icon: Lightbulb, label: 'Idea', color: 'text-sky-600 dark:text-sky-400', bgColor: 'bg-sky-100/80 dark:bg-sky-900/30' },
+  question: { icon: HelpCircle, label: 'Question', color: 'text-violet-600 dark:text-violet-400', bgColor: 'bg-violet-100/80 dark:bg-violet-900/30' },
+  action: { icon: CheckCircle, label: 'Action', color: 'text-emerald-600 dark:text-emerald-400', bgColor: 'bg-emerald-100/80 dark:bg-emerald-900/30' },
 };
 
 export function NoteCard({ note, onDelete, onUpdate, onEdit, onClick, showBookTitle, onBookClick }: NoteCardProps) {
@@ -69,11 +69,9 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, onClick, showBookTi
     // Only swipe left, and only if more horizontal than vertical
     if (deltaX < 0 && Math.abs(deltaX) > Math.abs(deltaY)) {
       setIsSwiping(true);
-      // Limit swipe to -DELETE_THRESHOLD with resistance
       const clampedX = Math.max(deltaX, -DELETE_THRESHOLD - 20);
       setSwipeX(clampedX);
       
-      // Haptic feedback at thresholds
       if (Math.abs(clampedX) >= SWIPE_THRESHOLD && !hasTriggeredThreshold) {
         light();
         setHasTriggeredThreshold(true);
@@ -89,14 +87,11 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, onClick, showBookTi
     if (!isMobile || !isSwiping) return;
     
     if (Math.abs(swipeX) >= DELETE_THRESHOLD) {
-      // Delete action with haptic
       error();
       onDelete();
     } else if (Math.abs(swipeX) >= SWIPE_THRESHOLD) {
-      // Snap to show actions
       setSwipeX(-SWIPE_THRESHOLD);
     } else {
-      // Snap back
       setSwipeX(0);
     }
     setIsSwiping(false);
@@ -104,7 +99,6 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, onClick, showBookTi
 
   const handleCardClick = () => {
     if (Math.abs(swipeX) > 10) {
-      // Reset swipe on tap when actions are shown
       setSwipeX(0);
       return;
     }
@@ -112,207 +106,104 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, onClick, showBookTi
   };
 
   return (
-    <div className="relative overflow-hidden rounded-xl">
-      {/* Delete action background */}
+    <div className="relative overflow-hidden rounded-2xl">
+      {/* Delete action background - iOS style red */}
       <div 
         className={cn(
-          "absolute inset-y-0 right-0 flex items-center justify-end pr-4 transition-all duration-200",
+          "absolute inset-y-0 right-0 flex items-center justify-end pr-5 transition-colors",
           Math.abs(swipeX) >= DELETE_THRESHOLD 
-            ? "bg-destructive" 
-            : "bg-destructive/80"
+            ? "bg-red-500" 
+            : "bg-red-500/90"
         )}
         style={{ width: Math.abs(swipeX) + 20 }}
       >
-        <div className="flex items-center gap-2 text-destructive-foreground">
+        <div className="flex flex-col items-center gap-0.5 text-white">
           <Trash2 className={cn(
-            "w-5 h-5 transition-transform duration-200",
-            Math.abs(swipeX) >= DELETE_THRESHOLD && "scale-125"
+            "w-5 h-5 transition-transform",
+            Math.abs(swipeX) >= DELETE_THRESHOLD && "scale-110"
           )} />
-          {Math.abs(swipeX) >= SWIPE_THRESHOLD && (
-            <span className="text-sm font-medium">Delete</span>
-          )}
+          <span className="text-xs font-medium">Delete</span>
         </div>
       </div>
 
-      <Card 
+      {/* iOS-style card */}
+      <div 
         ref={cardRef}
         className={cn(
-          "group relative overflow-hidden",
-          `border-l-4 ${config.borderColor}`,
-          "bg-card",
-          "shadow-soft",
-          "transition-all duration-200 ease-out",
-          !isMobile && "hover:bg-card/80 hover:shadow-elevated hover:-translate-y-1",
-          onClick ? 'cursor-pointer' : '',
-          isSwiping ? 'transition-none' : 'transition-transform duration-200'
+          "relative bg-card/95 backdrop-blur-sm",
+          "rounded-2xl",
+          "active:bg-secondary/80",
+          !isMobile && "hover:bg-secondary/50 transition-colors",
+          onClick && "cursor-pointer",
+          isSwiping ? "transition-none" : "transition-transform duration-200 ease-out"
         )}
-        style={{ transform: `translateX(${swipeX}px)` }}
+        style={{ 
+          transform: `translateX(${swipeX}px)`,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)',
+        }}
         onClick={handleCardClick}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Subtle gradient overlay on hover */}
-        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-        
-        <div className="relative p-4 md:p-5">
-          <div className="flex items-start justify-between gap-3 md:gap-4">
-            <div className="flex-1 min-w-0">
-              {/* Header with type badge */}
-              <div className="flex items-center gap-1.5 md:gap-2 mb-2.5 md:mb-3 flex-wrap">
-                <Badge variant="secondary" className={cn(
-                  config.className,
-                  "gap-1 md:gap-1.5 text-xs font-medium px-2 md:px-2.5 py-0.5 md:py-1"
-                )}>
-                  <Icon className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                  {config.label}
-                </Badge>
-                {note.isPrivate && (
-                  <Badge variant="outline" className="gap-1 text-xs bg-muted/50 border-border/60 px-1.5 py-0.5">
-                    <Lock className="w-3 h-3" />
-                    <span className="hidden sm:inline">Private</span>
-                  </Badge>
-                )}
-                {note.mediaType === 'image' && (
-                  <Badge variant="outline" className="gap-1 text-xs border-border/60 px-1.5 py-0.5">
-                    <Image className="w-3 h-3" />
-                    <span className="hidden sm:inline">Image</span>
-                  </Badge>
-                )}
-                {note.mediaType === 'audio' && (
-                  <Badge variant="outline" className="gap-1 text-xs border-border/60 px-1.5 py-0.5">
-                    <Mic className="w-3 h-3" />
-                    <span className="hidden sm:inline">Voice</span>
-                  </Badge>
-                )}
-                {note.location && (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Bookmark className="w-3 h-3" />
-                    {note.location}
-                  </span>
-                )}
-                {note.timestamp && (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    {note.timestamp}
-                  </span>
-                )}
-              </div>
-
-              {/* Image preview */}
-              {note.imageUrl && (
-                <div className="mb-3 md:mb-4 rounded-lg md:rounded-xl overflow-hidden bg-secondary/50 shadow-soft">
-                  <img src={note.imageUrl} alt="Note capture" className="w-full max-h-48 md:max-h-52 object-cover" />
-                </div>
-              )}
-
-              {/* Content - special styling for quotes */}
-              {note.type === 'quote' ? (
-                <div className="relative pl-4 md:pl-5 py-1">
-                  <div className="absolute left-0 top-0 text-3xl md:text-4xl font-display leading-none text-primary/25 select-none">"</div>
-                  <p className="font-display text-base md:text-lg italic text-foreground/90 leading-relaxed">
-                    {note.content}
-                  </p>
-                </div>
-              ) : (
-                <p className="text-sm md:text-base text-foreground leading-relaxed">
-                  {note.content}
-                </p>
-              )}
-
-              {/* Extracted text */}
-              {note.extractedText && note.extractedText !== note.content && (
-                <div className="mt-2.5 md:mt-3 p-2.5 md:p-3 text-xs md:text-sm text-muted-foreground bg-secondary/40 rounded-lg border-l-2 border-primary/25">
-                  {note.extractedText}
-                </div>
-              )}
-
-              {/* Context if exists */}
-              {note.context && (
-                <p className="mt-2.5 md:mt-3 text-xs md:text-sm text-muted-foreground border-l-2 border-accent/40 pl-3 md:pl-4 italic">
-                  {note.context}
-                </p>
-              )}
-
-              {/* Footer */}
-              <div className="flex items-center gap-2 md:gap-3 mt-3 md:mt-4 pt-2.5 md:pt-3 border-t border-border/40 flex-wrap">
-                {showBookTitle && (
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onBookClick?.();
-                    }}
-                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors link-animated"
-                  >
-                    {showBookTitle}
-                  </button>
-                )}
-                <span className="text-xs text-muted-foreground">
-                  {format(note.createdAt, 'MMM d, yyyy')}
-                </span>
-                {note.tags && note.tags.length > 0 && (
-                  <div className="flex gap-1 md:gap-1.5 flex-wrap">
-                    {note.tags.map(tag => (
-                      <span 
-                        key={tag} 
-                        className="text-xs text-primary/90 bg-primary/10 px-1.5 md:px-2 py-0.5 rounded-full font-medium transition-colors hover:bg-primary/15"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
+        <div className="px-4 py-3.5">
+          {/* Type pill - iOS style */}
+          <div className="flex items-center justify-between mb-2.5">
+            <div className={cn(
+              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold",
+              config.bgColor,
+              config.color
+            )}>
+              <Icon className="w-3.5 h-3.5" />
+              {config.label}
             </div>
-
-            {/* Actions */}
-            <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
-              {/* Mobile: always show a subtle indicator */}
-              {isMobile && (
-                <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
+            
+            {/* Right side indicators */}
+            <div className="flex items-center gap-2">
+              {note.isPrivate && (
+                <Lock className="w-3.5 h-3.5 text-muted-foreground/60" />
               )}
-              
-              {/* Desktop: dropdown menu */}
+              {note.mediaType === 'image' && (
+                <Image className="w-3.5 h-3.5 text-muted-foreground/60" />
+              )}
+              {note.mediaType === 'audio' && (
+                <Mic className="w-3.5 h-3.5 text-muted-foreground/60" />
+              )}
+              {isMobile && (
+                <ChevronRight className="w-4 h-4 text-muted-foreground/30" />
+              )}
               {!isMobile && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-9 w-9 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-secondary"
+                      className="h-7 w-7 -mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <MoreVertical className="w-4 h-4" />
+                      <MoreVertical className="w-4 h-4 text-muted-foreground" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44">
                     {onEdit && (
-                      <DropdownMenuItem onClick={onEdit} className="gap-2 cursor-pointer">
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }} className="gap-2">
                         <Pencil className="w-4 h-4" />
                         Edit note
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem 
-                      onClick={() => onUpdate?.({ ...note, isPrivate: !note.isPrivate })}
-                      className="gap-2 cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); onUpdate?.({ ...note, isPrivate: !note.isPrivate }); }}
+                      className="gap-2"
                     >
-                      {note.isPrivate ? (
-                        <>
-                          <Globe className="w-4 h-4" />
-                          Make public
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="w-4 h-4" />
-                          Make private
-                        </>
-                      )}
+                      {note.isPrivate ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                      {note.isPrivate ? 'Make public' : 'Make private'}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
-                      onClick={onDelete}
-                      className="text-destructive focus:text-destructive cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                      className="text-destructive focus:text-destructive gap-2"
                     >
-                      <Trash2 className="w-4 h-4 mr-2" />
+                      <Trash2 className="w-4 h-4" />
                       Delete note
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -320,15 +211,73 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, onClick, showBookTi
               )}
             </div>
           </div>
-        </div>
-        
-        {/* Mobile swipe hint - only show on first few notes */}
-        {isMobile && swipeX === 0 && (
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-active:opacity-40 transition-opacity pointer-events-none">
-            <ChevronRight className="w-5 h-5 text-muted-foreground animate-pulse" />
+
+          {/* Image preview */}
+          {note.imageUrl && (
+            <div className="mb-3 rounded-xl overflow-hidden">
+              <img src={note.imageUrl} alt="Note capture" className="w-full max-h-44 object-cover" />
+            </div>
+          )}
+
+          {/* Content */}
+          <p className={cn(
+            "text-[15px] leading-relaxed",
+            note.type === 'quote' ? "font-serif italic text-foreground/90" : "text-foreground"
+          )}>
+            {note.content}
+          </p>
+
+          {/* Context */}
+          {note.context && (
+            <p className="mt-2 text-sm text-muted-foreground italic">
+              "{note.context}"
+            </p>
+          )}
+
+          {/* Location/bookmark */}
+          {note.location && (
+            <div className="flex items-center gap-1.5 mt-2.5 text-xs text-muted-foreground">
+              <Bookmark className="w-3 h-3" />
+              {note.location}
+            </div>
+          )}
+
+          {/* Tags */}
+          {note.tags && note.tags.length > 0 && (
+            <div className="flex gap-1.5 flex-wrap mt-2.5">
+              {note.tags.map(tag => (
+                <span 
+                  key={tag} 
+                  className="text-xs text-primary/80 bg-primary/8 px-2 py-0.5 rounded-full font-medium"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Footer - date and book title */}
+          <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-border/30">
+            <span className="text-xs text-muted-foreground/70">
+              {format(note.createdAt, 'MMM d, yyyy')}
+            </span>
+            {showBookTitle && (
+              <>
+                <span className="text-muted-foreground/40">·</span>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onBookClick?.();
+                  }}
+                  className="text-xs font-medium text-primary/80 active:text-primary"
+                >
+                  {showBookTitle}
+                </button>
+              </>
+            )}
           </div>
-        )}
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
