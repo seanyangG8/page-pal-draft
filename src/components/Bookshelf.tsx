@@ -152,7 +152,8 @@ function BookSpine({
         className={cn(
           "relative cursor-pointer transition-all duration-300",
           "hover:-translate-y-3 hover:scale-105",
-          isPressed && "scale-95 -translate-y-1",
+          "active:-translate-y-2 active:scale-[1.03]",
+          isPressed && "-translate-y-2 scale-[1.03]",
           "[&:hover_.book-cover]:!transform-none [&:hover_.book-cover]:[transform:rotateY(-5deg)_!important]"
         )}
         onClick={() => !showMobileMenu && onClick()}
@@ -247,10 +248,12 @@ function BookSpine({
         )}
       </div>
 
-      {/* Actions - Desktop: hover dropdown, Mobile: always visible small button */}
+      {/* Actions - Desktop: hover dropdown, Mobile: only on long press */}
       <div className={cn(
-        "absolute -top-2 left-1/2 -translate-x-1/2 z-10",
-        isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100 transition-opacity"
+        "absolute -top-2 left-1/2 -translate-x-1/2 z-10 transition-opacity",
+        isMobile 
+          ? (showMobileMenu ? "opacity-100" : "opacity-0 pointer-events-none")
+          : "opacity-0 group-hover:opacity-100"
       )}>
         <DropdownMenu open={showMobileMenu} onOpenChange={setShowMobileMenu}>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
