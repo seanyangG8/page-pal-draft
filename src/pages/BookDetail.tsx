@@ -125,72 +125,89 @@ const BookDetail = () => {
       <Header />
       
       <main className="px-4 md:px-6 lg:container py-4 md:py-6 lg:py-8 pb-28 md:pb-24">
-        {/* Back button and book info */}
-        <div className="mb-6 md:mb-8">
-          <Button
-            variant="ghost"
-            size="sm"
+        {/* iOS-style compact header */}
+        <div className="mb-4 md:mb-8">
+          {/* Back button - iOS style */}
+          <button
             onClick={() => navigate('/')}
-            className="mb-3 md:mb-4 -ml-2 text-muted-foreground hover:text-foreground h-10 touch-manipulation"
+            className="flex items-center gap-1 text-primary mb-3 -ml-1 active:opacity-70 touch-manipulation"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to library
-          </Button>
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-[17px]">Library</span>
+          </button>
 
-          <div className="flex items-start gap-4 md:gap-6 animate-fade-in">
-            {/* Book cover */}
-            <div className="hidden sm:block w-20 md:w-24 h-28 md:h-36 rounded-lg bg-gradient-to-br from-secondary to-muted flex-shrink-0 shadow-card overflow-hidden">
+          {/* Compact book info row */}
+          <div className="flex items-center gap-3 animate-fade-in">
+            {/* Book cover - always visible, compact on mobile */}
+            <div className="w-12 h-16 sm:w-20 sm:h-28 md:w-24 md:h-36 rounded-lg bg-gradient-to-br from-secondary to-muted flex-shrink-0 shadow-sm overflow-hidden">
               {book.coverUrl ? (
                 <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <BookOpen className="w-6 md:w-8 h-6 md:h-8 text-muted-foreground/50" />
+                  <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-muted-foreground/50" />
                 </div>
               )}
             </div>
 
-            {/* Book details */}
+            {/* Book details - compact */}
             <div className="flex-1 min-w-0">
-              <h1 className="font-display text-xl md:text-2xl lg:text-3xl font-bold text-foreground mb-1 leading-tight">
+              <h1 className="font-display text-[17px] sm:text-xl md:text-2xl lg:text-3xl font-semibold text-foreground leading-tight line-clamp-2">
                 {book.title}
               </h1>
-              <p className="text-base md:text-lg text-muted-foreground mb-2 md:mb-3">
+              <p className="text-[15px] sm:text-base md:text-lg text-muted-foreground">
                 {book.author}
               </p>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <PenLine className="w-4 h-4" />
-                  {notes.length} {notes.length === 1 ? 'note' : 'notes'}
-                </span>
-              </div>
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground mt-1 bg-muted/50 px-2 py-0.5 rounded-full">
+                <PenLine className="w-3 h-3" />
+                {notes.length} {notes.length === 1 ? 'note' : 'notes'}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Search and filters */}
-        <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-4 md:mb-6">
-          <div className="w-full sm:w-64">
-            <SearchBar 
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Search notes..."
-            />
-          </div>
+        {/* Search and iOS Segmented Control */}
+        <div className="flex flex-col gap-3 mb-4 md:mb-6">
+          {/* iOS-style search bar */}
+          <SearchBar 
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search notes..."
+          />
           
-          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 -mx-4 px-4 md:mx-0 md:px-0">
-            {noteFilters.map(({ type, label, icon: Icon }) => (
-              <Button
-                key={type}
-                variant={activeFilter === type ? 'default' : 'secondary'}
-                size="sm"
-                onClick={() => setActiveFilter(type)}
-                className="flex-shrink-0 gap-1.5 h-9 touch-manipulation"
-              >
-                {Icon && <Icon className="w-3.5 h-3.5" />}
-                {label}
-              </Button>
-            ))}
-          </div>
+          {/* iOS Segmented Control - no scrolling */}
+          {isMobile ? (
+            <div className="bg-muted/60 p-1 rounded-[10px] flex">
+              {noteFilters.map(({ type, label }) => (
+                <button
+                  key={type}
+                  onClick={() => setActiveFilter(type)}
+                  className={cn(
+                    "flex-1 py-1.5 text-[13px] font-medium rounded-lg transition-all touch-manipulation",
+                    activeFilter === type
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  {label === 'Questions' ? 'Q&A' : label === 'Actions' ? 'Tasks' : label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              {noteFilters.map(({ type, label, icon: Icon }) => (
+                <Button
+                  key={type}
+                  variant={activeFilter === type ? 'default' : 'secondary'}
+                  size="sm"
+                  onClick={() => setActiveFilter(type)}
+                  className="gap-1.5 h-9"
+                >
+                  {Icon && <Icon className="w-3.5 h-3.5" />}
+                  {label}
+                </Button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Notes list */}
