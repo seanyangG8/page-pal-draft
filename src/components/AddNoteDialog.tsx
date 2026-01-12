@@ -509,31 +509,32 @@ export function AddNoteDialog({
 
           {/* Action Buttons */}
           {!showAIEditor && (
-            <div className="flex gap-2 pt-2">
+            <div className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
               <Button 
                 type="button" 
                 variant="ghost" 
                 onClick={() => { resetForm(); onOpenChange(false); }}
-                className="flex-shrink-0"
+                className="sm:flex-shrink-0"
               >
                 Cancel
               </Button>
-              <div className="flex-1 flex gap-2 justify-end">
+              <div className="flex flex-1 gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   disabled={!hasContent}
                   onClick={() => handleSave(true)}
-                  className="gap-1.5"
+                  className="flex-1 sm:flex-initial gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
-                  Save & add another
+                  <span className="hidden sm:inline">Save & add another</span>
+                  <span className="sm:hidden">+ Another</span>
                 </Button>
                 <Button 
                   type="button"
                   disabled={!hasContent}
                   onClick={() => handleSave(false)}
-                  className="gap-1.5"
+                  className="flex-1 sm:flex-initial gap-1.5"
                 >
                   <Save className="w-4 h-4" />
                   Save
