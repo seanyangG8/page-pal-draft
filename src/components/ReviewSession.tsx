@@ -177,8 +177,8 @@ export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps
       </div>
 
       {/* Navigation and actions */}
-      <div className="border-t border-border p-4">
-        <div className="container max-w-2xl mx-auto">
+      <div className="border-t border-border px-6 py-4">
+        <div className="container max-w-xl mx-auto">
           <div className="flex items-center justify-center gap-2">
             {/* Previous arrow pill */}
             <Button 
