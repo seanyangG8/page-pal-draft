@@ -53,6 +53,19 @@ export function ResponsiveDialog({
 }: ResponsiveDialogProps) {
   const isMobile = useIsMobile();
 
+  // Prevent the underlying page from scrolling when a mobile drawer is open.
+  React.useEffect(() => {
+    if (!isMobile) return;
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open, isMobile]);
+
   if (isMobile) {
     return (
       <ResponsiveDialogContext.Provider value={{ isMobile: true }}>
@@ -80,8 +93,8 @@ export function ResponsiveDialogContent({
 
   if (isMobile) {
     return (
-      <DrawerContent className={cn("overflow-x-hidden", className)}>
-        <div className="overflow-y-auto overflow-x-hidden max-h-[85vh] pb-safe">
+      <DrawerContent className={cn("overflow-hidden overflow-x-hidden", className)}>
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-safe">
           {children}
         </div>
       </DrawerContent>
