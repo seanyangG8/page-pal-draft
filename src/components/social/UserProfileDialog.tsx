@@ -2,6 +2,8 @@ import { useState } from 'react';
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
 } from '@/components/ui/responsive-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -9,7 +11,6 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, Quote, Calendar, UserPlus, UserMinus, Settings } from 'lucide-react';
 import { SocialUser } from './SocialFeed';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 export interface UserProfile extends SocialUser {
@@ -64,7 +65,6 @@ export function UserProfileDialog({
   onUnfollow 
 }: UserProfileDialogProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'notes' | 'books'>('overview');
-  const isMobile = useIsMobile();
 
   if (!user) return null;
 
@@ -85,7 +85,7 @@ export function UserProfileDialog({
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="sm:max-w-lg">
-        <div className="px-4 sm:px-6 py-4 sm:py-6">
+        <ResponsiveDialogBody className="pt-2">
           {/* Profile Header - Compact on mobile */}
           <div className="flex flex-col items-center text-center">
             <Avatar className="h-16 w-16 sm:h-20 sm:w-20 mb-2">
@@ -120,7 +120,7 @@ export function UserProfileDialog({
             {/* Action button */}
             <div className="mt-3">
               {user.isOwnProfile ? (
-                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-[13px]">
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-[13px] touch-manipulation">
                   <Settings className="w-3.5 h-3.5" />
                   Edit Profile
                 </Button>
@@ -128,7 +128,7 @@ export function UserProfileDialog({
                 <Button 
                   variant={user.isFollowing ? "outline" : "default"} 
                   size="sm" 
-                  className="gap-1.5 h-8 text-[13px]"
+                  className="gap-1.5 h-8 text-[13px] touch-manipulation"
                   onClick={handleFollowToggle}
                 >
                   {user.isFollowing ? (
@@ -154,7 +154,7 @@ export function UserProfileDialog({
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex-1 py-1.5 text-[13px] font-medium rounded-lg transition-all touch-manipulation",
+                  "flex-1 py-1.5 text-[13px] font-medium rounded-lg transition-all touch-manipulation active:opacity-70",
                   activeTab === tab.id
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground"
@@ -233,7 +233,13 @@ export function UserProfileDialog({
               </div>
             )}
           </div>
-        </div>
+        </ResponsiveDialogBody>
+
+        <ResponsiveDialogFooter className="sm:hidden">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
+            Close
+          </Button>
+        </ResponsiveDialogFooter>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   );

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
+} from '@/components/ui/responsive-dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -45,21 +46,21 @@ export function ShareNoteDialog({ open, onOpenChange, note, bookTitle }: ShareNo
   if (!note) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="sm:max-w-md">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="flex items-center gap-2">
             <Share2 className="w-5 h-5" />
             Share Note
-          </DialogTitle>
-          <DialogDescription>
+          </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             Share this note with your reading community
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
-        <div className="space-y-4 py-4">
+        <ResponsiveDialogBody className="space-y-4">
           {/* Preview */}
-          <div className="p-3 bg-secondary/50 rounded-lg border border-border/30">
+          <div className="p-3 bg-secondary/50 rounded-xl border border-border/30">
             <p className="text-sm text-foreground italic line-clamp-3">
               {note.content}
             </p>
@@ -72,21 +73,21 @@ export function ShareNoteDialog({ open, onOpenChange, note, bookTitle }: ShareNo
 
           {/* Caption */}
           <div className="space-y-2">
-            <Label htmlFor="caption">Add a caption (optional)</Label>
+            <Label htmlFor="caption" className="text-sm">Add a caption (optional)</Label>
             <Textarea
               id="caption"
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               placeholder="Share your thoughts about this note..."
-              className="resize-none"
+              className="resize-none min-h-[60px]"
               rows={2}
             />
           </div>
 
           {/* Include book toggle */}
           {bookTitle && (
-            <div className="flex items-center justify-between">
-              <Label htmlFor="include-book" className="text-sm">Include book information</Label>
+            <div className="flex items-center justify-between py-1">
+              <Label htmlFor="include-book" className="text-sm cursor-pointer">Include book information</Label>
               <Switch
                 id="include-book"
                 checked={includeBook}
@@ -103,7 +104,7 @@ export function ShareNoteDialog({ open, onOpenChange, note, bookTitle }: ShareNo
                 <button
                   key={option.value}
                   onClick={() => setVisibility(option.value)}
-                  className={`p-3 rounded-lg border text-center transition-colors ${
+                  className={`p-2.5 sm:p-3 rounded-xl border text-center transition-colors touch-manipulation active:scale-95 ${
                     visibility === option.value
                       ? 'border-primary bg-primary/10 text-primary'
                       : 'border-border bg-card hover:bg-secondary/50'
@@ -111,27 +112,27 @@ export function ShareNoteDialog({ open, onOpenChange, note, bookTitle }: ShareNo
                 >
                   <div className="flex flex-col items-center gap-1">
                     {option.icon}
-                    <span className="text-xs font-medium">{option.label}</span>
+                    <span className="text-[11px] sm:text-xs font-medium">{option.label}</span>
                   </div>
                 </button>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground text-center mt-1">
+            <p className="text-[11px] sm:text-xs text-muted-foreground text-center mt-1">
               {visibilityOptions.find(o => o.value === visibility)?.description}
             </p>
           </div>
-        </div>
+        </ResponsiveDialogBody>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <ResponsiveDialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-initial">
             Cancel
           </Button>
-          <Button onClick={handleShare} className="gap-2">
+          <Button onClick={handleShare} className="gap-2 flex-1 sm:flex-initial">
             <Share2 className="w-4 h-4" />
             Share
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

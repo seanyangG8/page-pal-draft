@@ -1,13 +1,14 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from '@/components/ui/dialog';
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
+} from '@/components/ui/responsive-dialog';
 import { Upload, FileJson, AlertCircle, CheckCircle } from 'lucide-react';
 import { importFromJSON, saveBooks, saveNotes, getBooks, getNotes } from '@/lib/store';
 import { Book, Note } from '@/types';
@@ -101,19 +102,19 @@ export function ImportDialog({ open, onOpenChange, onImport, onImportComplete }:
   };
 
   return (
-    <Dialog open={open} onOpenChange={(open) => { if (!open) reset(); onOpenChange(open); }}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <ResponsiveDialog open={open} onOpenChange={(open) => { if (!open) reset(); onOpenChange(open); }}>
+      <ResponsiveDialogContent className="sm:max-w-md">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="flex items-center gap-2">
             <Upload className="w-5 h-5" />
             Import Notes
-          </DialogTitle>
-          <DialogDescription>
+          </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             Import notes from a previously exported Marginalia JSON file.
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
-        <div className="py-4">
+        <ResponsiveDialogBody>
           <input
             ref={fileInputRef}
             type="file"
@@ -125,20 +126,20 @@ export function ImportDialog({ open, onOpenChange, onImport, onImportComplete }:
           {!file ? (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full p-8 border-2 border-dashed border-border rounded-lg text-center hover:border-primary/50 transition-colors"
+              className="w-full p-6 sm:p-8 border-2 border-dashed border-border rounded-xl text-center hover:border-primary/50 transition-colors touch-manipulation active:bg-secondary/50"
             >
-              <FileJson className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-              <p className="font-medium">Click to select a JSON file</p>
-              <p className="text-sm text-muted-foreground mt-1">
+              <FileJson className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-muted-foreground mb-3" />
+              <p className="font-medium text-sm sm:text-base">Click to select a JSON file</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 Only Marginalia export files are supported
               </p>
             </button>
           ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary">
-                <FileJson className="w-8 h-8 text-primary" />
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary">
+                <FileJson className="w-8 h-8 text-primary flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{file.name}</p>
+                  <p className="font-medium text-sm truncate">{file.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {(file.size / 1024).toFixed(1)} KB
                   </p>
@@ -149,14 +150,14 @@ export function ImportDialog({ open, onOpenChange, onImport, onImportComplete }:
               </div>
 
               {error && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 text-destructive">
+                <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 text-destructive">
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   <p className="text-sm">{error}</p>
                 </div>
               )}
 
               {preview && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-success/10 text-success">
+                <div className="flex items-start gap-2 p-3 rounded-xl bg-success/10 text-success">
                   <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   <div className="text-sm">
                     <p className="font-medium">Ready to import</p>
@@ -166,22 +167,22 @@ export function ImportDialog({ open, onOpenChange, onImport, onImportComplete }:
               )}
             </div>
           )}
-        </div>
+        </ResponsiveDialogBody>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+        <ResponsiveDialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-initial">
             Cancel
           </Button>
           <Button 
             onClick={handleImport} 
             disabled={!preview || importing}
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-initial"
           >
             <Upload className="w-4 h-4" />
             {importing ? 'Importing...' : 'Import'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

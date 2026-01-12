@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogBody,
+} from '@/components/ui/responsive-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Check, Copy, Facebook, Link2, MessageCircle, Twitter } from 'lucide-react';
@@ -56,74 +57,76 @@ export function ShareDialog({ open, onOpenChange, feedItem }: ShareDialogProps) 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Share Post</DialogTitle>
-        </DialogHeader>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="sm:max-w-md">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Share Post</ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
 
-        {/* Post preview */}
-        <div className="p-4 bg-secondary/30 rounded-lg border border-border/30">
-          <p className="text-sm font-medium text-foreground mb-1">{feedItem.user.name}</p>
-          {feedItem.note && (
-            <p className="text-sm text-foreground/80 italic line-clamp-3">"{feedItem.note.content}"</p>
-          )}
-          {feedItem.book && !feedItem.note && (
-            <p className="text-sm text-foreground/80">{feedItem.book.title} by {feedItem.book.author}</p>
-          )}
-          {feedItem.milestone && (
-            <p className="text-sm text-foreground/80">🎉 {feedItem.user.name} reached a milestone!</p>
-          )}
-        </div>
+        <ResponsiveDialogBody className="space-y-4 pb-6">
+          {/* Post preview */}
+          <div className="p-3 sm:p-4 bg-secondary/30 rounded-xl border border-border/30">
+            <p className="text-sm font-medium text-foreground mb-1">{feedItem.user.name}</p>
+            {feedItem.note && (
+              <p className="text-sm text-foreground/80 italic line-clamp-3">"{feedItem.note.content}"</p>
+            )}
+            {feedItem.book && !feedItem.note && (
+              <p className="text-sm text-foreground/80">{feedItem.book.title} by {feedItem.book.author}</p>
+            )}
+            {feedItem.milestone && (
+              <p className="text-sm text-foreground/80">🎉 {feedItem.user.name} reached a milestone!</p>
+            )}
+          </div>
 
-        {/* Share options */}
-        <div className="grid grid-cols-4 gap-3">
-          <Button
-            variant="outline"
-            className="flex flex-col items-center gap-2 h-auto py-4"
-            onClick={handleShareTwitter}
-          >
-            <Twitter className="w-5 h-5" />
-            <span className="text-xs">Twitter</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="flex flex-col items-center gap-2 h-auto py-4"
-            onClick={handleShareFacebook}
-          >
-            <Facebook className="w-5 h-5" />
-            <span className="text-xs">Facebook</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="flex flex-col items-center gap-2 h-auto py-4"
-            onClick={handleShareMessage}
-          >
-            <MessageCircle className="w-5 h-5" />
-            <span className="text-xs">Message</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="flex flex-col items-center gap-2 h-auto py-4"
-            onClick={handleCopyLink}
-          >
-            {copied ? <Check className="w-5 h-5 text-green-500" /> : <Link2 className="w-5 h-5" />}
-            <span className="text-xs">{copied ? 'Copied!' : 'Copy'}</span>
-          </Button>
-        </div>
+          {/* Share options */}
+          <div className="grid grid-cols-4 gap-2 sm:gap-3">
+            <Button
+              variant="outline"
+              className="flex flex-col items-center gap-1.5 sm:gap-2 h-auto py-3 sm:py-4 touch-manipulation active:scale-95 transition-transform"
+              onClick={handleShareTwitter}
+            >
+              <Twitter className="w-5 h-5" />
+              <span className="text-[11px] sm:text-xs">Twitter</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="flex flex-col items-center gap-1.5 sm:gap-2 h-auto py-3 sm:py-4 touch-manipulation active:scale-95 transition-transform"
+              onClick={handleShareFacebook}
+            >
+              <Facebook className="w-5 h-5" />
+              <span className="text-[11px] sm:text-xs">Facebook</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="flex flex-col items-center gap-1.5 sm:gap-2 h-auto py-3 sm:py-4 touch-manipulation active:scale-95 transition-transform"
+              onClick={handleShareMessage}
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span className="text-[11px] sm:text-xs">Message</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="flex flex-col items-center gap-1.5 sm:gap-2 h-auto py-3 sm:py-4 touch-manipulation active:scale-95 transition-transform"
+              onClick={handleCopyLink}
+            >
+              {copied ? <Check className="w-5 h-5 text-green-500" /> : <Link2 className="w-5 h-5" />}
+              <span className="text-[11px] sm:text-xs">{copied ? 'Copied!' : 'Copy'}</span>
+            </Button>
+          </div>
 
-        {/* Copy link input */}
-        <div className="flex gap-2">
-          <Input
-            value={shareUrl}
-            readOnly
-            className="flex-1 text-sm"
-          />
-          <Button variant="secondary" onClick={handleCopyLink}>
-            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+          {/* Copy link input */}
+          <div className="flex gap-2">
+            <Input
+              value={shareUrl}
+              readOnly
+              className="flex-1 text-sm h-10"
+            />
+            <Button variant="secondary" onClick={handleCopyLink} className="h-10 touch-manipulation">
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            </Button>
+          </div>
+        </ResponsiveDialogBody>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

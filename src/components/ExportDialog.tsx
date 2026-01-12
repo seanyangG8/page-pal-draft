@@ -4,14 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Download, FileText, FileSpreadsheet, FileJson, FileType } from 'lucide-react';
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
+} from '@/components/ui/responsive-dialog';
+import { Download, FileText, FileSpreadsheet, FileJson } from 'lucide-react';
 import { exportToMarkdown, exportToCSV, exportToJSON } from '@/lib/store';
 
 interface ExportDialogProps {
@@ -87,54 +88,54 @@ export function ExportDialog({ open, onOpenChange, notes, books, bookTitle }: Ex
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="sm:max-w-md">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="flex items-center gap-2">
             <Download className="w-5 h-5" />
             Export Notes
-          </DialogTitle>
-          <DialogDescription>
+          </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             {notes.length} note{notes.length !== 1 ? 's' : ''} 
             {bookTitle ? ` from "${bookTitle}"` : ''} will be exported
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
-        <div className="py-4">
+        <ResponsiveDialogBody>
           <Label className="text-sm font-medium mb-3 block">Export format</Label>
           <RadioGroup value={format} onValueChange={(v) => setFormat(v as ExportFormat)}>
             <div className="space-y-2">
               {formats.map(({ value, label, icon: Icon, description }) => (
                 <label
                   key={value}
-                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                  className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all touch-manipulation active:scale-[0.98] ${
                     format === value 
                       ? 'border-primary bg-primary/5' 
                       : 'border-border hover:border-primary/50'
                   }`}
                 >
                   <RadioGroupItem value={value} className="mt-0.5" />
-                  <Icon className="w-5 h-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="font-medium">{label}</p>
+                  <Icon className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm">{label}</p>
                     <p className="text-xs text-muted-foreground">{description}</p>
                   </div>
                 </label>
               ))}
             </div>
           </RadioGroup>
-        </div>
+        </ResponsiveDialogBody>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+        <ResponsiveDialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-initial">
             Cancel
           </Button>
-          <Button onClick={handleExport} className="gap-2">
+          <Button onClick={handleExport} className="gap-2 flex-1 sm:flex-initial">
             <Download className="w-4 h-4" />
             Export
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
+} from '@/components/ui/responsive-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -68,13 +70,13 @@ export function CommentsDialog({
   feedItem,
   onProfileClick 
 }: CommentsDialogProps) {
-  const [comments, setComments] = useState<Comment[]>(() => generateMockComments(feedItem));
+  const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
 
   // Update comments when feedItem changes
-  useState(() => {
+  useEffect(() => {
     setComments(generateMockComments(feedItem));
-  });
+  }, [feedItem]);
 
   const handleAddComment = () => {
     if (!newComment.trim()) return;
@@ -105,106 +107,109 @@ export function CommentsDialog({
   if (!feedItem) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[80vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Comments</DialogTitle>
-        </DialogHeader>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="sm:max-w-md">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Comments</ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
 
-        {/* Original post preview */}
-        <div className="p-3 bg-secondary/30 rounded-lg border border-border/30 mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <button 
-              onClick={() => onProfileClick(feedItem.user.id)}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-            >
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={feedItem.user.avatarUrl} />
-                <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                  {feedItem.user.name.split(' ').map(n => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium hover:text-primary transition-colors">
-                {feedItem.user.name}
-              </span>
-            </button>
+        <ResponsiveDialogBody className="space-y-4">
+          {/* Original post preview */}
+          <div className="p-3 bg-secondary/30 rounded-xl border border-border/30">
+            <div className="flex items-center gap-2 mb-2">
+              <button 
+                onClick={() => onProfileClick(feedItem.user.id)}
+                className="flex items-center gap-2 active:opacity-70 transition-opacity touch-manipulation"
+              >
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={feedItem.user.avatarUrl} />
+                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                    {feedItem.user.name.split(' ').map(n => n[0]).join('')}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium hover:text-primary transition-colors">
+                  {feedItem.user.name}
+                </span>
+              </button>
+            </div>
+            {feedItem.note && (
+              <p className="text-sm text-foreground/80 italic line-clamp-2">"{feedItem.note.content}"</p>
+            )}
+            {feedItem.book && !feedItem.note && (
+              <p className="text-sm text-foreground/80">{feedItem.book.title}</p>
+            )}
           </div>
-          {feedItem.note && (
-            <p className="text-sm text-foreground/80 italic line-clamp-2">"{feedItem.note.content}"</p>
-          )}
-          {feedItem.book && !feedItem.note && (
-            <p className="text-sm text-foreground/80">{feedItem.book.title}</p>
-          )}
-        </div>
 
-        {/* Comments list */}
-        <div className="flex-1 overflow-y-auto space-y-4 min-h-0">
-          {comments.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              No comments yet. Be the first to comment!
-            </p>
-          ) : (
-            comments.map(comment => (
-              <div key={comment.id} className="flex gap-3">
-                <button 
-                  onClick={() => onProfileClick(comment.user.id)}
-                  className="flex-shrink-0 transition-transform hover:scale-105"
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={comment.user.avatarUrl} />
-                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                      {comment.user.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                </button>
-                <div className="flex-1 min-w-0">
-                  <div className="bg-secondary/50 rounded-lg p-3">
-                    <button 
-                      onClick={() => onProfileClick(comment.user.id)}
-                      className="text-sm font-semibold text-foreground hover:text-primary transition-colors"
-                    >
-                      {comment.user.name}
-                    </button>
-                    <p className="text-sm text-foreground mt-1">{comment.content}</p>
-                  </div>
-                  <div className="flex items-center gap-4 mt-1 px-1">
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(comment.timestamp, { addSuffix: true })}
-                    </span>
-                    <button 
-                      onClick={() => handleLikeComment(comment.id)}
-                      className={`flex items-center gap-1 text-xs transition-colors ${
-                        comment.isLiked ? 'text-rose-500' : 'text-muted-foreground hover:text-rose-500'
-                      }`}
-                    >
-                      <Heart className={`w-3 h-3 ${comment.isLiked ? 'fill-current' : ''}`} />
-                      {comment.likes > 0 && comment.likes}
-                    </button>
+          {/* Comments list */}
+          <div className="space-y-3">
+            {comments.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                No comments yet. Be the first to comment!
+              </p>
+            ) : (
+              comments.map(comment => (
+                <div key={comment.id} className="flex gap-2.5">
+                  <button 
+                    onClick={() => onProfileClick(comment.user.id)}
+                    className="flex-shrink-0 active:scale-95 transition-transform touch-manipulation"
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={comment.user.avatarUrl} />
+                      <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                        {comment.user.name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="bg-secondary/50 rounded-xl p-2.5">
+                      <button 
+                        onClick={() => onProfileClick(comment.user.id)}
+                        className="text-[13px] font-semibold text-foreground hover:text-primary transition-colors touch-manipulation"
+                      >
+                        {comment.user.name}
+                      </button>
+                      <p className="text-[13px] text-foreground mt-0.5">{comment.content}</p>
+                    </div>
+                    <div className="flex items-center gap-4 mt-1 px-1">
+                      <span className="text-[11px] text-muted-foreground">
+                        {formatDistanceToNow(comment.timestamp, { addSuffix: true })}
+                      </span>
+                      <button 
+                        onClick={() => handleLikeComment(comment.id)}
+                        className={`flex items-center gap-1 text-[11px] transition-colors touch-manipulation ${
+                          comment.isLiked ? 'text-rose-500' : 'text-muted-foreground active:text-rose-500'
+                        }`}
+                      >
+                        <Heart className={`w-3 h-3 ${comment.isLiked ? 'fill-current' : ''}`} />
+                        {comment.likes > 0 && comment.likes}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        </ResponsiveDialogBody>
 
-        {/* Add comment input */}
-        <div className="flex gap-2 pt-4 border-t border-border/50">
+        {/* Add comment input - pinned to bottom */}
+        <ResponsiveDialogFooter className="flex-row gap-2">
           <Input
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Write a comment..."
             onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
-            className="flex-1"
+            className="flex-1 h-10"
           />
           <Button 
             size="icon" 
             onClick={handleAddComment}
             disabled={!newComment.trim()}
+            className="h-10 w-10 flex-shrink-0"
           >
             <Send className="w-4 h-4" />
           </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

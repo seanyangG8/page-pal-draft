@@ -1,9 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   ResponsiveDialog, 
   ResponsiveDialogContent, 
   ResponsiveDialogHeader, 
-  ResponsiveDialogTitle 
+  ResponsiveDialogTitle,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
 } from '@/components/ui/responsive-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +18,7 @@ import { LocationInput, LocationData, formatLocation, parseLocation } from './Lo
 import { getTypeStyles } from '@/lib/noteTypeInference';
 import { getNotes } from '@/lib/store';
 import { useHaptic } from '@/hooks/use-haptic';
+import { useMemo } from 'react';
 
 interface EditNoteDialogProps {
   open: boolean;
@@ -98,7 +101,7 @@ export function EditNoteDialog({
           </ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
         
-        <div className="space-y-4 px-6 pb-6">
+        <ResponsiveDialogBody className="space-y-4">
           {/* Content */}
           <div className="space-y-2">
             <Label htmlFor="edit-content" className="text-sm font-medium">Content</Label>
@@ -106,7 +109,7 @@ export function EditNoteDialog({
               id="edit-content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="min-h-[120px] bg-background resize-none text-base"
+              className="min-h-[100px] sm:min-h-[120px] bg-background resize-none text-base"
               autoFocus
             />
           </div>
@@ -120,7 +123,7 @@ export function EditNoteDialog({
                   key={t}
                   type="button"
                   onClick={() => setType(t)}
-                  className={getTypeStyles(t, type === t)}
+                  className={`${getTypeStyles(t, type === t)} touch-manipulation active:scale-95 transition-transform`}
                 >
                   <TypeIcon className="w-3.5 h-3.5" />
                   {label}
@@ -166,7 +169,7 @@ export function EditNoteDialog({
           </div>
 
           {/* Privacy Toggle */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/50">
+          <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border border-border/50">
             <div className="flex items-center gap-3">
               {isPrivate ? (
                 <Lock className="w-4 h-4 text-muted-foreground" />
@@ -185,32 +188,33 @@ export function EditNoteDialog({
               variant="outline"
               size="sm"
               onClick={() => setIsPrivate(!isPrivate)}
+              className="touch-manipulation"
             >
               {isPrivate ? 'Make public' : 'Make private'}
             </Button>
           </div>
+        </ResponsiveDialogBody>
 
-          {/* Actions */}
-          <div className="flex gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              className="flex-1 gap-2"
-              onClick={handleSave}
-              disabled={!content.trim()}
-            >
-              <Save className="w-4 h-4" />
-              Save changes
-            </Button>
-          </div>
-        </div>
+        {/* Actions */}
+        <ResponsiveDialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="flex-1 sm:flex-initial"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSave}
+            disabled={!content.trim()}
+            className="flex-1 sm:flex-initial gap-2"
+          >
+            <Save className="w-4 h-4" />
+            Save changes
+          </Button>
+        </ResponsiveDialogFooter>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   );
