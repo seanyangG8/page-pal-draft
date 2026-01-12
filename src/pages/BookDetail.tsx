@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { NoteCard } from '@/components/NoteCard';
@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { CollapsibleFAB } from '@/components/CollapsibleFAB';
 import { FloatingRecorder } from '@/components/FloatingRecorder';
 import { SearchBar } from '@/components/SearchBar';
+import { PullToRefresh } from '@/components/PullToRefresh';
 import { Button } from '@/components/ui/button';
 import { Book, Note, NoteType, MediaType } from '@/types';
 import { getBooks, getNotesForBook, addNote, deleteNote, updateNote } from '@/lib/store';
@@ -107,6 +108,12 @@ const BookDetail = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const handleRefresh = useCallback(async () => {
+    if (!bookId) return;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setNotes(getNotesForBook(bookId));
+  }, [bookId]);
+
   if (!book) {
     return null;
   }
@@ -185,39 +192,41 @@ const BookDetail = () => {
         </div>
 
         {/* Notes list */}
-        {notes.length === 0 ? (
-          <EmptyState
-            icon={PenLine}
-            title="No notes yet"
-            description="Start capturing quotes, ideas, and thoughts from this book."
-            actionLabel="Add a note"
-            onAction={() => setAddNoteOpen(true)}
-          />
-        ) : filteredNotes.length === 0 ? (
-          <EmptyState
-            icon={PenLine}
-            title="No matching notes"
-            description="Try adjusting your search or filter."
-          />
-        ) : (
-          <div className="space-y-3 max-w-2xl">
-            {filteredNotes.map((note, index) => (
-              <div 
-                key={note.id}
-                className="animate-fade-up"
-                style={{ animationDelay: `${index * 30}ms` }}
-              >
-                <NoteCard
-                  note={note}
-                  onDelete={() => handleDeleteNote(note.id)}
-                  onUpdate={handleUpdateNote}
-                  onEdit={() => setEditingNote(note)}
-                  onClick={() => setEditingNote(note)}
-                />
-              </div>
-            ))}
-          </div>
-        )}
+        <PullToRefresh onRefresh={handleRefresh}>
+          {notes.length === 0 ? (
+            <EmptyState
+              icon={PenLine}
+              title="No notes yet"
+              description="Start capturing quotes, ideas, and thoughts from this book."
+              actionLabel="Add a note"
+              onAction={() => setAddNoteOpen(true)}
+            />
+          ) : filteredNotes.length === 0 ? (
+            <EmptyState
+              icon={PenLine}
+              title="No matching notes"
+              description="Try adjusting your search or filter."
+            />
+          ) : (
+            <div className="space-y-3 max-w-2xl">
+              {filteredNotes.map((note, index) => (
+                <div 
+                  key={note.id}
+                  className="animate-fade-up"
+                  style={{ animationDelay: `${index * 30}ms` }}
+                >
+                  <NoteCard
+                    note={note}
+                    onDelete={() => handleDeleteNote(note.id)}
+                    onUpdate={handleUpdateNote}
+                    onEdit={() => setEditingNote(note)}
+                    onClick={() => setEditingNote(note)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </PullToRefresh>
       </main>
 
       {/* Hidden camera input */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Bookshelf } from '@/components/Bookshelf';
@@ -18,6 +18,7 @@ import { ImportDialog } from '@/components/ImportDialog';
 import { SocialFeed } from '@/components/social/SocialFeed';
 import { FriendsPanel } from '@/components/social/FriendsPanel';
 import { MobileTabBar } from '@/components/MobileTabBar';
+import { PullToRefresh } from '@/components/PullToRefresh';
 import { Book, Note, BookFormat } from '@/types';
 import { getBooks, addBook, deleteBook, updateBook, getNotes, deleteNote, updateNote, searchNotes, saveBooks, saveNotes } from '@/lib/store';
 import { BookOpen, Search, Library, Sparkles, Filter, Download, Upload, Users, Rss } from 'lucide-react';
@@ -115,6 +116,13 @@ const Index = () => {
   const getBookFormat = (bookId: string): BookFormat | undefined => {
     return books.find(b => b.id === bookId)?.format;
   };
+
+  const handleRefresh = useCallback(async () => {
+    // Simulate network delay for pull-to-refresh
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setBooks(getBooks());
+    setNotes(getNotes());
+  }, []);
 
   const filteredNotes = notes.filter(note => {
     const matchesSearch = !searchQuery || 
@@ -262,36 +270,38 @@ const Index = () => {
 
             {/* Library tab */}
             {activeTab === 'library' && (
-              <div className="library-bg wall-texture rounded-2xl -mx-2 px-2 py-6 sm:-mx-4 sm:px-4">
-                {isLoading ? (
-                  <BookshelfSkeleton />
-                ) : books.length === 0 ? (
-                  <EmptyState
-                    icon={BookOpen}
-                    title="Your library is empty"
-                    description="Add books to start capturing your reading notes and highlights."
-                    actionLabel="Add a book"
-                    onAction={() => setAddBookOpen(true)}
-                  />
-                ) : (
-                  <Bookshelf
-                    books={books.filter(b => 
-                      !searchQuery || 
-                      b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      b.author.toLowerCase().includes(searchQuery.toLowerCase())
-                    )}
-                    onBookClick={(bookId) => navigate(`/book/${bookId}`)}
-                    onDeleteBook={handleDeleteBook}
-                    onEditBook={handleEditBook}
-                    onReorder={() => setBooks(getBooks())}
-                  />
-                )}
-              </div>
+              <PullToRefresh onRefresh={handleRefresh}>
+                <div className="library-bg wall-texture rounded-2xl -mx-2 px-2 py-6 sm:-mx-4 sm:px-4">
+                  {isLoading ? (
+                    <BookshelfSkeleton />
+                  ) : books.length === 0 ? (
+                    <EmptyState
+                      icon={BookOpen}
+                      title="Your library is empty"
+                      description="Add books to start capturing your reading notes and highlights."
+                      actionLabel="Add a book"
+                      onAction={() => setAddBookOpen(true)}
+                    />
+                  ) : (
+                    <Bookshelf
+                      books={books.filter(b => 
+                        !searchQuery || 
+                        b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        b.author.toLowerCase().includes(searchQuery.toLowerCase())
+                      )}
+                      onBookClick={(bookId) => navigate(`/book/${bookId}`)}
+                      onDeleteBook={handleDeleteBook}
+                      onEditBook={handleEditBook}
+                      onReorder={() => setBooks(getBooks())}
+                    />
+                  )}
+                </div>
+              </PullToRefresh>
             )}
 
             {/* Notes tab */}
             {activeTab === 'notes' && (
-              <>
+              <PullToRefresh onRefresh={handleRefresh}>
                 {isLoading ? (
                   <div className="space-y-3 max-w-2xl mx-auto">
                     {[...Array(3)].map((_, i) => (
@@ -325,7 +335,7 @@ const Index = () => {
                     ))}
                   </div>
                 )}
-              </>
+              </PullToRefresh>
             )}
 
             {/* Feed tab */}
