@@ -151,10 +151,13 @@ function BookSpine({
       <div 
         className={cn(
           "relative cursor-pointer transition-all duration-300",
+          // Desktop hover effects
           !isMobile && "hover:-translate-y-3 hover:scale-105",
-          isMobile && isPressed && "scale-95",
-          isMobile && !isPressed && "active:scale-95",
-          "[&:hover_.book-cover]:!transform-none [&:hover_.book-cover]:[transform:rotateY(-5deg)_!important]"
+          // Mobile: press makes it rise and expand like desktop hover
+          isMobile && isPressed && "-translate-y-2 scale-105",
+          // Flatten the book cover angle on hover/press
+          "[&:hover_.book-cover]:[transform:rotateY(-8deg)_!important]",
+          isMobile && isPressed && "[&_.book-cover]:[transform:rotateY(-8deg)_!important]"
         )}
         onClick={() => !showMobileMenu && onClick()}
       >
@@ -248,25 +251,22 @@ function BookSpine({
         )}
       </div>
 
-      {/* Actions - Desktop: hover dropdown, Mobile: always visible small button */}
+      {/* Actions - Desktop: hover dropdown, Mobile: long-press opens menu */}
       <div className={cn(
         "absolute -top-2 left-1/2 -translate-x-1/2 z-10",
-        isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100 transition-opacity"
+        isMobile ? (showMobileMenu ? "opacity-100" : "opacity-0 pointer-events-none") : "opacity-0 group-hover:opacity-100 transition-opacity"
       )}>
         <DropdownMenu open={showMobileMenu} onOpenChange={setShowMobileMenu}>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
             <Button 
               variant="secondary" 
               size="icon" 
-              className={cn(
-                "shadow-md touch-manipulation",
-                isMobile ? "h-7 w-7" : "h-6 w-6"
-              )}
+              className="h-6 w-6 shadow-md"
             >
-              <MoreVertical className={isMobile ? "w-3.5 h-3.5" : "w-3 h-3"} />
+              <MoreVertical className="w-3 h-3" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="center" className="min-w-[140px]">
+          <DropdownMenuContent align="center" className="min-w-[160px]">
             {onEdit && (
               <>
                 <DropdownMenuItem 
