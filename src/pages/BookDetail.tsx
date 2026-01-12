@@ -13,6 +13,8 @@ import { Book, Note, NoteType, MediaType } from '@/types';
 import { getBooks, getNotesForBook, addNote, deleteNote, updateNote } from '@/lib/store';
 import { ArrowLeft, BookOpen, PenLine, Quote, Lightbulb, HelpCircle, CheckCircle, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 const noteFilters = [
   { type: 'all' as const, label: 'All', icon: null },
@@ -25,6 +27,7 @@ const noteFilters = [
 const BookDetail = () => {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [book, setBook] = useState<Book | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [addNoteOpen, setAddNoteOpen] = useState(false);
@@ -239,7 +242,10 @@ const BookDetail = () => {
 
       {/* Floating Recorder */}
       {showRecorder && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className={cn(
+          "fixed right-4 md:right-6 z-50",
+          isMobile ? "bottom-[calc(56px+env(safe-area-inset-bottom)+16px)]" : "bottom-6"
+        )}>
           <FloatingRecorder
             autoStart
             onRecordingComplete={(data) => {

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, X, Mic, Camera, PenLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface CollapsibleFABProps {
   onAddNote: () => void;
@@ -16,6 +17,7 @@ export function CollapsibleFAB({
   onOpenCamera,
   cameraInputRef 
 }: CollapsibleFABProps) {
+  const isMobile = useIsMobile();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragTarget, setDragTarget] = useState<string | null>(null);
@@ -124,7 +126,11 @@ export function CollapsibleFAB({
   return (
     <div
       ref={containerRef}
-      className="fixed bottom-6 right-6 z-50"
+      className={cn(
+        "fixed right-4 md:right-6 z-50",
+        // Position above bottom tab bar on mobile
+        isMobile ? "bottom-[calc(56px+env(safe-area-inset-bottom)+16px)]" : "bottom-6"
+      )}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -149,7 +155,7 @@ export function CollapsibleFAB({
         }}
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
-          "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
+          "absolute h-12 w-12 md:h-11 md:w-11 rounded-full shadow-lg transition-all duration-300 touch-manipulation",
           "bg-[hsl(0_45%_85%)] text-[hsl(0_40%_35%)] hover:bg-[hsl(0_50%_75%)] hover:scale-105",
           "dark:bg-[hsl(0_35%_30%)] dark:text-[hsl(0_30%_85%)] dark:hover:bg-[hsl(0_40%_40%)]",
           isExpanded 
@@ -173,7 +179,7 @@ export function CollapsibleFAB({
         }}
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
-          "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
+          "absolute h-12 w-12 md:h-11 md:w-11 rounded-full shadow-lg transition-all duration-300 touch-manipulation",
           "bg-[hsl(40_15%_86%)] text-[hsl(40_15%_40%)] hover:bg-[hsl(40_18%_76%)] hover:scale-105",
           "dark:bg-[hsl(40_12%_25%)] dark:text-[hsl(40_12%_80%)] dark:hover:bg-[hsl(40_15%_35%)]",
           isExpanded 
@@ -197,7 +203,7 @@ export function CollapsibleFAB({
         }}
         onMouseEnter={() => setIsExpanded(true)}
         className={cn(
-          "absolute h-11 w-11 rounded-full shadow-lg transition-all duration-300",
+          "absolute h-12 w-12 md:h-11 md:w-11 rounded-full shadow-lg transition-all duration-300 touch-manipulation",
           "bg-[hsl(35_40%_88%)] text-[hsl(35_40%_35%)] hover:bg-[hsl(35_45%_78%)] hover:scale-105",
           "dark:bg-[hsl(35_30%_25%)] dark:text-[hsl(35_30%_85%)] dark:hover:bg-[hsl(35_35%_35%)]",
           isExpanded 
@@ -219,7 +225,7 @@ export function CollapsibleFAB({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         className={cn(
-          "relative h-14 w-14 rounded-full shadow-xl transition-all duration-300",
+          "relative h-14 w-14 rounded-full shadow-xl transition-all duration-300 touch-manipulation",
           "bg-primary hover:bg-primary/90",
           isDragging && "scale-110"
         )}
