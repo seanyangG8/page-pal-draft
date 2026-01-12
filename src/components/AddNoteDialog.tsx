@@ -248,6 +248,9 @@ export function AddNoteDialog({
 
   const hasContent = content.trim() || imageData || audioData;
 
+  // Check if location was already entered
+  const hasLocationEntered = !!(location.page || location.chapter || location.timestamp || location.freeform);
+
   const handleSave = (addAnother = false) => {
     if (!hasContent) return;
     
@@ -257,12 +260,14 @@ export function AddNoteDialog({
     setLastLocation(location);
     setLastTags(tags);
 
+    const locationString = formatLocation(location);
+    
     const noteId = onAdd({
       type,
       mediaType: captureMode,
       content: content.trim() || (imageData?.extractedText || audioData?.transcript || 'Voice memo'),
-      location: undefined, // Don't include location yet - we'll add it in step 2
-      timestamp: undefined,
+      location: locationString || undefined, // Include location if already entered
+      timestamp: location.timestamp || undefined,
       context: context.trim() || undefined,
       imageUrl: imageData?.url,
       extractedText: imageData?.extractedText,
@@ -275,6 +280,10 @@ export function AddNoteDialog({
     
     if (addAnother) {
       resetForm(true);
+    } else if (hasLocationEntered) {
+      // Location already entered, just close
+      resetForm();
+      onOpenChange(false);
     } else {
       // Show bookmark step
       setSavedNoteId(noteId);
@@ -428,6 +437,15 @@ export function AddNoteDialog({
                 </TabsContent>
               </Tabs>
 
+              {/* Note Type - always visible when there's content */}
+              {hasContent && !showAIEditor && (
+                <NoteTypeSelector
+                  type={type}
+                  typeManuallySet={typeManuallySet}
+                  onTypeChange={handleTypeChange}
+                />
+              )}
+
               {/* Refinement section - collapsed by default */}
               {hasContent && !showAIEditor && (
                 <Collapsible open={showRefine} onOpenChange={setShowRefine}>
@@ -441,18 +459,21 @@ export function AddNoteDialog({
                       <span className="flex items-center gap-2">
                         <Plus className="w-4 h-4" />
                         Add details
-                        {!showRefine && <span className="text-xs">(type, tags)</span>}
                       </span>
                       {showRefine ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-4 pt-3">
-                    {/* Note Type */}
-                    <NoteTypeSelector
-                      type={type}
-                      typeManuallySet={typeManuallySet}
-                      onTypeChange={handleTypeChange}
-                    />
+                    {/* Bookmark / Location */}
+                    <div className="space-y-2">
+                      <Label className="text-sm">Bookmark</Label>
+                      <LocationInput
+                        value={location}
+                        onChange={setLocation}
+                        bookFormat={bookFormat}
+                        compact
+                      />
+                    </div>
 
                     {/* Tags */}
                     <div className="space-y-2">
