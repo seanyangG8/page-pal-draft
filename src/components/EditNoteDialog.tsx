@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   ResponsiveDialog, 
   ResponsiveDialogContent, 
@@ -11,14 +11,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Note, NoteType, BookFormat } from '@/types';
-import { Quote, Lightbulb, HelpCircle, CheckCircle, Pencil, Lock, Globe, Save } from 'lucide-react';
+import { Quote, Lightbulb, HelpCircle, CheckCircle, Pencil, Lock, Globe, Save, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { TagInput } from './TagInput';
 import { LocationInput, LocationData, formatLocation, parseLocation } from './LocationInput';
 import { getTypeStyles } from '@/lib/noteTypeInference';
 import { getNotes } from '@/lib/store';
 import { useHaptic } from '@/hooks/use-haptic';
-import { useMemo } from 'react';
 
 interface EditNoteDialogProps {
   open: boolean;
@@ -49,6 +49,7 @@ export function EditNoteDialog({
   const [context, setContext] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   // Get existing tags for autocomplete
   const existingTags = useMemo(() => {
@@ -67,6 +68,8 @@ export function EditNoteDialog({
       setContext(note.context || '');
       setTags(note.tags || []);
       setIsPrivate(note.isPrivate || false);
+      // Auto-expand details if note has tags or context
+      setShowDetails(!!(note.tags?.length || note.context));
     }
   }, [note]);
 
@@ -143,56 +146,75 @@ export function EditNoteDialog({
             />
           </div>
 
-          {/* Tags */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Tags</Label>
-            <TagInput
-              tags={tags}
-              onChange={setTags}
-              existingTags={existingTags}
-              placeholder="Add tags..."
-            />
-          </div>
-
-          {/* Context */}
-          <div className="space-y-2">
-            <Label htmlFor="edit-context" className="text-sm font-medium">
-              Why it matters <span className="text-muted-foreground font-normal">(optional)</span>
-            </Label>
-            <Input
-              id="edit-context"
-              placeholder="Brief note on why you saved this..."
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-              className="bg-background"
-            />
-          </div>
-
-          {/* Privacy Toggle */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border border-border/50">
-            <div className="flex items-center gap-3">
-              {isPrivate ? (
-                <Lock className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <Globe className="w-4 h-4 text-muted-foreground" />
-              )}
-              <div>
-                <p className="text-sm font-medium">{isPrivate ? 'Private' : 'Public'}</p>
-                <p className="text-xs text-muted-foreground">
-                  {isPrivate ? 'Only you can see this' : 'Visible to friends'}
-                </p>
+          {/* Additional Details - Collapsible */}
+          <Collapsible open={showDetails} onOpenChange={setShowDetails}>
+            <CollapsibleTrigger asChild>
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="sm" 
+                className="w-full justify-between text-muted-foreground hover:text-foreground touch-manipulation"
+              >
+                <span className="flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  {showDetails ? 'Hide details' : 'Edit details (tags, context, privacy)'}
+                </span>
+                {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-3">
+              {/* Tags */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Tags</Label>
+                <TagInput
+                  tags={tags}
+                  onChange={setTags}
+                  existingTags={existingTags}
+                  placeholder="Add tags..."
+                />
               </div>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsPrivate(!isPrivate)}
-              className="touch-manipulation"
-            >
-              {isPrivate ? 'Make public' : 'Make private'}
-            </Button>
-          </div>
+
+              {/* Context */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-context" className="text-sm font-medium">
+                  Why it matters <span className="text-muted-foreground font-normal">(optional)</span>
+                </Label>
+                <Input
+                  id="edit-context"
+                  placeholder="Brief note on why you saved this..."
+                  value={context}
+                  onChange={(e) => setContext(e.target.value)}
+                  className="bg-background"
+                />
+              </div>
+
+              {/* Privacy Toggle */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border border-border/50">
+                <div className="flex items-center gap-3">
+                  {isPrivate ? (
+                    <Lock className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <Globe className="w-4 h-4 text-muted-foreground" />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium">{isPrivate ? 'Private' : 'Public'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isPrivate ? 'Only you can see this' : 'Visible to friends'}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsPrivate(!isPrivate)}
+                  className="touch-manipulation"
+                >
+                  {isPrivate ? 'Make public' : 'Make private'}
+                </Button>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </ResponsiveDialogBody>
 
         {/* Actions */}
