@@ -251,22 +251,60 @@ function BookSpine({
         )}
       </div>
 
-      {/* Actions - Desktop: hover dropdown, Mobile: long-press opens menu */}
-      <div className={cn(
-        "absolute -top-2 left-1/2 -translate-x-1/2 z-10",
-        isMobile ? (showMobileMenu ? "opacity-100" : "opacity-0 pointer-events-none") : "opacity-0 group-hover:opacity-100 transition-opacity"
-      )}>
+      {/* Actions - Desktop: hover dropdown, Mobile: long-press opens menu (no button visible) */}
+      {/* Desktop version with visible trigger */}
+      {!isMobile && (
+        <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button 
+                variant="secondary" 
+                size="icon" 
+                className="h-6 w-6 shadow-md"
+              >
+                <MoreVertical className="w-3 h-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="min-w-[160px]">
+              {onEdit && (
+                <>
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit();
+                    }}
+                    className="gap-2 py-2.5"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Edit book
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                className="text-destructive focus:text-destructive gap-2 py-2.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete book
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+      
+      {/* Mobile version - no button, controlled by long-press state */}
+      {isMobile && (
         <DropdownMenu open={showMobileMenu} onOpenChange={setShowMobileMenu}>
-          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button 
-              variant="secondary" 
-              size="icon" 
-              className="h-6 w-6 shadow-md"
-            >
-              <MoreVertical className="w-3 h-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="center" className="min-w-[160px]">
+          <DropdownMenuTrigger className="sr-only">Menu</DropdownMenuTrigger>
+          <DropdownMenuContent 
+            align="center" 
+            className="min-w-[160px]"
+            style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+          >
             {onEdit && (
               <>
                 <DropdownMenuItem 
@@ -275,7 +313,7 @@ function BookSpine({
                     setShowMobileMenu(false);
                     onEdit();
                   }}
-                  className="gap-2 py-2.5 touch-manipulation"
+                  className="gap-2 py-3 touch-manipulation"
                 >
                   <Pencil className="w-4 h-4" />
                   Edit book
@@ -289,14 +327,14 @@ function BookSpine({
                 setShowMobileMenu(false);
                 onDelete();
               }}
-              className="text-destructive focus:text-destructive gap-2 py-2.5 touch-manipulation"
+              className="text-destructive focus:text-destructive gap-2 py-3 touch-manipulation"
             >
               <Trash2 className="w-4 h-4" />
               Delete book
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
+      )}
 
       {/* Note count badge */}
       {book.notesCount > 0 && (
