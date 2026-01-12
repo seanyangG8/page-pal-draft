@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Header } from '@/components/Header';
 import { NoteCard } from '@/components/NoteCard';
 import { AddNoteDialog } from '@/components/AddNoteDialog';
@@ -9,6 +10,7 @@ import { CollapsibleFAB } from '@/components/CollapsibleFAB';
 import { FloatingRecorder } from '@/components/FloatingRecorder';
 import { SearchBar } from '@/components/SearchBar';
 import { PullToRefresh } from '@/components/PullToRefresh';
+import { staggerContainer, staggerItem } from '@/components/PageTransition';
 import { Button } from '@/components/ui/button';
 import { Book, Note, NoteType, MediaType } from '@/types';
 import { getBooks, getNotesForBook, addNote, deleteNote, updateNote } from '@/lib/store';
@@ -208,12 +210,16 @@ const BookDetail = () => {
               description="Try adjusting your search or filter."
             />
           ) : (
-            <div className="space-y-3 max-w-2xl">
-              {filteredNotes.map((note, index) => (
-                <div 
+            <motion.div 
+              className="space-y-3 max-w-2xl"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="show"
+            >
+              {filteredNotes.map((note) => (
+                <motion.div 
                   key={note.id}
-                  className="animate-fade-up"
-                  style={{ animationDelay: `${index * 30}ms` }}
+                  variants={staggerItem}
                 >
                   <NoteCard
                     note={note}
@@ -222,9 +228,9 @@ const BookDetail = () => {
                     onEdit={() => setEditingNote(note)}
                     onClick={() => setEditingNote(note)}
                   />
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
         </PullToRefresh>
       </main>

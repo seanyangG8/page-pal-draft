@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Header } from '@/components/Header';
 import { Bookshelf } from '@/components/Bookshelf';
 import { BookshelfSkeleton, NoteCardSkeleton } from '@/components/BookshelfSkeleton';
@@ -19,6 +20,7 @@ import { SocialFeed } from '@/components/social/SocialFeed';
 import { FriendsPanel } from '@/components/social/FriendsPanel';
 import { MobileTabBar } from '@/components/MobileTabBar';
 import { PullToRefresh } from '@/components/PullToRefresh';
+import { staggerContainer, staggerItem } from '@/components/PageTransition';
 import { Book, Note, BookFormat } from '@/types';
 import { getBooks, addBook, deleteBook, updateBook, getNotes, deleteNote, updateNote, searchNotes, saveBooks, saveNotes } from '@/lib/store';
 import { BookOpen, Search, Library, Sparkles, Filter, Download, Upload, Users, Rss } from 'lucide-react';
@@ -315,12 +317,16 @@ const Index = () => {
                     description={searchQuery ? 'Try a different search term.' : 'Start adding notes from your books to see them here.'}
                   />
                 ) : (
-                  <div className="space-y-3 max-w-2xl mx-auto">
-                    {filteredNotes.map((note, index) => (
-                      <div 
+                  <motion.div 
+                    className="space-y-3 max-w-2xl mx-auto"
+                    variants={staggerContainer}
+                    initial="hidden"
+                    animate="show"
+                  >
+                    {filteredNotes.map((note) => (
+                      <motion.div 
                         key={note.id}
-                        className="animate-fade-up"
-                        style={{ animationDelay: `${index * 50}ms` }}
+                        variants={staggerItem}
                       >
                         <NoteCard
                           note={note}
@@ -331,9 +337,9 @@ const Index = () => {
                           showBookTitle={getBookTitle(note.bookId)}
                           onBookClick={() => navigate(`/book/${note.bookId}`)}
                         />
-                      </div>
+                      </motion.div>
                     ))}
-                  </div>
+                  </motion.div>
                 )}
               </PullToRefresh>
             )}
