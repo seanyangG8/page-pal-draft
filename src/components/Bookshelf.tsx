@@ -151,9 +151,8 @@ function BookSpine({
       <div 
         className={cn(
           "relative cursor-pointer transition-all duration-300",
-          !isMobile && "hover:-translate-y-3 hover:scale-105",
-          isMobile && isPressed && "scale-95",
-          isMobile && !isPressed && "active:scale-95",
+          "hover:-translate-y-3 hover:scale-105",
+          isPressed && "scale-95 -translate-y-1",
           "[&:hover_.book-cover]:!transform-none [&:hover_.book-cover]:[transform:rotateY(-5deg)_!important]"
         )}
         onClick={() => !showMobileMenu && onClick()}
