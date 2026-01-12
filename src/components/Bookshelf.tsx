@@ -10,6 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { useState, useRef, useCallback } from 'react';
 import { reorderBooks } from '@/lib/store';
+import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface BookshelfProps {
   books: Book[];
@@ -27,6 +29,7 @@ interface BookSpineProps {
   isDragging?: boolean;
   isDragOver?: boolean;
   isTouchDragging?: boolean;
+  isMobile?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
   onDragEnd?: (e: React.DragEvent) => void;
   onDragOver?: (e: React.DragEvent) => void;
@@ -35,6 +38,7 @@ interface BookSpineProps {
   onTouchStart?: (e: React.TouchEvent) => void;
   onTouchMove?: (e: React.TouchEvent) => void;
   onTouchEnd?: (e: React.TouchEvent) => void;
+  onLongPress?: () => void;
   bookRef?: (el: HTMLDivElement | null) => void;
 }
 
@@ -46,6 +50,7 @@ function BookSpine({
   isDragging,
   isDragOver,
   isTouchDragging,
+  isMobile,
   onDragStart,
   onDragEnd,
   onDragOver,
@@ -54,8 +59,13 @@ function BookSpine({
   onTouchStart,
   onTouchMove,
   onTouchEnd,
+  onLongPress,
   bookRef,
 }: BookSpineProps) {
+  const [isPressed, setIsPressed] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const longPressRef = useRef<NodeJS.Timeout | null>(null);
+
   // Generate a consistent color based on book title for variety
   const getSpineColor = (title: string) => {
     const colors = [
@@ -72,40 +82,90 @@ function BookSpine({
     return colors[index];
   };
 
+  const handleTouchStartInternal = (e: React.TouchEvent) => {
+    setIsPressed(true);
+    
+    // Long press for context menu on mobile
+    longPressRef.current = setTimeout(() => {
+      setShowMobileMenu(true);
+      onLongPress?.();
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    }, 500);
+    
+    onTouchStart?.(e);
+  };
+
+  const handleTouchEndInternal = (e: React.TouchEvent) => {
+    setIsPressed(false);
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current);
+      longPressRef.current = null;
+    }
+    onTouchEnd?.(e);
+  };
+
+  const handleTouchMoveInternal = (e: React.TouchEvent) => {
+    // Cancel long press on move
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current);
+      longPressRef.current = null;
+    }
+    setIsPressed(false);
+    onTouchMove?.(e);
+  };
+
   return (
     <div 
       ref={bookRef}
-      className={`group relative transition-all duration-300 ease-out touch-none ${isDragging || isTouchDragging ? 'opacity-40 scale-90 z-50' : ''} ${isDragOver ? 'translate-x-4' : ''}`}
-      draggable
+      className={cn(
+        "group relative transition-all duration-300 ease-out",
+        isDragging || isTouchDragging ? 'opacity-40 scale-90 z-50' : '',
+        isDragOver ? 'translate-x-4' : '',
+        isMobile ? 'touch-manipulation' : 'touch-none'
+      )}
+      draggable={!isMobile}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
+      onTouchStart={handleTouchStartInternal}
+      onTouchMove={handleTouchMoveInternal}
+      onTouchEnd={handleTouchEndInternal}
     >
       {/* Drop indicator */}
       {isDragOver && (
         <div className="absolute -left-2 top-0 bottom-0 w-1 bg-primary rounded-full animate-pulse z-20" />
       )}
       
-      {/* Drag handle indicator */}
-      <div className="absolute -left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 sm:group-hover:opacity-60 transition-opacity z-10 cursor-grab">
-        <GripVertical className="w-3 h-3 text-muted-foreground" />
-      </div>
+      {/* Drag handle indicator - desktop only */}
+      {!isMobile && (
+        <div className="absolute -left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 transition-opacity z-10 cursor-grab">
+          <GripVertical className="w-3 h-3 text-muted-foreground" />
+        </div>
+      )}
       
       {/* Book standing upright */}
       <div 
-        className="relative cursor-pointer transition-all duration-300 hover:-translate-y-3 hover:scale-105 [&:hover_.book-cover]:!transform-none [&:hover_.book-cover]:[transform:rotateY(-5deg)_!important]"
-        onClick={onClick}
+        className={cn(
+          "relative cursor-pointer transition-all duration-300",
+          !isMobile && "hover:-translate-y-3 hover:scale-105",
+          isMobile && isPressed && "scale-95",
+          isMobile && !isPressed && "active:scale-95",
+          "[&:hover_.book-cover]:!transform-none [&:hover_.book-cover]:[transform:rotateY(-5deg)_!important]"
+        )}
+        onClick={() => !showMobileMenu && onClick()}
       >
         {/* Book with cover image or colored spine */}
         {book.coverUrl ? (
-          // Show book cover at a slight angle - fixed size container
+          // Show book cover at a slight angle - larger touch target on mobile
           <div 
-            className="relative w-16 sm:w-20 md:w-24 h-[110px] sm:h-[137px] md:h-[164px]"
+            className={cn(
+              "relative",
+              isMobile ? "w-20 h-[137px]" : "w-16 sm:w-20 md:w-24 h-[110px] sm:h-[137px] md:h-[164px]"
+            )}
             style={{
               perspective: '400px',
               transformStyle: 'preserve-3d',
@@ -139,7 +199,10 @@ function BookSpine({
         ) : (
           // Show colored spine (no cover) - same fixed size and angle
           <div 
-            className="relative w-16 sm:w-20 md:w-24 h-[110px] sm:h-[137px] md:h-[164px]"
+            className={cn(
+              "relative",
+              isMobile ? "w-20 h-[137px]" : "w-16 sm:w-20 md:w-24 h-[110px] sm:h-[137px] md:h-[164px]"
+            )}
             style={{
               perspective: '400px',
               transformStyle: 'preserve-3d',
@@ -161,7 +224,10 @@ function BookSpine({
                 className="absolute inset-0 flex items-center justify-center"
                 style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
               >
-                <span className="text-[10px] sm:text-xs font-medium text-white/90 px-1 text-center leading-tight line-clamp-3 rotate-180">
+                <span className={cn(
+                  "font-medium text-white/90 px-1 text-center leading-tight line-clamp-3 rotate-180",
+                  isMobile ? "text-xs" : "text-[10px] sm:text-xs"
+                )}>
                   {book.title}
                 </span>
               </div>
@@ -182,24 +248,36 @@ function BookSpine({
         )}
       </div>
 
-      {/* Hover actions */}
-      <div className="absolute -top-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-        <DropdownMenu>
+      {/* Actions - Desktop: hover dropdown, Mobile: always visible small button */}
+      <div className={cn(
+        "absolute -top-2 left-1/2 -translate-x-1/2 z-10",
+        isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100 transition-opacity"
+      )}>
+        <DropdownMenu open={showMobileMenu} onOpenChange={setShowMobileMenu}>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="secondary" size="icon" className="h-6 w-6 shadow-md">
-              <MoreVertical className="w-3 h-3" />
+            <Button 
+              variant="secondary" 
+              size="icon" 
+              className={cn(
+                "shadow-md touch-manipulation",
+                isMobile ? "h-7 w-7" : "h-6 w-6"
+              )}
+            >
+              <MoreVertical className={isMobile ? "w-3.5 h-3.5" : "w-3 h-3"} />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="center">
+          <DropdownMenuContent align="center" className="min-w-[140px]">
             {onEdit && (
               <>
                 <DropdownMenuItem 
                   onClick={(e) => {
                     e.stopPropagation();
+                    setShowMobileMenu(false);
                     onEdit();
                   }}
+                  className="gap-2 py-2.5 touch-manipulation"
                 >
-                  <Pencil className="w-4 h-4 mr-2" />
+                  <Pencil className="w-4 h-4" />
                   Edit book
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -208,11 +286,12 @@ function BookSpine({
             <DropdownMenuItem 
               onClick={(e) => {
                 e.stopPropagation();
+                setShowMobileMenu(false);
                 onDelete();
               }}
-              className="text-destructive focus:text-destructive"
+              className="text-destructive focus:text-destructive gap-2 py-2.5 touch-manipulation"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="w-4 h-4" />
               Delete book
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -221,7 +300,10 @@ function BookSpine({
 
       {/* Note count badge */}
       {book.notesCount > 0 && (
-        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-medium px-1.5 py-0.5 rounded-full shadow-sm">
+        <div className={cn(
+          "absolute -bottom-1 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground font-medium rounded-full shadow-sm",
+          isMobile ? "text-xs px-2 py-0.5" : "text-[10px] px-1.5 py-0.5"
+        )}>
           {book.notesCount}
         </div>
       )}
@@ -230,6 +312,7 @@ function BookSpine({
 }
 
 export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReorder }: BookshelfProps) {
+  const isMobile = useIsMobile();
   const [draggedBookId, setDraggedBookId] = useState<string | null>(null);
   const [dragOverBookId, setDragOverBookId] = useState<string | null>(null);
   const [localBooks, setLocalBooks] = useState<Book[]>(books);
@@ -280,19 +363,18 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
     e.preventDefault();
   };
 
-  // Touch handlers for mobile
+  // Touch handlers for mobile reordering
   const handleTouchStart = useCallback((e: React.TouchEvent, bookId: string) => {
     const touch = e.touches[0];
     touchStartPos.current = { x: touch.clientX, y: touch.clientY };
     
-    // Long press to start drag
+    // Long press to start drag (for reordering)
     longPressTimer.current = setTimeout(() => {
       setTouchDragId(bookId);
-      // Haptic feedback if available
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
-    }, 300);
+    }, 500);
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent, bookId: string) => {
@@ -364,7 +446,7 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
   };
 
   // Group books into shelves (max 8 per shelf for good visual)
-  const booksPerShelf = 8;
+  const booksPerShelf = isMobile ? 4 : 8;
   const shelves: Book[][] = [];
   
   for (let i = 0; i < localBooks.length; i += booksPerShelf) {
@@ -387,7 +469,12 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
           {/* Shelf with books */}
           <div className="relative">
             {/* Books container */}
-            <div className="flex items-end justify-start gap-2 sm:gap-3 px-4 pb-3 min-h-[10rem] sm:min-h-[12rem] md:min-h-[14rem] overflow-x-auto overflow-y-hidden scrollbar-hide">
+            <div className={cn(
+              "flex items-end justify-start px-4 pb-3 overflow-x-auto overflow-y-hidden scrollbar-hide",
+              isMobile 
+                ? "gap-3 min-h-[11rem]" 
+                : "gap-2 sm:gap-3 min-h-[10rem] sm:min-h-[12rem] md:min-h-[14rem]"
+            )}>
               {shelfBooks.map((book, bookIndex) => (
                 <div 
                   key={book.id}
@@ -402,6 +489,7 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
                     isDragging={draggedBookId === book.id}
                     isDragOver={dragOverBookId === book.id && draggedBookId !== book.id && touchDragId !== book.id}
                     isTouchDragging={touchDragId === book.id}
+                    isMobile={isMobile}
                     onDragStart={(e) => handleDragStart(e, book.id)}
                     onDragEnd={handleDragEnd}
                     onDragOver={(e) => handleDragOver(e, book.id)}
@@ -417,7 +505,7 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
               
               {/* Empty shelf message */}
               {shelfBooks.length === 0 && (
-                <div className="flex items-center justify-center w-full h-52 text-muted-foreground/50">
+                <div className="flex items-center justify-center w-full h-44 md:h-52 text-muted-foreground/50">
                   <div className="flex flex-col items-center gap-2">
                     <BookOpen className="w-8 h-8" />
                     <span className="text-sm">Your shelf awaits...</span>
@@ -449,7 +537,7 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
       
       {/* Touch drag instruction toast */}
       {touchDragId && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-foreground/90 text-background px-4 py-2 rounded-full text-sm font-medium shadow-lg z-50 animate-fade-in">
+        <div className="fixed bottom-24 md:bottom-20 left-1/2 -translate-x-1/2 bg-foreground/90 text-background px-4 py-2 rounded-full text-sm font-medium shadow-lg z-50 animate-fade-in">
           Drag to reorder • Release to drop
         </div>
       )}
