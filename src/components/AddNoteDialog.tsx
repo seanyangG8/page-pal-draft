@@ -22,6 +22,7 @@ import { TagInput } from './TagInput';
 import { LocationInput, LocationData, formatLocation } from './LocationInput';
 import { inferNoteType, getPlaceholderForType, getTypeStyles } from '@/lib/noteTypeInference';
 import { getNotes, getBooks } from '@/lib/store';
+import { useHaptic } from '@/hooks/use-haptic';
 
 interface AddNoteDialogProps {
   open: boolean;
@@ -141,6 +142,8 @@ export function AddNoteDialog({
   initialRecording, 
   initialImage 
 }: AddNoteDialogProps) {
+  const { success } = useHaptic();
+  
   // Core capture state
   const [captureMode, setCaptureMode] = useState<'text' | 'image' | 'audio'>('text');
   const [content, setContent] = useState('');
@@ -239,6 +242,7 @@ export function AddNoteDialog({
   const handleSave = (addAnother = false) => {
     if (!hasContent) return;
     
+    success();
     const locationString = formatLocation(location);
     
     // Remember location/tags for next note
