@@ -3,7 +3,9 @@ import {
   ResponsiveDialog, 
   ResponsiveDialogContent, 
   ResponsiveDialogHeader, 
-  ResponsiveDialogTitle 
+  ResponsiveDialogTitle,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
 } from '@/components/ui/responsive-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,15 +15,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { NoteType, MediaType, BookFormat } from '@/types';
-import { Quote, Lightbulb, HelpCircle, CheckCircle, PenLine, Camera, Mic, Type, Lock, Globe, Wand2, ChevronDown, ChevronUp, Sparkles, Plus, Save, Pencil } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Quote, Lightbulb, HelpCircle, CheckCircle, PenLine, Camera, Mic, Type, Lock, Globe, Wand2, ChevronDown, ChevronUp, Plus, Save, Pencil } from 'lucide-react';
 import { ImageCapture } from './ImageCapture';
 import { VoiceMemoRecorder } from './VoiceMemoRecorder';
 import { AITextActions } from './AITextActions';
 import { TagInput } from './TagInput';
 import { LocationInput, LocationData, formatLocation } from './LocationInput';
 import { inferNoteType, getPlaceholderForType, getTypeStyles } from '@/lib/noteTypeInference';
-import { getNotes, getBooks } from '@/lib/store';
+import { getNotes } from '@/lib/store';
 import { useHaptic } from '@/hooks/use-haptic';
 
 interface AddNoteDialogProps {
@@ -59,7 +60,7 @@ const noteTypes: { type: NoteType; icon: typeof Quote; label: string }[] = [
 // AI Enhance button component
 function AIEnhanceButton({ onClick }: { onClick: () => void }) {
   return (
-    <Button type="button" variant="outline" size="sm" className="w-full gap-2" onClick={onClick}>
+    <Button type="button" variant="outline" size="sm" className="w-full gap-2 touch-manipulation" onClick={onClick}>
       <Wand2 className="w-4 h-4" />
       Enhance
     </Button>
@@ -91,7 +92,7 @@ function NoteTypeSelector({
               onTypeChange(t);
               setShowChips(false);
             }}
-            className={getTypeStyles(t, type === t)}
+            className={`${getTypeStyles(t, type === t)} touch-manipulation active:scale-95 transition-transform`}
           >
             <TypeIcon className="w-3.5 h-3.5" />
             {label}
@@ -101,7 +102,7 @@ function NoteTypeSelector({
           type="button"
           variant="ghost"
           size="sm"
-          className="h-6 text-xs px-2"
+          className="h-6 text-xs px-2 touch-manipulation"
           onClick={() => setShowChips(false)}
         >
           Done
@@ -122,7 +123,7 @@ function NoteTypeSelector({
         type="button"
         variant="ghost"
         size="sm"
-        className="h-6 text-xs px-2 gap-1"
+        className="h-6 text-xs px-2 gap-1 touch-manipulation"
         onClick={() => setShowChips(true)}
       >
         <Pencil className="w-3 h-3" />
@@ -157,7 +158,7 @@ export function AddNoteDialog({
   const [location, setLocation] = useState<LocationData>({});
   const [context, setContext] = useState('');
   const [tags, setTags] = useState<string[]>([]);
-  const [isPrivate, setIsPrivate] = useState(true); // Default OFF (private = true means not public)
+  const [isPrivate, setIsPrivate] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
   
   // AI state
@@ -262,7 +263,7 @@ export function AddNoteDialog({
       audioDuration: audioData?.duration,
       transcript: audioData?.transcript,
       tags: tags.length > 0 ? tags : undefined,
-      isPrivate: !isPrivate ? true : undefined, // isPrivate in state means "not public"
+      isPrivate: !isPrivate ? true : undefined,
     });
     
     if (addAnother) {
@@ -278,32 +279,29 @@ export function AddNoteDialog({
     setTypeManuallySet(true);
   };
 
-  // Get the main text content for display
-  const mainContent = content || imageData?.extractedText || audioData?.transcript || '';
-
   return (
     <ResponsiveDialog open={open} onOpenChange={(open) => { if (!open) resetForm(); onOpenChange(open); }}>
       <ResponsiveDialogContent className="sm:max-w-lg">
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle className="flex items-center gap-2 font-display text-xl">
+          <ResponsiveDialogTitle className="flex items-center gap-2 font-display text-lg sm:text-xl">
             <PenLine className="w-5 h-5 text-primary" />
             <span className="truncate">Add note to <span className="text-primary">{bookTitle}</span></span>
           </ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
         
-        <div className="space-y-4 px-6 pb-6">
+        <ResponsiveDialogBody className="space-y-4">
           {/* Step 1: Capture Mode Tabs */}
           <Tabs value={captureMode} onValueChange={(v) => setCaptureMode(v as typeof captureMode)}>
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="text" className="gap-1.5">
+              <TabsTrigger value="text" className="gap-1.5 touch-manipulation">
                 <Type className="w-4 h-4" />
                 Text
               </TabsTrigger>
-              <TabsTrigger value="image" className="gap-1.5">
+              <TabsTrigger value="image" className="gap-1.5 touch-manipulation">
                 <Camera className="w-4 h-4" />
                 Image
               </TabsTrigger>
-              <TabsTrigger value="audio" className="gap-1.5">
+              <TabsTrigger value="audio" className="gap-1.5 touch-manipulation">
                 <Mic className="w-4 h-4" />
                 Voice
               </TabsTrigger>
@@ -330,7 +328,7 @@ export function AddNoteDialog({
                       placeholder={getPlaceholderForType(type)}
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
-                      className="min-h-[120px] bg-background resize-none text-base"
+                      className="min-h-[100px] sm:min-h-[120px] bg-background resize-none text-base"
                       autoFocus
                     />
                   </div>
@@ -431,7 +429,7 @@ export function AddNoteDialog({
                   type="button" 
                   variant="ghost" 
                   size="sm" 
-                  className="w-full justify-between text-muted-foreground hover:text-foreground"
+                  className="w-full justify-between text-muted-foreground hover:text-foreground touch-manipulation"
                 >
                   <span className="flex items-center gap-2">
                     <Plus className="w-4 h-4" />
@@ -472,14 +470,14 @@ export function AddNoteDialog({
                       type="button" 
                       variant="ghost" 
                       size="sm" 
-                      className="text-xs text-muted-foreground hover:text-foreground px-0"
+                      className="text-xs text-muted-foreground hover:text-foreground px-0 touch-manipulation"
                     >
                       Advanced options
                       {showAdvanced ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pt-2">
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/50">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border border-border/50">
                       <div className="flex items-center gap-3">
                         {isPrivate ? (
                           <Lock className="w-4 h-4 text-muted-foreground" />
@@ -506,43 +504,43 @@ export function AddNoteDialog({
               </CollapsibleContent>
             </Collapsible>
           )}
+        </ResponsiveDialogBody>
 
-          {/* Action Buttons */}
-          {!showAIEditor && (
-            <div className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
-              <Button 
-                type="button" 
-                variant="ghost" 
-                onClick={() => { resetForm(); onOpenChange(false); }}
-                className="sm:flex-shrink-0"
+        {/* Action Buttons - Sticky footer */}
+        {!showAIEditor && (
+          <ResponsiveDialogFooter>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              onClick={() => { resetForm(); onOpenChange(false); }}
+              className="sm:flex-shrink-0"
+            >
+              Cancel
+            </Button>
+            <div className="flex flex-1 gap-2 sm:flex-initial">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!hasContent}
+                onClick={() => handleSave(true)}
+                className="flex-1 gap-1.5 touch-manipulation"
               >
-                Cancel
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Save & add another</span>
+                <span className="sm:hidden">+ Another</span>
               </Button>
-              <div className="flex flex-1 gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={!hasContent}
-                  onClick={() => handleSave(true)}
-                  className="flex-1 sm:flex-initial gap-1.5"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Save & add another</span>
-                  <span className="sm:hidden">+ Another</span>
-                </Button>
-                <Button 
-                  type="button"
-                  disabled={!hasContent}
-                  onClick={() => handleSave(false)}
-                  className="flex-1 sm:flex-initial gap-1.5"
-                >
-                  <Save className="w-4 h-4" />
-                  Save
-                </Button>
-              </div>
+              <Button 
+                type="button"
+                disabled={!hasContent}
+                onClick={() => handleSave(false)}
+                className="flex-1 gap-1.5 touch-manipulation"
+              >
+                <Save className="w-4 h-4" />
+                Save
+              </Button>
             </div>
-          )}
-        </div>
+          </ResponsiveDialogFooter>
+        )}
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   );

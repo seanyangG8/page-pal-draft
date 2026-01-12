@@ -3,7 +3,9 @@ import {
   ResponsiveDialog, 
   ResponsiveDialogContent, 
   ResponsiveDialogHeader, 
-  ResponsiveDialogTitle 
+  ResponsiveDialogTitle,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
 } from '@/components/ui/responsive-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -207,11 +209,11 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="sm:max-w-md overflow-hidden">
         <ResponsiveDialogHeader className="pb-0">
-          <ResponsiveDialogTitle className="flex items-center gap-2 font-display text-xl">
+          <ResponsiveDialogTitle className="flex items-center gap-2 font-display text-lg sm:text-xl">
             {view !== 'search' && (
               <button 
                 onClick={goBack}
-                className="p-1 -ml-1 rounded-md hover:bg-accent transition-colors touch-manipulation"
+                className="p-1 -ml-1 rounded-md hover:bg-accent transition-colors touch-manipulation active:scale-95"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
@@ -221,10 +223,10 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
           </ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
         
-        <div className="px-6 pb-6">
+        <ResponsiveDialogBody>
           {/* Search View */}
           {view === 'search' && (
-            <div className="space-y-4 mt-4">
+            <div className="space-y-4">
               {/* Search input */}
               <div className="relative">
                 <Input
@@ -232,7 +234,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                   placeholder="Search by title..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="bg-background pr-10 h-12 text-base"
+                  className="bg-background pr-10 h-11 sm:h-12 text-base"
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                   {isSearching ? (
@@ -245,22 +247,22 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
 
               {/* Results */}
               {suggestions.length > 0 ? (
-                <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                <div className="space-y-2 max-h-[240px] sm:max-h-[280px] overflow-y-auto ios-scroll overscroll-contain">
                   {suggestions.map((book, index) => (
                     <button
                       key={index}
                       type="button"
                       onClick={() => selectBook(book)}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:bg-accent hover:border-primary/30 transition-all text-left"
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:bg-accent hover:border-primary/30 transition-all text-left touch-manipulation active:scale-[0.98]"
                     >
                       {book.coverUrl ? (
                         <img 
                           src={book.coverUrl} 
                           alt={book.title}
-                          className="w-12 h-16 object-cover rounded-md shadow-sm"
+                          className="w-11 h-14 sm:w-12 sm:h-16 object-cover rounded-md shadow-sm"
                         />
                       ) : (
-                        <div className="w-12 h-16 bg-muted rounded-md flex items-center justify-center">
+                        <div className="w-11 h-14 sm:w-12 sm:h-16 bg-muted rounded-md flex items-center justify-center">
                           <Book className="w-5 h-5 text-muted-foreground" />
                         </div>
                       )}
@@ -272,11 +274,11 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                   ))}
                 </div>
               ) : title.length >= 2 && !isSearching ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
+                <p className="text-sm text-muted-foreground text-center py-6 sm:py-8">
                   No books found. Try a different search.
                 </p>
               ) : (
-                <div className="py-8 text-center space-y-4">
+                <div className="py-6 sm:py-8 text-center space-y-4">
                   <p className="text-sm text-muted-foreground">
                     Start typing to search for books
                   </p>
@@ -294,7 +296,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                 <button
                   type="button"
                   onClick={startCamera}
-                  className="flex flex-col items-center gap-2 p-4 rounded-xl border border-dashed border-border hover:bg-accent hover:border-primary/30 transition-all group"
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl border border-dashed border-border hover:bg-accent hover:border-primary/30 transition-all group touch-manipulation active:scale-95"
                 >
                   <div className="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                     <Camera className="w-5 h-5" />
@@ -308,7 +310,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
 
           {/* Camera View */}
           {view === 'camera' && (
-            <div className="space-y-4 mt-4">
+            <div className="space-y-4">
               {capturedImage ? (
                 <div className="relative">
                   <img 
@@ -320,7 +322,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                     type="button"
                     variant="secondary"
                     size="icon"
-                    className="absolute top-2 right-2"
+                    className="absolute top-2 right-2 touch-manipulation"
                     onClick={() => setCapturedImage(null)}
                   >
                     <X className="w-4 h-4" />
@@ -339,7 +341,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="mt-2"
+                        className="mt-2 touch-manipulation"
                         onClick={goBack}
                       >
                         Search manually instead
@@ -360,7 +362,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                       type="button"
                       size="lg"
                       onClick={captureFromCamera}
-                      className="rounded-full w-16 h-16 p-0"
+                      className="rounded-full w-16 h-16 p-0 touch-manipulation active:scale-95"
                     >
                       <Camera className="w-6 h-6" />
                     </Button>
@@ -372,18 +374,18 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
 
           {/* Confirm View */}
           {view === 'confirm' && selectedBook && (
-            <div className="space-y-5 mt-4">
+            <div className="space-y-4 sm:space-y-5">
               {/* Book preview */}
-              <div className="flex gap-4 p-4 rounded-xl bg-muted/30 border border-border relative">
+              <div className="flex gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-muted/30 border border-border relative">
                 {selectedBook.coverUrl ? (
                   <img 
                     src={selectedBook.coverUrl} 
                     alt={selectedBook.title}
-                    className="w-20 h-28 object-cover rounded-lg shadow-md"
+                    className="w-16 h-22 sm:w-20 sm:h-28 object-cover rounded-lg shadow-md"
                   />
                 ) : (
-                  <div className="w-20 h-28 bg-muted rounded-lg flex items-center justify-center">
-                    <Book className="w-8 h-8 text-muted-foreground" />
+                  <div className="w-16 h-22 sm:w-20 sm:h-28 bg-muted rounded-lg flex items-center justify-center">
+                    <Book className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0 py-1">
@@ -405,14 +407,14 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                         <Button
                           size="sm"
                           variant="secondary"
-                          className="h-7 text-xs"
+                          className="h-7 text-xs touch-manipulation"
                           onClick={() => setIsEditing(false)}
                         >
                           Cancel
                         </Button>
                         <Button
                           size="sm"
-                          className="h-7 text-xs"
+                          className="h-7 text-xs touch-manipulation"
                           onClick={() => {
                             if (editTitle.trim() && editAuthor.trim()) {
                               setSelectedBook({
@@ -430,7 +432,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                     </div>
                   ) : (
                     <>
-                      <h3 className="font-semibold text-base line-clamp-2">{selectedBook.title}</h3>
+                      <h3 className="font-semibold text-[15px] sm:text-base line-clamp-2">{selectedBook.title}</h3>
                       <p className="text-sm text-muted-foreground mt-1">{selectedBook.author}</p>
                       {selectedBook.isbn && (
                         <p className="text-xs text-muted-foreground mt-2">ISBN: {selectedBook.isbn}</p>
@@ -446,7 +448,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                       setEditAuthor(selectedBook.author);
                       setIsEditing(true);
                     }}
-                    className="absolute top-3 right-3 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    className="absolute top-3 right-3 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors touch-manipulation"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
@@ -463,7 +465,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                       type="button"
                       onClick={() => setFormat(value)}
                       className={cn(
-                        "flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all",
+                        "flex flex-col items-center gap-1.5 p-2.5 sm:p-3 rounded-xl border transition-all touch-manipulation active:scale-95",
                         format === value 
                           ? 'border-primary bg-primary/5 text-primary' 
                           : 'border-border hover:border-primary/50 hover:bg-accent'
@@ -475,18 +477,22 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                   ))}
                 </div>
               </div>
-
-              {/* Add button */}
-              <Button 
-                onClick={handleSubmit} 
-                className="w-full h-12 text-base gap-2"
-              >
-                <Check className="w-5 h-5" />
-                Add to library
-              </Button>
             </div>
           )}
-        </div>
+        </ResponsiveDialogBody>
+
+        {/* Confirm view footer */}
+        {view === 'confirm' && selectedBook && (
+          <ResponsiveDialogFooter>
+            <Button 
+              onClick={handleSubmit} 
+              className="w-full h-11 sm:h-12 text-base gap-2 touch-manipulation"
+            >
+              <Check className="w-5 h-5" />
+              Add to library
+            </Button>
+          </ResponsiveDialogFooter>
+        )}
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   );

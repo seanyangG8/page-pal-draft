@@ -13,6 +13,7 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerDescription,
+  DrawerFooter,
 } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +43,16 @@ interface ResponsiveDialogDescriptionProps {
   children: React.ReactNode;
 }
 
+interface ResponsiveDialogBodyProps {
+  className?: string;
+  children: React.ReactNode;
+}
+
+interface ResponsiveDialogFooterProps {
+  className?: string;
+  children: React.ReactNode;
+}
+
 const ResponsiveDialogContext = React.createContext<{ isMobile: boolean }>({
   isMobile: false,
 });
@@ -52,17 +63,35 @@ export function ResponsiveDialog({
   children,
 }: ResponsiveDialogProps) {
   const isMobile = useIsMobile();
+  const scrollYRef = React.useRef(0);
 
-  // Prevent the underlying page from scrolling when a mobile drawer is open.
+  // iOS-correct body scroll lock: position fixed + restore scrollY
   React.useEffect(() => {
     if (!isMobile) return;
     if (!open) return;
 
-    const previousOverflow = document.body.style.overflow;
+    scrollYRef.current = window.scrollY;
+    const previousStyles = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      overflow: document.body.style.overflow,
+    };
+
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollYRef.current}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
     document.body.style.overflow = "hidden";
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      document.body.style.position = previousStyles.position;
+      document.body.style.top = previousStyles.top;
+      document.body.style.left = previousStyles.left;
+      document.body.style.right = previousStyles.right;
+      document.body.style.overflow = previousStyles.overflow;
+      window.scrollTo(0, scrollYRef.current);
     };
   }, [open, isMobile]);
 
@@ -93,8 +122,8 @@ export function ResponsiveDialogContent({
 
   if (isMobile) {
     return (
-      <DrawerContent className={cn("overflow-hidden overflow-x-hidden", className)}>
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-safe">
+      <DrawerContent className={cn("flex flex-col overflow-hidden", className)}>
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {children}
         </div>
       </DrawerContent>
@@ -115,7 +144,11 @@ export function ResponsiveDialogHeader({
   const { isMobile } = React.useContext(ResponsiveDialogContext);
 
   if (isMobile) {
-    return <DrawerHeader className={className}>{children}</DrawerHeader>;
+    return (
+      <DrawerHeader className={cn("flex-shrink-0 px-4 pt-0 pb-2", className)}>
+        {children}
+      </DrawerHeader>
+    );
   }
 
   return <DialogHeader className={className}>{children}</DialogHeader>;
@@ -128,7 +161,11 @@ export function ResponsiveDialogTitle({
   const { isMobile } = React.useContext(ResponsiveDialogContext);
 
   if (isMobile) {
-    return <DrawerTitle className={className}>{children}</DrawerTitle>;
+    return (
+      <DrawerTitle className={cn("text-lg", className)}>
+        {children}
+      </DrawerTitle>
+    );
   }
 
   return <DialogTitle className={className}>{children}</DialogTitle>;
@@ -145,4 +182,42 @@ export function ResponsiveDialogDescription({
   }
 
   return <DialogDescription className={className}>{children}</DialogDescription>;
+}
+
+export function ResponsiveDialogBody({
+  className,
+  children,
+}: ResponsiveDialogBodyProps) {
+  const { isMobile } = React.useContext(ResponsiveDialogContext);
+
+  if (isMobile) {
+    return (
+      <div className={cn("flex-1 min-h-0 overflow-y-auto ios-scroll px-4", className)}>
+        {children}
+      </div>
+    );
+  }
+
+  return <div className={cn("py-4", className)}>{children}</div>;
+}
+
+export function ResponsiveDialogFooter({
+  className,
+  children,
+}: ResponsiveDialogFooterProps) {
+  const { isMobile } = React.useContext(ResponsiveDialogContext);
+
+  if (isMobile) {
+    return (
+      <DrawerFooter className={cn("flex-shrink-0 px-4 pt-2 pb-safe border-t border-border/50 bg-background", className)}>
+        {children}
+      </DrawerFooter>
+    );
+  }
+
+  return (
+    <div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4", className)}>
+      {children}
+    </div>
+  );
 }

@@ -3,13 +3,15 @@ import {
   ResponsiveDialog, 
   ResponsiveDialogContent, 
   ResponsiveDialogHeader, 
-  ResponsiveDialogTitle 
+  ResponsiveDialogTitle,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
 } from '@/components/ui/responsive-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Book, BookFormat } from '@/types';
-import { Pencil, Smartphone, Headphones, Book as BookIcon } from 'lucide-react';
+import { Pencil, Smartphone, Headphones, Book as BookIcon, Save } from 'lucide-react';
 import { useHaptic } from '@/hooks/use-haptic';
 
 interface EditBookDialogProps {
@@ -72,85 +74,88 @@ export function EditBookDialog({ book, open, onOpenChange, onSave }: EditBookDia
           </ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6">
-          <div className="space-y-2">
-            <Label htmlFor="edit-title">Title</Label>
-            <Input
-              id="edit-title"
-              placeholder="The book's title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="bg-background"
-              maxLength={200}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="edit-author">Author</Label>
-            <Input
-              id="edit-author"
-              placeholder="Who wrote it?"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              className="bg-background"
-              maxLength={100}
-            />
-          </div>
-
-          {/* Book format selector */}
-          <div className="space-y-2">
-            <Label>Format</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {formatOptions.map(({ value, label, icon: Icon }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setFormat(value)}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-lg border transition-all duration-200 ${
-                    format === value 
-                      ? 'border-primary bg-primary/5 text-primary shadow-soft' 
-                      : 'border-border hover:border-primary/50 hover:bg-secondary/50'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="text-xs font-medium">{label}</span>
-                </button>
-              ))}
+        <form onSubmit={handleSubmit} className="contents">
+          <ResponsiveDialogBody className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Title</Label>
+              <Input
+                id="edit-title"
+                placeholder="The book's title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="bg-background"
+                maxLength={200}
+              />
             </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="edit-cover">Cover URL (optional)</Label>
-            <Input
-              id="edit-cover"
-              placeholder="https://..."
-              value={coverUrl}
-              onChange={(e) => setCoverUrl(e.target.value)}
-              className="bg-background"
-              maxLength={500}
-            />
-          </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-author">Author</Label>
+              <Input
+                id="edit-author"
+                placeholder="Who wrote it?"
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+                className="bg-background"
+                maxLength={100}
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-isbn">ISBN (optional)</Label>
-            <Input
-              id="edit-isbn"
-              placeholder="978-..."
-              value={isbn}
-              onChange={(e) => setIsbn(e.target.value)}
-              className="bg-background"
-              maxLength={20}
-            />
-          </div>
-          
-          <div className="flex gap-2 pt-4">
-            <Button type="button" variant="ghost" className="flex-1" onClick={() => onOpenChange(false)}>
+            {/* Book format selector */}
+            <div className="space-y-2">
+              <Label>Format</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {formatOptions.map(({ value, label, icon: Icon }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setFormat(value)}
+                    className={`flex flex-col items-center gap-1 p-2.5 sm:p-3 rounded-xl border transition-all duration-200 touch-manipulation active:scale-95 ${
+                      format === value 
+                        ? 'border-primary bg-primary/5 text-primary shadow-soft' 
+                        : 'border-border hover:border-primary/50 hover:bg-secondary/50'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="text-xs font-medium">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-cover">Cover URL (optional)</Label>
+              <Input
+                id="edit-cover"
+                placeholder="https://..."
+                value={coverUrl}
+                onChange={(e) => setCoverUrl(e.target.value)}
+                className="bg-background"
+                maxLength={500}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-isbn">ISBN (optional)</Label>
+              <Input
+                id="edit-isbn"
+                placeholder="978-..."
+                value={isbn}
+                onChange={(e) => setIsbn(e.target.value)}
+                className="bg-background"
+                maxLength={20}
+              />
+            </div>
+          </ResponsiveDialogBody>
+
+          <ResponsiveDialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-initial">
               Cancel
             </Button>
-            <Button type="submit" className="flex-1" disabled={!title.trim() || !author.trim()}>
+            <Button type="submit" disabled={!title.trim() || !author.trim()} className="flex-1 sm:flex-initial gap-2">
+              <Save className="w-4 h-4" />
               Save changes
             </Button>
-          </div>
+          </ResponsiveDialogFooter>
         </form>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
