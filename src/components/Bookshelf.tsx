@@ -472,10 +472,10 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
           <div className="relative">
             {/* Books container */}
             <div className={cn(
-              "flex items-end justify-start px-3 pb-3 overflow-x-auto overflow-y-hidden scrollbar-hide",
+              "flex items-end justify-start px-3 pb-3 overflow-y-hidden",
               isMobile 
-                ? "gap-2 min-h-[8.5rem]" 
-                : "gap-2 sm:gap-3 min-h-[10rem] sm:min-h-[12rem] md:min-h-[14rem]"
+                ? "gap-2 min-h-[8.5rem] flex-wrap overflow-x-hidden" 
+                : "gap-2 sm:gap-3 min-h-[10rem] sm:min-h-[12rem] md:min-h-[14rem] overflow-x-auto scrollbar-hide"
             )}>
               {shelfBooks.map((book, bookIndex) => (
                 <div 
