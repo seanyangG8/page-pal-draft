@@ -198,6 +198,11 @@
     overflow-x: hidden;
   }
 
+  html,
+  #root {
+    overflow-x: hidden;
+  }
+
   /* Refined typography hierarchy */
   h1 {
     font-family: var(--font-display);
