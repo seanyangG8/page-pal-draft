@@ -150,7 +150,7 @@ const Index = () => {
         onShowWelcome={() => setShowWelcome(true)} 
       />
       
-      <main className="px-4 md:px-6 lg:container py-4 md:py-6 lg:py-8 pb-28 md:pb-24">
+      <main className="px-4 md:px-6 lg:container py-4 md:py-6 lg:py-8 pb-28 md:pb-24 overflow-x-hidden">
         {/* Hero section for empty state or when showWelcome is true */}
         {(books.length === 0 && notes.length === 0) || showWelcome ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center animate-fade-up gradient-hero rounded-2xl md:rounded-3xl px-4 py-10 md:py-12">
@@ -188,7 +188,7 @@ const Index = () => {
         ) : (
           <>
             {/* Sticky search and tabs section */}
-            <div className="sticky top-12 md:top-14 z-40 -mx-4 md:-mx-6 px-4 md:px-6 py-3 bg-background/95 backdrop-blur-md">
+            <div className="sticky top-12 md:top-14 z-40 py-3 bg-background/95 backdrop-blur-md">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 {/* Desktop tabs - hidden on mobile */}
                 {!isMobile && (
@@ -275,7 +275,7 @@ const Index = () => {
             {/* Library tab */}
             {activeTab === 'library' && (
               <PullToRefresh onRefresh={handleRefresh}>
-                <div className="library-bg wall-texture rounded-2xl -mx-2 px-2 py-3 sm:-mx-4 sm:px-4 mt-2">
+                <div className="library-bg wall-texture rounded-2xl w-full px-2 py-3 sm:px-4 mt-2 overflow-hidden">
                   {isLoading ? (
                     <BookshelfSkeleton />
                   ) : books.length === 0 ? (
