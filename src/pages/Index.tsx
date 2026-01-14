@@ -187,72 +187,74 @@ const Index = () => {
           </div>
         ) : (
           <>
-            {/* Sticky search and tabs section */}
-            <div className="sticky top-12 md:top-14 z-40 py-1.5 bg-background/95 backdrop-blur-md -mx-4 px-4 md:-mx-6 md:px-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                {/* Desktop tabs - hidden on mobile */}
-                {!isMobile && (
-                  <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'library' | 'notes' | 'feed' | 'friends')} className="w-full sm:w-auto">
-                    <TabsList className="bg-secondary/80 shadow-soft p-1">
-                      <TabsTrigger value="library" className="gap-2 data-[state=active]:shadow-card">
-                        <Library className="w-4 h-4" />
-                        Library
-                      </TabsTrigger>
-                      <TabsTrigger value="notes" className="gap-2 data-[state=active]:shadow-card">
-                        <Search className="w-4 h-4" />
-                        Notes
-                      </TabsTrigger>
-                      <TabsTrigger value="feed" className="gap-2 data-[state=active]:shadow-card">
-                        <Rss className="w-4 h-4" />
-                        Feed
-                      </TabsTrigger>
-                      <TabsTrigger value="friends" className="gap-2 data-[state=active]:shadow-card">
-                        <Users className="w-4 h-4" />
-                        Friends
-                      </TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                )}
+            {/* Sticky search section - only show when there's content */}
+            {(activeTab === 'library' || activeTab === 'notes' || !isMobile) && (
+              <div className="sticky top-12 md:top-14 z-40 bg-background/95 backdrop-blur-md -mx-4 px-4 md:-mx-6 md:px-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-1.5">
+                  {/* Desktop tabs - hidden on mobile */}
+                  {!isMobile && (
+                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'library' | 'notes' | 'feed' | 'friends')} className="w-full sm:w-auto">
+                      <TabsList className="bg-secondary/80 shadow-soft p-1">
+                        <TabsTrigger value="library" className="gap-2 data-[state=active]:shadow-card">
+                          <Library className="w-4 h-4" />
+                          Library
+                        </TabsTrigger>
+                        <TabsTrigger value="notes" className="gap-2 data-[state=active]:shadow-card">
+                          <Search className="w-4 h-4" />
+                          Notes
+                        </TabsTrigger>
+                        <TabsTrigger value="feed" className="gap-2 data-[state=active]:shadow-card">
+                          <Rss className="w-4 h-4" />
+                          Feed
+                        </TabsTrigger>
+                        <TabsTrigger value="friends" className="gap-2 data-[state=active]:shadow-card">
+                          <Users className="w-4 h-4" />
+                          Friends
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  )}
 
-                {(activeTab === 'library' || activeTab === 'notes') && (
-                  <div className="flex items-center gap-2">
-                    <div className="w-full sm:w-72">
-                      <SearchBar 
-                        value={searchQuery}
-                        onChange={setSearchQuery}
-                        placeholder={activeTab === 'library' ? 'Search books...' : 'Search notes...'}
-                      />
+                  {(activeTab === 'library' || activeTab === 'notes') && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-full sm:w-72">
+                        <SearchBar 
+                          value={searchQuery}
+                          onChange={setSearchQuery}
+                          placeholder={activeTab === 'library' ? 'Search books...' : 'Search notes...'}
+                        />
+                      </div>
+                      {activeTab === 'notes' && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={showFilters ? 'bg-primary/10' : ''}
+                          >
+                            <Filter className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setExportOpen(true)}
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setImportOpen(true)}
+                          >
+                            <Upload className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
                     </div>
-                    {activeTab === 'notes' && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowFilters(!showFilters)}
-                          className={showFilters ? 'bg-primary/10' : ''}
-                        >
-                          <Filter className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setExportOpen(true)}
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setImportOpen(true)}
-                        >
-                          <Upload className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Review Widget */}
             {activeTab === 'notes' && (
