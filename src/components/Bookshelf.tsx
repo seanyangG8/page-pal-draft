@@ -469,13 +469,13 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
           style={{ animationDelay: `${shelfIndex * 100}ms` }}
         >
           {/* Shelf with books */}
-          <div className="relative">
+          <div className="relative overflow-x-hidden">
             {/* Books container */}
             <div className={cn(
-              "flex items-end justify-start px-3 pb-3 overflow-y-hidden",
+              "flex items-end justify-start px-3 pb-3 overflow-x-hidden overflow-y-hidden max-w-full",
               isMobile 
-                ? "gap-2 min-h-[8.5rem] flex-wrap overflow-x-hidden" 
-                : "gap-2 sm:gap-3 min-h-[10rem] sm:min-h-[12rem] md:min-h-[14rem] overflow-x-auto scrollbar-hide"
+                ? "gap-2 min-h-[8.5rem] flex-wrap" 
+                : "gap-2 sm:gap-3 min-h-[10rem] sm:min-h-[12rem] md:min-h-[14rem]"
             )}>
               {shelfBooks.map((book, bookIndex) => (
                 <div 
