@@ -188,7 +188,7 @@ const Index = () => {
         ) : (
           <>
             {/* Sticky search and tabs section */}
-            <div className="sticky top-12 md:top-14 z-40 py-3 bg-background/95 backdrop-blur-md">
+            <div className="sticky top-12 md:top-14 z-40 py-2 bg-background/95 backdrop-blur-md -mx-4 px-4 md:-mx-6 md:px-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 {/* Desktop tabs - hidden on mobile */}
                 {!isMobile && (
@@ -275,7 +275,7 @@ const Index = () => {
             {/* Library tab */}
             {activeTab === 'library' && (
               <PullToRefresh onRefresh={handleRefresh}>
-                <div className="library-bg wall-texture rounded-2xl w-full px-2 py-3 sm:px-4 mt-2 overflow-hidden">
+                <div className="library-bg wall-texture rounded-2xl w-full px-2 py-2 sm:px-4 mt-1 overflow-hidden">
                   {isLoading ? (
                     <BookshelfSkeleton />
                   ) : books.length === 0 ? (
