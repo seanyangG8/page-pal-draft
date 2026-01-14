@@ -174,7 +174,7 @@ export function AITextActions({ originalText, onTextChange, onBack, showBackButt
           ))}
         </div>
         <p className="text-xs text-muted-foreground text-center">
-          💡 Placeholder AI — Connect to Lovable Cloud for real AI features
+          💡 Placeholder AI — Connect to your own backend for real AI features
         </p>
       </div>
 

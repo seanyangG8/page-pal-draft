@@ -182,7 +182,7 @@ export function AIActionsDialog({ open, onOpenChange, note, action, onSave }: AI
                 className="min-h-[120px] resize-none"
               />
               <p className="text-xs text-muted-foreground">
-                💡 This is a placeholder. Connect to Lovable Cloud for real AI features.
+                💡 This is a placeholder. Connect to your AI backend to power these actions.
               </p>
             </div>
           )}
