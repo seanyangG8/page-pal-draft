@@ -164,7 +164,7 @@ function BookSpine({
           <div 
             className={cn(
               "relative",
-              isMobile ? "w-[72px] h-[100px]" : "w-16 sm:w-20 md:w-24 h-[110px] sm:h-[137px] md:h-[164px]"
+              isMobile ? "w-[68px] h-[94px]" : "w-16 sm:w-20 md:w-24 h-[110px] sm:h-[137px] md:h-[164px]"
             )}
             style={{
               perspective: '400px',
@@ -201,7 +201,7 @@ function BookSpine({
           <div 
             className={cn(
               "relative",
-              isMobile ? "w-[72px] h-[100px]" : "w-16 sm:w-20 md:w-24 h-[110px] sm:h-[137px] md:h-[164px]"
+              isMobile ? "w-[68px] h-[94px]" : "w-16 sm:w-20 md:w-24 h-[110px] sm:h-[137px] md:h-[164px]"
             )}
             style={{
               perspective: '400px',
@@ -472,10 +472,10 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
           <div className="relative">
             {/* Books container */}
             <div className={cn(
-              "flex items-end justify-start px-3 pb-3 overflow-x-auto overflow-y-hidden scrollbar-hide",
+              "flex items-end justify-start pb-3 overflow-hidden",
               isMobile 
-                ? "gap-2 min-h-[8.5rem]" 
-                : "gap-2 sm:gap-3 min-h-[10rem] sm:min-h-[12rem] md:min-h-[14rem]"
+                ? "gap-[2%] px-[2%] min-h-[8rem]" 
+                : "gap-2 sm:gap-3 px-3 min-h-[10rem] sm:min-h-[12rem] md:min-h-[14rem]"
             )}>
               {shelfBooks.map((book, bookIndex) => (
                 <div 
