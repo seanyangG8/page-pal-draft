@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { useState, useRef, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import { reorderBooks } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -65,6 +66,12 @@ function BookSpine({
   const [isPressed, setIsPressed] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const longPressRef = useRef<NodeJS.Timeout | null>(null);
+  const bookDimensions: CSSProperties = {
+    width: '100%',
+    minWidth: 'var(--book-min, 72px)',
+    maxWidth: 'var(--book-max, 120px)',
+    aspectRatio: '2 / 3',
+  };
 
   // Generate a consistent color based on book title for variety
   const getSpineColor = (title: string) => {
@@ -125,6 +132,7 @@ function BookSpine({
         isDragOver ? 'translate-x-4' : '',
         isMobile ? 'touch-manipulation' : 'touch-none'
       )}
+      style={{ width: '100%' }}
       draggable={!isMobile}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
@@ -162,11 +170,9 @@ function BookSpine({
         {book.coverUrl ? (
           // Show book cover at a slight angle - larger touch target on mobile
           <div 
-            className={cn(
-              "relative",
-              isMobile ? "w-[68px] h-[96px]" : "w-16 sm:w-20 md:w-24 h-[110px] sm:h-[137px] md:h-[164px]"
-            )}
+            className="relative"
             style={{
+              ...bookDimensions,
               perspective: '400px',
               transformStyle: 'preserve-3d',
             }}
@@ -199,11 +205,9 @@ function BookSpine({
         ) : (
           // Show colored spine (no cover) - same fixed size and angle
           <div 
-            className={cn(
-              "relative",
-              isMobile ? "w-[68px] h-[96px]" : "w-16 sm:w-20 md:w-24 h-[110px] sm:h-[137px] md:h-[164px]"
-            )}
+            className="relative"
             style={{
+              ...bookDimensions,
               perspective: '400px',
               transformStyle: 'preserve-3d',
             }}
@@ -323,6 +327,12 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
   const bookRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const bookSizeVars: CSSProperties = {
+    '--book-min': isMobile ? '60px' : '78px',
+    '--book-max': isMobile ? '86px' : '104px',
+    '--book-gap': isMobile ? '0.65rem' : '0.95rem',
+    '--shelf-cols': isMobile ? 4 : 8,
+  };
 
   // Sync local state when books prop changes
   if (books !== localBooks && !draggedBookId && !touchDragId) {
@@ -461,7 +471,7 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {shelves.map((shelfBooks, shelfIndex) => (
         <div 
           key={shelfIndex}
@@ -471,16 +481,31 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
           {/* Shelf with books */}
           <div className="relative">
             {/* Books container */}
-            <div className={cn(
-              "flex items-end justify-start pb-3 overflow-x-auto overflow-y-hidden scrollbar-hide",
-              isMobile 
-                ? "gap-2 px-2 min-h-[8.5rem]" 
-                : "gap-2 sm:gap-3 px-3 min-h-[10rem] sm:min-h-[12rem] md:min-h-[14rem]"
-            )}>
+            <div 
+              className={cn(
+                "grid items-end justify-start scrollbar-hide",
+                isMobile ? "px-2" : "px-3 sm:px-4"
+              )}
+              style={{
+                ...bookSizeVars,
+                gridTemplateColumns: 'repeat(var(--shelf-cols), minmax(var(--book-min), 1fr))',
+                gridAutoFlow: 'column',
+                gap: 'var(--book-gap)',
+                alignItems: 'end',
+                justifyItems: 'center',
+                justifyContent: 'start',
+                overflowX: 'hidden',
+                overflowY: 'visible',
+                paddingTop: isMobile ? '1rem' : '1.2rem',
+                paddingBottom: isMobile ? '0.7rem' : '0.85rem',
+                minHeight: isMobile ? '9rem' : '11rem',
+                marginTop: isMobile ? '0.1rem' : '0.15rem',
+              }}
+            >
               {shelfBooks.map((book, bookIndex) => (
                 <div 
                   key={book.id}
-                  className="flex-shrink-0 animate-fade-up"
+                  className="w-full h-full flex items-end justify-center animate-fade-up"
                   style={{ animationDelay: `${bookIndex * 50}ms` }}
                 >
                   <BookSpine 
