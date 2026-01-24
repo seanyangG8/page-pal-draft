@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { 
   ResponsiveDialog, 
   ResponsiveDialogContent, 
@@ -13,6 +13,7 @@ import { BookFormat } from '@/types';
 import { BookOpen, Smartphone, Headphones, Book, Loader2, Search, Camera, X, ArrowLeft, Check, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useHaptic } from '@/hooks/use-haptic';
+import { runOCR } from '@/api/ocr';
 
 interface AddBookDialogProps {
   open: boolean;
@@ -48,10 +49,15 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editAuthor, setEditAuthor] = useState('');
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [ocrError, setOcrError] = useState<string | null>(null);
+  const [searchCoverUrl, setSearchCoverUrl] = useState<string | null>(null);
+  const [coverChoice, setCoverChoice] = useState<'captured' | 'search'>('captured');
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Search Google Books API when title changes
   useEffect(() => {
@@ -112,21 +118,41 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
 
   const selectBook = (book: BookSuggestion) => {
     setSelectedBook(book);
+    setSearchCoverUrl(book.coverUrl || null);
+    setCoverChoice(book.coverUrl ? 'search' : 'captured');
     setView('confirm');
   };
 
   const startCamera = async () => {
+    setCameraError(null);
+    setCapturedImage(null);
     setView('camera');
+
+    // Use native capture file input as a reliable fallback on iOS Safari
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError('Camera access is not available. Use photo upload instead.');
+      photoInputRef.current?.click();
+      return;
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false,
       });
+
       streamRef.current = stream;
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.muted = true; // required for autoplay on iOS
+        videoRef.current.playsInline = true;
+        await videoRef.current.play().catch(() => {});
       }
     } catch (error) {
       console.error('Failed to access camera:', error);
+      setCameraError('We could not open the camera. You can upload a photo instead.');
+      photoInputRef.current?.click();
     }
   };
 
@@ -138,27 +164,123 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
   };
 
   const captureFromCamera = () => {
-    if (videoRef.current) {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        setCapturedImage(dataUrl);
-        stopCamera();
-        processImage(dataUrl);
+    if (!videoRef.current || !videoRef.current.videoWidth || cameraError) {
+      photoInputRef.current?.click();
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(videoRef.current, 0, 0);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      setCapturedImage(dataUrl);
+      stopCamera();
+      processImage(dataUrl);
+    }
+  };
+
+  const stripCodeFences = (value: string) =>
+    value.replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim();
+
+  const parseBookPayload = (raw: string): { title?: string; author?: string; isbn?: string; text?: string } => {
+    const cleaned = stripCodeFences(raw);
+    if (!cleaned) return {};
+
+    if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(cleaned);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            title: typeof parsed.title === 'string' ? parsed.title.trim() : undefined,
+            author: typeof parsed.author === 'string' ? parsed.author.trim() : undefined,
+            isbn: typeof parsed.isbn === 'string' ? parsed.isbn.trim() : undefined,
+            text: typeof parsed.text === 'string' ? parsed.text.trim() : undefined,
+          };
+        }
+      } catch {
+        // fall through to text extraction
       }
+    }
+
+    return { text: cleaned };
+  };
+
+  const fetchSearchCover = async (titleGuess: string) => {
+    if (!titleGuess || titleGuess.length < 2) return;
+    try {
+      const response = await fetch(
+        `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(titleGuess)}&maxResults=1`,
+      );
+      if (!response.ok) return;
+      const data = await response.json();
+      const cover =
+        data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail?.replace('http:', 'https:') ||
+        data.items?.[0]?.volumeInfo?.imageLinks?.smallThumbnail?.replace('http:', 'https:');
+      if (cover) {
+        setSearchCoverUrl(cover);
+      }
+    } catch (err) {
+      console.error('Failed to fetch search cover', err);
     }
   };
 
   const processImage = async (imageData: string) => {
     setIsProcessingImage(true);
-    // TODO: When Cloud is enabled, send image to AI for book recognition
-    setTimeout(() => {
+    setOcrError(null);
+
+    try {
+      const [meta, b64] = imageData.split(',');
+      const mimeMatch = meta?.match(/data:(.*?);/);
+      const mimeType = mimeMatch?.[1] || 'image/jpeg';
+      const base64 = b64 || imageData;
+
+      const prompt =
+        'You are extracting book metadata from a cover photo. Respond ONLY with strict JSON: {"title": "<book title or empty string>", "author": "<primary author or empty string>", "isbn": "<isbn if visible or empty string>", "text": "<all readable text>"} Do not include extra keys or prose.';
+
+      const raw = await runOCR(base64, mimeType, prompt);
+      const { title: ocrTitle, author: ocrAuthor, isbn: ocrIsbn, text } = parseBookPayload(raw);
+
+      const fallbackTitle =
+        ocrTitle ||
+        text?.split('\n').find((line) => line.trim().length > 4) ||
+        'Untitled';
+
+      const book: BookSuggestion = {
+        title: fallbackTitle.trim(),
+        author: (ocrAuthor || 'Unknown Author').trim(),
+        coverUrl: imageData,
+        isbn: ocrIsbn?.trim() || undefined,
+      };
+
+      setSelectedBook(book);
+      setCapturedImage(imageData);
+      setCoverChoice('captured');
+      fetchSearchCover(fallbackTitle);
+      setView('confirm');
+      stopCamera();
+    } catch (err) {
+      console.error('Book cover OCR failed', err);
+      setOcrError('We could not read the cover. Try again or search manually.');
+    } finally {
       setIsProcessingImage(false);
-    }, 1500);
+    }
+  };
+
+  const handlePhotoSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result as string;
+      setCapturedImage(dataUrl);
+      setCameraError(null);
+      processImage(dataUrl);
+    };
+    reader.readAsDataURL(file);
   };
 
   const resetDialog = () => {
@@ -168,6 +290,9 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
     setFormat('physical');
     setSuggestions([]);
     setCapturedImage(null);
+    setCameraError(null);
+    setSearchCoverUrl(null);
+    setCoverChoice('captured');
     stopCamera();
   };
 
@@ -178,6 +303,11 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
     }
   }, [open]);
 
+  // Cleanup on unmount (important for iOS which keeps streams alive)
+  useEffect(() => {
+    return () => stopCamera();
+  }, []);
+
   const handleSubmit = () => {
     if (!selectedBook) return;
     
@@ -186,7 +316,10 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
       title: selectedBook.title,
       author: selectedBook.author,
       format,
-      coverUrl: selectedBook.coverUrl,
+      coverUrl:
+        coverChoice === 'captured'
+          ? capturedImage || selectedBook.coverUrl || searchCoverUrl || undefined
+          : searchCoverUrl || selectedBook.coverUrl || capturedImage || undefined,
       isbn: selectedBook.isbn,
     });
     
@@ -224,6 +357,14 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
         </ResponsiveDialogHeader>
         
         <ResponsiveDialogBody>
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handlePhotoSelect}
+            style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
+          />
           {/* Search View */}
           {view === 'search' && (
             <div className="space-y-4">
@@ -336,16 +477,28 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                   {!isProcessingImage && (
                     <div className="mt-4 p-4 rounded-xl bg-muted/50 border border-dashed border-border text-center">
                       <p className="text-sm text-muted-foreground">
-                        AI recognition requires Cloud to be enabled
+                        {ocrError
+                          ? ocrError
+                          : 'If the details look off, try again or search manually.'}
                       </p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="mt-2 touch-manipulation"
-                        onClick={goBack}
-                      >
-                        Search manually instead
-                      </Button>
+                      <div className="mt-3 flex flex-wrap justify-center gap-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="touch-manipulation"
+                          onClick={() => capturedImage && processImage(capturedImage)}
+                        >
+                          Retry analysis
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="touch-manipulation"
+                          onClick={goBack}
+                        >
+                          Search manually instead
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -355,6 +508,7 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                     ref={videoRef} 
                     autoPlay 
                     playsInline 
+                    muted
                     className="w-full aspect-[3/4] object-cover rounded-xl bg-muted"
                   />
                   <div className="absolute bottom-4 left-0 right-0 flex justify-center">
@@ -367,6 +521,28 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
                       <Camera className="w-6 h-6" />
                     </Button>
                   </div>
+                  {cameraError && (
+                    <div className="absolute inset-0 rounded-xl bg-background/85 backdrop-blur-sm flex flex-col items-center justify-center gap-3 p-4 text-center">
+                      <p className="text-sm text-muted-foreground">{cameraError}</p>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button
+                          type="button"
+                          onClick={() => photoInputRef.current?.click()}
+                          className="touch-manipulation"
+                        >
+                          Upload photo
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={startCamera}
+                          className="touch-manipulation"
+                        >
+                          Retry camera
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -377,17 +553,69 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
             <div className="space-y-4 sm:space-y-5">
               {/* Book preview */}
               <div className="flex gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-muted/30 border border-border relative">
-                {selectedBook.coverUrl ? (
-                  <img 
-                    src={selectedBook.coverUrl} 
-                    alt={selectedBook.title}
-                    className="w-16 h-22 sm:w-20 sm:h-28 object-cover rounded-lg shadow-md"
-                  />
-                ) : (
-                  <div className="w-16 h-22 sm:w-20 sm:h-28 bg-muted rounded-lg flex items-center justify-center">
-                    <Book className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCoverChoice('captured')}
+                      className={cn(
+                        'relative overflow-hidden w-16 h-22 sm:w-20 sm:h-28 rounded-lg border transition-all',
+                        coverChoice === 'captured'
+                          ? 'border-primary shadow-md'
+                          : 'border-border hover:border-primary/50',
+                      )}
+                      aria-label="Use captured cover"
+                    >
+                      {capturedImage ? (
+                        <img
+                          src={capturedImage}
+                          alt="Captured cover"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <Camera className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <span className="absolute bottom-1 left-1 right-1 text-[10px] text-center font-medium bg-background/80 rounded px-1">
+                        Captured
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCoverChoice('search')}
+                      disabled={!searchCoverUrl && !selectedBook.coverUrl}
+                      className={cn(
+                        'relative overflow-hidden w-16 h-22 sm:w-20 sm:h-28 rounded-lg border transition-all disabled:opacity-60 disabled:cursor-not-allowed',
+                        coverChoice === 'search'
+                          ? 'border-primary shadow-md'
+                          : 'border-border hover:border-primary/50',
+                      )}
+                      aria-label="Use search cover"
+                    >
+                      {searchCoverUrl || selectedBook.coverUrl ? (
+                        <img
+                          src={searchCoverUrl || selectedBook.coverUrl || ''}
+                          alt="Search cover"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <Book className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <span className="absolute bottom-1 left-1 right-1 text-[10px] text-center font-medium bg-background/80 rounded px-1">
+                        Search
+                      </span>
+                    </button>
                   </div>
-                )}
+
+                  <p className="text-[11px] text-muted-foreground">
+                    Tap a cover to use it. The chosen one will be saved.
+                  </p>
+                </div>
+
                 <div className="flex-1 min-w-0 py-1">
                   {isEditing ? (
                     <div className="space-y-2">

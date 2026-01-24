@@ -33,6 +33,8 @@ export function EditBookDialog({ book, open, onOpenChange, onSave }: EditBookDia
   const [author, setAuthor] = useState('');
   const [format, setFormat] = useState<BookFormat>('physical');
   const [coverUrl, setCoverUrl] = useState('');
+  const [searchCoverUrl, setSearchCoverUrl] = useState<string | null>(null);
+  const [coverChoice, setCoverChoice] = useState<'existing' | 'search'>('existing');
   const [isbn, setIsbn] = useState('');
 
   // Populate form when book changes
@@ -42,20 +44,57 @@ export function EditBookDialog({ book, open, onOpenChange, onSave }: EditBookDia
       setAuthor(book.author);
       setFormat(book.format);
       setCoverUrl(book.coverUrl || '');
+      setCoverChoice('existing');
+      setSearchCoverUrl(null);
       setIsbn(book.isbn || '');
     }
   }, [book]);
 
+  // Fetch a suggested cover from Google Books based on title
+  useEffect(() => {
+    const controller = new AbortController();
+    const fetchCover = async () => {
+      if (!title || title.trim().length < 2) {
+        setSearchCoverUrl(null);
+        return;
+      }
+      try {
+        const res = await fetch(
+          `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(title.trim())}&maxResults=1`,
+          { signal: controller.signal },
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const cover =
+          data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail?.replace('http:', 'https:') ||
+          data.items?.[0]?.volumeInfo?.imageLinks?.smallThumbnail?.replace('http:', 'https:');
+        setSearchCoverUrl(cover || null);
+      } catch {
+        // ignore fetch errors (cancel or network)
+      }
+    };
+    const timer = setTimeout(fetchCover, 400);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [title]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!book || !title.trim() || !author.trim()) return;
-    
+
+    const selectedCover =
+      coverChoice === 'search' && searchCoverUrl
+        ? searchCoverUrl
+        : coverUrl.trim() || undefined;
+
     success();
     onSave(book.id, {
       title: title.trim(),
       author: author.trim(),
       format,
-      coverUrl: coverUrl.trim() || undefined,
+      coverUrl: selectedCover,
       isbn: isbn.trim() || undefined,
     });
     
@@ -123,12 +162,64 @@ export function EditBookDialog({ book, open, onOpenChange, onSave }: EditBookDia
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="edit-cover">Cover URL (optional)</Label>
+              <Label>Cover</Label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCoverChoice('existing')}
+                  className={`relative overflow-hidden w-16 h-22 sm:w-20 sm:h-28 rounded-lg border transition-all ${
+                    coverChoice === 'existing'
+                      ? 'border-primary shadow-soft'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                  aria-label="Use current/custom cover"
+                >
+                  {coverUrl ? (
+                    <img src={coverUrl} alt="Current cover" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                      <BookIcon className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  <span className="absolute bottom-1 left-1 right-1 text-[10px] text-center font-medium bg-background/80 rounded px-1">
+                    Current
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCoverChoice('search')}
+                  disabled={!searchCoverUrl}
+                  className={`relative overflow-hidden w-16 h-22 sm:w-20 sm:h-28 rounded-lg border transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
+                    coverChoice === 'search'
+                      ? 'border-primary shadow-soft'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                  aria-label="Use searched cover"
+                >
+                  {searchCoverUrl ? (
+                    <img src={searchCoverUrl} alt="Search cover" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                      <BookIcon className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  <span className="absolute bottom-1 left-1 right-1 text-[10px] text-center font-medium bg-background/80 rounded px-1">
+                    Search
+                  </span>
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Tap to switch covers. Edit the URL below to set a custom image.
+              </p>
               <Input
                 id="edit-cover"
                 placeholder="https://..."
                 value={coverUrl}
-                onChange={(e) => setCoverUrl(e.target.value)}
+                onChange={(e) => {
+                  setCoverUrl(e.target.value);
+                  setCoverChoice('existing');
+                }}
                 className="bg-background"
                 maxLength={500}
               />

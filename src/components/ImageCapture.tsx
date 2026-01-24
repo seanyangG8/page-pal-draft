@@ -1669,7 +1669,7 @@ export function ImageCapture({
           accept="image/*"
           capture="environment"
           onChange={handleFileSelect}
-          className="hidden"
+          style={{ position: 'absolute', opacity: 0, width: 1, height: 1 }}
         />
         <div className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center">
@@ -1680,10 +1680,22 @@ export function ImageCapture({
             <p className="text-sm text-muted-foreground mt-1">We'll extract the text when you tap extract.</p>
           </div>
           <div className="flex gap-2">
-            <Button type="button" variant="secondary" size="sm" className="gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="gap-2"
+              onClick={() => fileInputRef.current?.click()}
+            >
               <Camera className="w-4 h-4" /> Take photo
             </Button>
-            <Button type="button" variant="outline" size="sm" className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => fileInputRef.current?.click()}
+            >
               <Upload className="w-4 h-4" /> Upload
             </Button>
           </div>
@@ -1848,10 +1860,7 @@ export function ImageCapture({
                           width: currentSize,
                           height: currentSize,
                           transform: 'translate(-50%, -50%)',
-                          border:
-                            activeTool === 'eraser'
-                              ? `1px solid ${TOOL_ACCENT_ERASER}`
-                              : `1px solid ${PEN_COLOR}`,
+                          border: activeTool === 'eraser' ? `1px solid ${TOOL_ACCENT_ERASER}` : 'none',
                           backgroundColor: activeTool === 'pen' ? PEN_COLOR : 'transparent',
                         }}
                       />
@@ -1869,10 +1878,7 @@ export function ImageCapture({
                           width: currentSize,
                           height: currentSize,
                           transform: 'translate(-50%, -50%)',
-                          border:
-                            activeTool === 'eraser'
-                              ? `1px solid ${TOOL_ACCENT_ERASER}`
-                              : `1px solid ${PEN_COLOR}`,
+                          border: activeTool === 'eraser' ? `1px solid ${TOOL_ACCENT_ERASER}` : 'none',
                           backgroundColor: activeTool === 'pen' ? PEN_COLOR : 'transparent',
                         }}
                       />
@@ -1918,7 +1924,7 @@ export function ImageCapture({
               disabled={ocrLoading || !hasHighlights || !onRequestOCR}
               className="w-full"
             >
-              {`Extract highlights${hasHighlights ? ` (${strokes.length})` : ''}`}
+              Extract highlights
             </Button>
           </div>
         )}
