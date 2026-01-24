@@ -31,7 +31,7 @@ interface ImageCaptureProps {
   capturedImage: { url: string; extractedText?: string } | null;
   onClear: () => void;
   onUseAsText?: (text: string) => void;
-  onRequestOCR?: (base64: string, mimeType?: string) => Promise<string | undefined>;
+  onRequestOCR?: (base64: string, mimeType?: string, instruction?: string) => Promise<string | undefined>;
 }
 
 type Point = { x: number; y: number }; // normalized (0..1) in canvas space
@@ -42,7 +42,7 @@ type Stroke = {
 };
 type SelectionRect = { x: number; y: number; width: number; height: number }; // normalized
 
-const ENABLE_REFINEMENT_DEBUG = false;
+const ENABLE_REFINEMENT_DEBUG = true;
 const REFINEMENT_CONFIG = {
   thresholding: 'adaptive' as const,
   fixedThreshold: 165,
@@ -71,7 +71,13 @@ const REFINEMENT_CONFIG = {
   smallStrokeMaxPx: 16,
   wordRoiPadPx: 10,
   minComponentPixels: 12,
+  minBandStrokeRatio: 0.18,
+  minBandStrokePoints: 3,
 };
+
+const MAX_OCR_RECTS = 5;
+const OCR_STRICT_INSTRUCTION =
+  'Extract ONLY text that is visible (non-white) in the image. Do NOT guess missing words. Return exactly what you can see. If text is partial, return partial.';
 
 export function ImageCapture({
   onCapture,
@@ -193,6 +199,80 @@ export function ImageCapture({
     const bottom = clamp(rect.y + rect.height, bounds.y, bounds.y + bounds.height);
     return { x: left, y: top, width: Math.max(1, right - left), height: Math.max(1, bottom - top) };
   };
+
+  const buildHighlightMaskedImage = (
+    baseImage: HTMLImageElement,
+    strokeList: Stroke[],
+    canvasSize: { width: number; height: number },
+  ): { base64: string; mimeType: string } | null => {
+    if (!strokeList.length || !canvasSize.width || !canvasSize.height) return null;
+    const { naturalWidth: imgW, naturalHeight: imgH } = baseImage;
+    if (!imgW || !imgH) return null;
+
+    const widthScale = imgW / canvasSize.width;
+    const heightScale = imgH / canvasSize.height;
+    const lineScale = Math.max(widthScale, heightScale);
+
+    const imgCanvas = document.createElement('canvas');
+    imgCanvas.width = imgW;
+    imgCanvas.height = imgH;
+    const imgCtx = imgCanvas.getContext('2d');
+    if (!imgCtx) return null;
+    imgCtx.drawImage(baseImage, 0, 0, imgW, imgH);
+
+    const maskCanvas = document.createElement('canvas');
+    maskCanvas.width = imgW;
+    maskCanvas.height = imgH;
+    const maskCtx = maskCanvas.getContext('2d');
+    if (!maskCtx) return null;
+    maskCtx.strokeStyle = 'black';
+    maskCtx.lineCap = 'round';
+    maskCtx.lineJoin = 'round';
+
+    const drawStrokeToCtx = (ctx: CanvasRenderingContext2D, pts: Point[], width: number) => {
+      if (pts.length < 2) return;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x * imgW, pts[0].y * imgH);
+      for (let i = 1; i < pts.length - 1; i++) {
+        const midX = ((pts[i].x + pts[i + 1].x) / 2) * imgW;
+        const midY = ((pts[i].y + pts[i + 1].y) / 2) * imgH;
+        ctx.quadraticCurveTo(pts[i].x * imgW, pts[i].y * imgH, midX, midY);
+      }
+      ctx.lineTo(pts[pts.length - 1].x * imgW, pts[pts.length - 1].y * imgH);
+      ctx.stroke();
+    };
+
+    strokeList.forEach((stroke) => {
+      if (stroke.points.length < 2) return;
+      const baseWidth = stroke.lineWidth * lineScale;
+      drawStrokeToCtx(maskCtx, stroke.points, baseWidth);
+      drawStrokeToCtx(maskCtx, stroke.points, baseWidth + 4); // small expansion to keep full glyphs
+    });
+
+    const resultCanvas = document.createElement('canvas');
+    resultCanvas.width = imgW;
+    resultCanvas.height = imgH;
+    const resultCtx = resultCanvas.getContext('2d');
+    if (!resultCtx) return null;
+
+    resultCtx.fillStyle = '#ffffff';
+    resultCtx.fillRect(0, 0, imgW, imgH);
+    resultCtx.drawImage(imgCanvas, 0, 0);
+    resultCtx.globalCompositeOperation = 'destination-in';
+    resultCtx.drawImage(maskCanvas, 0, 0);
+    resultCtx.globalCompositeOperation = 'destination-over';
+    resultCtx.fillStyle = '#ffffff';
+    resultCtx.fillRect(0, 0, imgW, imgH);
+    resultCtx.globalCompositeOperation = 'source-over';
+
+    const dataUrl = resultCanvas.toDataURL('image/png');
+    if (ENABLE_REFINEMENT_DEBUG) {
+      console.log('[ImageCapture] highlight mask preview', dataUrl);
+    }
+    const [, base64] = dataUrl.split(',');
+    return { base64, mimeType: 'image/png' };
+  };
   const buildInkMask = (
     imageData: ImageData,
     width: number,
@@ -253,7 +333,8 @@ export function ImageCapture({
     return { mask, inkCount, meanLuminance: mean };
   };
 
-  const refineRectFromStrokes = async (): Promise<SelectionRect | null> => {
+  // Build one or more tight rects around highlights; multi-line highlights are split per line
+  const refineRectFromStrokes = async (): Promise<SelectionRect[] | null> => {
     const canvas = canvasRef.current;
     const img = imgRef.current;
     if (!canvas || !img || strokes.length === 0) return null;
@@ -294,8 +375,11 @@ export function ImageCapture({
       height: clamp(maxY + padY, 0, img.naturalHeight) - clamp(minY - padY, 0, img.naturalHeight),
     };
 
-    if (strokeBounds.width < REFINEMENT_CONFIG.minRectWidthPx || strokeBounds.height < REFINEMENT_CONFIG.minRectHeightPx) {
-      return clampRectToUnit(imageToNormalizedRect(strokeBounds, img));
+    if (
+      strokeBounds.width < REFINEMENT_CONFIG.minRectWidthPx ||
+      strokeBounds.height < REFINEMENT_CONFIG.minRectHeightPx
+    ) {
+      return [clampRectToUnit(imageToNormalizedRect(strokeBounds, img))];
     }
 
     const cropX = Math.floor(strokeBounds.x);
@@ -307,7 +391,7 @@ export function ImageCapture({
     temp.width = cropW;
     temp.height = cropH;
     const ctx = temp.getContext('2d');
-    if (!ctx) return clampRectToUnit(imageToNormalizedRect(strokeBounds, img));
+    if (!ctx) return [clampRectToUnit(imageToNormalizedRect(strokeBounds, img))];
 
     ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
     const imageData = ctx.getImageData(0, 0, cropW, cropH);
@@ -652,43 +736,378 @@ export function ImageCapture({
       }
     }
 
-    refinedImageRect = clampRectToBounds(refinedImageRect, strokeBounds);
-    if (refinedImageRect.width < REFINEMENT_CONFIG.minRectWidthPx || refinedImageRect.height < REFINEMENT_CONFIG.minRectHeightPx) {
-      refinedImageRect = snappedRect;
+    const rects: SelectionRect[] = [];
+
+    const pushNormalizedRect = (rect: { x: number; y: number; width: number; height: number }) => {
+      // enforce a minimum size but without expanding to the full strokeBounds width
+      let { x, y, width, height } = rect;
+      if (width < REFINEMENT_CONFIG.minRectWidthPx) {
+        const delta = (REFINEMENT_CONFIG.minRectWidthPx - width) / 2;
+        x = clamp(x - delta, 0, img.naturalWidth - 1);
+        const right = clamp(x + REFINEMENT_CONFIG.minRectWidthPx, 0, img.naturalWidth);
+        width = Math.max(1, right - x);
+      }
+      if (height < REFINEMENT_CONFIG.minRectHeightPx) {
+        const delta = (REFINEMENT_CONFIG.minRectHeightPx - height) / 2;
+        y = clamp(y - delta, 0, img.naturalHeight - 1);
+        const bottom = clamp(y + REFINEMENT_CONFIG.minRectHeightPx, 0, img.naturalHeight);
+        height = Math.max(1, bottom - y);
+      }
+      const clamped = clampRectToBounds({ x, y, width, height }, {
+        x: 0,
+        y: 0,
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+      });
+      rects.push(clampRectToUnit(imageToNormalizedRect(clamped, img)));
+    };
+
+    // Build stroke-based vertical bands in case text-band detection merges lines; this keeps rectangles aligned to highlighted strokes.
+    const strokePoints: Array<{ x: number; y: number; halfWidthX: number; halfWidthY: number }> = [];
+    strokes.forEach((stroke) => {
+      const halfX = (stroke.lineWidth * scaleX) / 2;
+      const halfY = (stroke.lineWidth * scaleY) / 2;
+      stroke.points.forEach((pt) => {
+        strokePoints.push({
+          x: pt.x * canvas.width * scaleX,
+          y: pt.y * canvas.height * scaleY,
+          halfWidthX: halfX,
+          halfWidthY: halfY,
+        });
+      });
+    });
+
+    const strokeBandsPx: Array<{ top: number; bottom: number }> = [];
+    if (strokePoints.length > 0) {
+      const sorted = [...strokePoints].sort((a, b) => a.y - b.y);
+      const lineHeightGuess = Math.max(
+        estimatedLineHeight || 0,
+        rawStrokeBounds.height / Math.max(1, includedBands.length || 1),
+        maxLineWidth * scaleY,
+      );
+      const gapThreshold = Math.max(4, lineHeightGuess * 0.35);
+      let bandTop = sorted[0].y - sorted[0].halfWidthY;
+      let bandBottom = sorted[0].y + sorted[0].halfWidthY;
+      for (let i = 1; i < sorted.length; i++) {
+        const p = sorted[i];
+        const prev = sorted[i - 1];
+        if (p.y - prev.y > gapThreshold) {
+          strokeBandsPx.push({ top: bandTop, bottom: bandBottom });
+          bandTop = p.y - p.halfWidthY;
+          bandBottom = p.y + p.halfWidthY;
+        } else {
+          bandTop = Math.min(bandTop, p.y - p.halfWidthY);
+          bandBottom = Math.max(bandBottom, p.y + p.halfWidthY);
+        }
+      }
+      strokeBandsPx.push({ top: bandTop, bottom: bandBottom });
     }
 
-    const refinedRect = clampRectToUnit(imageToNormalizedRect(refinedImageRect, img));
-    if (ENABLE_REFINEMENT_DEBUG) {
-      const windowRect = clampRectToUnit(
-        imageToNormalizedRect(
-          {
-            x: strokeBounds.x,
-            y: cropY + startRow,
-            width: strokeBounds.width,
-            height: Math.max(1, endRow - startRow + 1),
-          },
-          img,
-        ),
-      );
-      debugRectsRef.current = {
-        roi: debugRectsRef.current?.roi,
-        wordBox: debugRectsRef.current?.wordBox,
-        initial: clampRectToUnit(imageToNormalizedRect(strokeBounds, img)),
-        tightened: clampRectToUnit(imageToNormalizedRect(tightenedImageRect, img)),
-        refined: refinedRect,
-        window: windowRect,
-        bands: detectedBands.map((band) => ({
-          start: (cropY + startRow + band.start) / img.naturalHeight,
-          end: (cropY + startRow + band.end) / img.naturalHeight,
-        })),
-        included: includedBands.map((band) => ({
-          start: (cropY + startRow + band.start) / img.naturalHeight,
-          end: (cropY + startRow + band.end) / img.naturalHeight,
-        })),
+    const textBandsPx = includedBands.map((band) => {
+      const bandTopLocal = startRow + band.start;
+      const bandBottomLocal = startRow + band.end;
+      return {
+        top: cropY + bandTopLocal,
+        bottom: cropY + bandBottomLocal,
       };
-      requestAnimationFrame(() => drawOverlay());
+    });
+
+    let bandsForRects: Array<{ top: number; bottom: number }> = [];
+    if (textBandsPx.length > 1) {
+      bandsForRects = textBandsPx;
+    } else if (textBandsPx.length <= 1 && strokeBandsPx.length > 1) {
+      // Text detection collapsed bands; fall back to stroke-based bands to keep per-line cropping.
+      bandsForRects = strokeBandsPx;
+    } else if (textBandsPx.length === 1) {
+      bandsForRects = textBandsPx;
+    } else {
+      bandsForRects = strokeBandsPx;
     }
-    return refinedRect;
+
+    // Filter out bands that are barely touched by strokes (avoids accidental inclusion when a stroke grazes an adjacent line).
+    if (bandsForRects.length > 0 && strokePoints.length > 0) {
+      bandsForRects = bandsForRects.filter((band) => {
+        const bandTop = band.top - REFINEMENT_CONFIG.verticalPaddingPx;
+        const bandBottom = band.bottom + REFINEMENT_CONFIG.verticalPaddingPx;
+        let hitCount = 0;
+        for (const p of strokePoints) {
+          if (p.y + p.halfWidthY >= bandTop && p.y - p.halfWidthY <= bandBottom) {
+            hitCount += 1;
+          }
+        }
+        const ratio = hitCount / strokePoints.length;
+        return (
+          hitCount >= REFINEMENT_CONFIG.minBandStrokePoints &&
+          ratio >= REFINEMENT_CONFIG.minBandStrokeRatio
+        );
+      });
+    }
+
+    // Fallback: if we still have a single wide band, try to split it using ink gaps inside the band.
+    if (bandsForRects.length === 1) {
+      const band = bandsForRects[0];
+      const bandTopLocal = clamp(Math.floor(band.top - cropY), 0, cropH - 1);
+      const bandBottomLocal = clamp(Math.floor(band.bottom - cropY), 0, cropH - 1);
+      const rowInk: number[] = [];
+      for (let y = bandTopLocal; y <= bandBottomLocal; y++) {
+        let count = 0;
+        const rowOffset = y * cropW;
+        for (let x = 0; x < cropW; x++) {
+          if (mask[rowOffset + x]) count += 1;
+        }
+        rowInk.push(count);
+      }
+      const gapThreshold = Math.max(2, Math.floor(REFINEMENT_CONFIG.minLineHeightPx / 2));
+      const minBandHeight = REFINEMENT_CONFIG.minLineHeightPx;
+      const splitBands: Array<{ top: number; bottom: number }> = [];
+      let runStart = -1;
+      let zeros = 0;
+      for (let i = 0; i < rowInk.length; i++) {
+        if (rowInk[i] > 0) {
+          if (runStart === -1) runStart = i;
+          zeros = 0;
+        } else if (runStart !== -1) {
+          zeros += 1;
+          if (zeros >= gapThreshold) {
+            const end = i - zeros;
+            if (end - runStart + 1 >= minBandHeight) {
+              splitBands.push({
+                top: cropY + bandTopLocal + runStart,
+                bottom: cropY + bandTopLocal + end,
+              });
+            }
+            runStart = -1;
+            zeros = 0;
+          }
+        }
+      }
+      if (runStart !== -1 && rowInk.length - runStart >= minBandHeight) {
+        splitBands.push({
+          top: cropY + bandTopLocal + runStart,
+          bottom: cropY + bandTopLocal + rowInk.length - 1,
+        });
+      }
+      if (splitBands.length > 1) {
+        bandsForRects = splitBands;
+        if (ENABLE_REFINEMENT_DEBUG) {
+          console.groupCollapsed('[ImageCapture] fallback split bands');
+          console.log('rowInk length', rowInk.length);
+          console.log('splitBands', splitBands);
+          console.groupEnd();
+        }
+      }
+    }
+
+    if (ENABLE_REFINEMENT_DEBUG) {
+      console.groupCollapsed('[ImageCapture] bandsForRects (final)');
+      console.log('bandsForRects', bandsForRects);
+      console.log('hasMultipleBands', bandsForRects.length > 1);
+      console.groupEnd();
+    }
+
+    const hasMultipleBands = bandsForRects.length > 1;
+
+    if (ENABLE_REFINEMENT_DEBUG) {
+      console.groupCollapsed('[ImageCapture] refineRectFromStrokes');
+      console.log('strokeBounds', strokeBounds);
+      console.log('rawStrokeBounds', rawStrokeBounds);
+      console.log('includedBands', includedBands);
+      console.log('strokePoints count', strokePoints.length);
+      console.log('strokeBandsPx', strokeBandsPx);
+      console.log('textBandsPx', textBandsPx);
+      console.log('bandsForRects (pre-merge)', bandsForRects);
+      console.groupEnd();
+    }
+
+    if (hasMultipleBands) {
+      const horizPad = REFINEMENT_CONFIG.horizontalPaddingPx;
+      const vertPad = REFINEMENT_CONFIG.verticalPaddingPx;
+
+      // Enforce an upper bound on OCR calls; merge adjacent bands if needed.
+      if (bandsForRects.length > MAX_OCR_RECTS) {
+        const chunkSize = Math.ceil(bandsForRects.length / MAX_OCR_RECTS);
+        const merged: Array<{ top: number; bottom: number }> = [];
+        for (let i = 0; i < bandsForRects.length; i += chunkSize) {
+          const slice = bandsForRects.slice(i, i + chunkSize);
+          merged.push({
+            top: slice[0].top,
+            bottom: slice[slice.length - 1].bottom,
+          });
+        }
+        bandsForRects = merged;
+      }
+
+      const perBandRects: SelectionRect[] = [];
+      bandsForRects.forEach((band) => {
+        const bandTop = clamp(band.top, 0, img.naturalHeight - 1);
+        const bandBottom = clamp(band.bottom, bandTop, img.naturalHeight - 1);
+
+        let bandMinX = Number.POSITIVE_INFINITY;
+        let bandMaxX = Number.NEGATIVE_INFINITY;
+        const bandTopLocalPx = clamp(Math.floor(bandTop - cropY), 0, cropH - 1);
+        const bandBottomLocalPx = clamp(Math.floor(bandBottom - cropY), 0, cropH - 1);
+
+        // Only consider stroke points that live inside this band (with a small vertical pad for jitter).
+        strokes.forEach((stroke) => {
+          const strokeHalfWidth = (stroke.lineWidth * scaleX) / 2;
+          stroke.points.forEach((pt) => {
+            const xPx = pt.x * canvas.width * scaleX;
+            const yPx = pt.y * canvas.height * scaleY;
+            if (yPx >= bandTop - vertPad && yPx <= bandBottom + vertPad) {
+              bandMinX = Math.min(bandMinX, xPx - strokeHalfWidth);
+              bandMaxX = Math.max(bandMaxX, xPx + strokeHalfWidth);
+            }
+          });
+        });
+
+        // Fallback to strokeBounds if no points were collected (should be rare)
+        if (!Number.isFinite(bandMinX) || !Number.isFinite(bandMaxX)) {
+          bandMinX = strokeBounds.x;
+          bandMaxX = strokeBounds.x + strokeBounds.width;
+        }
+
+        const left = clamp(bandMinX - horizPad, 0, img.naturalWidth - 1);
+        const right = clamp(bandMaxX + horizPad, 0, img.naturalWidth - 1);
+        const top = clamp(bandTop - vertPad, 0, img.naturalHeight - 1);
+        const bottom = clamp(bandBottom + vertPad, 0, img.naturalHeight - 1);
+
+        // Within this band, keep only ink components that are at least 50% covered horizontally by the highlight span.
+        const highlightLeftLocal = clamp(Math.floor(left - cropX), 0, cropW - 1);
+        const highlightRightLocal = clamp(Math.floor(right - cropX), 0, cropW - 1);
+        const visited = new Uint8Array(cropW * cropH);
+        let compMinX = Number.POSITIVE_INFINITY;
+        let compMaxX = Number.NEGATIVE_INFINITY;
+        let compMinY = Number.POSITIVE_INFINITY;
+        let compMaxY = Number.NEGATIVE_INFINITY;
+        const minCoverage = 0.5;
+
+        const pushIdx = (stack: number[], idx: number) => {
+          stack.push(idx);
+          visited[idx] = 1;
+        };
+
+        const processComponent = (startX: number, startY: number) => {
+          const stack: number[] = [];
+          pushIdx(stack, startY * cropW + startX);
+          let area = 0;
+          let covered = 0;
+          let localMinX = startX;
+          let localMaxX = startX;
+          let localMinY = startY;
+          let localMaxY = startY;
+
+          while (stack.length) {
+            const idx = stack.pop() as number;
+            const y = Math.floor(idx / cropW);
+            const x = idx - y * cropW;
+            area += 1;
+            if (x >= highlightLeftLocal && x <= highlightRightLocal) covered += 1;
+            if (x < localMinX) localMinX = x;
+            if (x > localMaxX) localMaxX = x;
+            if (y < localMinY) localMinY = y;
+            if (y > localMaxY) localMaxY = y;
+
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const ny = y + dy;
+                const nx = x + dx;
+                if (ny < bandTopLocalPx || ny > bandBottomLocalPx || nx < 0 || nx >= cropW) continue;
+                const nIdx = ny * cropW + nx;
+                if (visited[nIdx] || !mask[nIdx]) continue;
+                pushIdx(stack, nIdx);
+              }
+            }
+          }
+
+          if (area > 0 && covered / area >= minCoverage) {
+            compMinX = Math.min(compMinX, localMinX);
+            compMaxX = Math.max(compMaxX, localMaxX);
+            compMinY = Math.min(compMinY, localMinY);
+            compMaxY = Math.max(compMaxY, localMaxY);
+          }
+        };
+
+        for (let y = bandTopLocalPx; y <= bandBottomLocalPx; y++) {
+          const rowOffset = y * cropW;
+          for (let x = 0; x < cropW; x++) {
+            const idx = rowOffset + x;
+            if (visited[idx] || !mask[idx]) continue;
+            processComponent(x, y);
+          }
+        }
+
+        if (Number.isFinite(compMinX) && Number.isFinite(compMaxX)) {
+          const compLeft = clamp(compMinX + cropX - horizPad, 0, img.naturalWidth - 1);
+          const compRight = clamp(compMaxX + cropX + horizPad, 0, img.naturalWidth - 1);
+          const compTop = clamp(compMinY + cropY - vertPad, 0, img.naturalHeight - 1);
+          const compBottom = clamp(compMaxY + cropY + vertPad, 0, img.naturalHeight - 1);
+
+          const rect = clampRectToUnit(imageToNormalizedRect({
+            x: compLeft,
+            y: compTop,
+            width: Math.max(1, compRight - compLeft + 1),
+            height: Math.max(1, compBottom - compTop + 1),
+          }, img));
+          perBandRects.push(rect);
+          return;
+        }
+
+        const rect = clampRectToUnit(imageToNormalizedRect({
+          x: left,
+          y: top,
+          width: Math.max(1, right - left + 1),
+          height: Math.max(1, bottom - top + 1),
+        }, img));
+        perBandRects.push(rect);
+      });
+
+      if (ENABLE_REFINEMENT_DEBUG) {
+        console.groupCollapsed('[ImageCapture] per-band rects');
+        perBandRects.forEach((r, i) => console.log(`rect ${i}`, r));
+        console.groupEnd();
+      }
+
+      perBandRects.forEach((r) => rects.push(r));
+    } else {
+      // Single line or small stroke: keep existing refined single rect behaviour
+      refinedImageRect = clampRectToBounds(refinedImageRect, strokeBounds);
+
+      const refinedRect = clampRectToUnit(imageToNormalizedRect(refinedImageRect, img));
+      if (ENABLE_REFINEMENT_DEBUG) {
+        const windowRect = clampRectToUnit(
+          imageToNormalizedRect(
+            {
+              x: strokeBounds.x,
+              y: cropY + startRow,
+              width: strokeBounds.width,
+              height: Math.max(1, endRow - startRow + 1),
+            },
+            img,
+          ),
+        );
+        debugRectsRef.current = {
+          roi: debugRectsRef.current?.roi,
+          wordBox: debugRectsRef.current?.wordBox,
+          initial: clampRectToUnit(imageToNormalizedRect(strokeBounds, img)),
+          tightened: clampRectToUnit(imageToNormalizedRect(tightenedImageRect, img)),
+          refined: refinedRect,
+          window: windowRect,
+          bands: detectedBands.map((band) => ({
+            start: (cropY + startRow + band.start) / img.naturalHeight,
+            end: (cropY + startRow + band.end) / img.naturalHeight,
+          })),
+          included: includedBands.map((band) => ({
+            start: (cropY + startRow + band.start) / img.naturalHeight,
+            end: (cropY + startRow + band.end) / img.naturalHeight,
+          })),
+        };
+        requestAnimationFrame(() => drawOverlay());
+      }
+      pushNormalizedRect(refinedImageRect);
+    }
+
+    return rects.length ? rects : null;
   };
   const dataUrlToBase64 = async (url: string): Promise<{ base64: string; mimeType: string }> => {
     if (url.startsWith('data:')) {
@@ -922,7 +1341,7 @@ export function ImageCapture({
     setResultsError(null);
     try {
       const { base64, mimeType } = await dataUrlToBase64(capturedImage.url);
-      const text = await onRequestOCR(base64, mimeType);
+      const text = await onRequestOCR(base64, mimeType, OCR_STRICT_INSTRUCTION);
       const normalized = normalizeExtractedText(text);
       if (normalized) {
         onCapture({ ...capturedImage, extractedText: normalized });
@@ -950,7 +1369,7 @@ export function ImageCapture({
     try {
       const payload = await getSelectionDataUrl(rect);
       if (!payload) return;
-      const text = await onRequestOCR(payload.base64, payload.mimeType);
+      const text = await onRequestOCR(payload.base64, payload.mimeType, OCR_STRICT_INSTRUCTION);
       const normalized = normalizeExtractedText(text);
       if (normalized) {
         onCapture({ ...capturedImage, extractedText: normalized });
@@ -972,16 +1391,55 @@ export function ImageCapture({
   };
 
   const extractHighlights = async () => {
-    if (!hasHighlights) return;
+    if (!hasHighlights || !onRequestOCR || !capturedImage) return;
     setLastAction('highlight');
-    const refined = await refineRectFromStrokes();
-    if (!refined) {
-      setResultsText('');
-      setResultsError(null);
+    setOcrLoading(true);
+    setResultsError(null);
+
+    try {
+      const rects = await refineRectFromStrokes();
+      if (!rects || rects.length === 0) {
+        setResultsText('');
+        setResultsOpen(true);
+        return;
+      }
+
+      const img = imgRef.current;
+      const canvas = canvasRef.current;
+      if (!img || !canvas) {
+        setResultsText('');
+        setResultsError('Image not ready. Please try again.');
+        setResultsOpen(true);
+        return;
+      }
+
+      const masked = buildHighlightMaskedImage(img, strokes, {
+        width: canvas.width || canvas.clientWidth || img.clientWidth || img.naturalWidth,
+        height: canvas.height || canvas.clientHeight || img.clientHeight || img.naturalHeight,
+      });
+
+      if (!masked) {
+        setResultsText('');
+        setResultsOpen(true);
+        return;
+      }
+
+      const text = await onRequestOCR(masked.base64, masked.mimeType, OCR_STRICT_INSTRUCTION);
+      const normalized = normalizeExtractedText(text);
+
+      if (normalized) {
+        onCapture({ ...capturedImage, extractedText: normalized });
+      }
+      setResultsText(normalized);
       setResultsOpen(true);
-      return;
+    } catch (err) {
+      console.error('OCR highlight failed', err);
+      setResultsText('');
+      setResultsError('Extraction failed. Please try again.');
+      setResultsOpen(true);
+    } finally {
+      setOcrLoading(false);
     }
-    await extractRect(refined);
   };
 
   const extractSelection = async () => {
