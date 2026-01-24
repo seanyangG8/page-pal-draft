@@ -12,6 +12,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Slider } from '@/components/ui/slider';
 import { toast } from '@/components/ui/use-toast';
 import {
   Camera,
@@ -24,7 +25,12 @@ import {
   MoreVertical,
   Type,
   Undo2,
+  Eraser,
 } from 'lucide-react';
+
+const PEN_COLOR = 'rgba(245, 158, 11, 1)';
+const TOOL_ACCENT_PEN = '#0ea5e9';
+const TOOL_ACCENT_ERASER = '#64748b';
 
 interface ImageCaptureProps {
   onCapture: (data: { url: string; extractedText?: string }) => void;
@@ -40,6 +46,7 @@ type Stroke = {
   lineWidth: number;
   bbox: { minX: number; minY: number; maxX: number; maxY: number }; // normalized
 };
+type EraseStroke = Stroke;
 type SelectionRect = { x: number; y: number; width: number; height: number }; // normalized
 
 const ENABLE_REFINEMENT_DEBUG = true;
@@ -91,12 +98,19 @@ export function ImageCapture({
   const imgRef = useRef<HTMLImageElement>(null);
 
   const [mode, setMode] = useState<'highlight' | 'select' | 'text'>('text');
-  const [size, setSize] = useState(12); // px thickness
+  const [penSize, setPenSize] = useState(12);
+  const [eraserSize, setEraserSize] = useState(16);
+  const [activeTool, setActiveTool] = useState<'pen' | 'eraser'>('pen');
   const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const [eraserStrokes, setEraserStrokes] = useState<EraseStroke[]>([]);
+  const [history, setHistory] = useState<{ strokes: Stroke[]; erasers: EraseStroke[] }[]>([]);
   const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
   const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef<Point | null>(null);
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
+  const [cursorVisible, setCursorVisible] = useState(false);
+  const [thicknessOpen, setThicknessOpen] = useState(false);
 
   const [ocrLoading, setOcrLoading] = useState(false);
   const [resultsOpen, setResultsOpen] = useState(false);
@@ -114,12 +128,7 @@ export function ImageCapture({
     bands?: Array<{ start: number; end: number }>;
     included?: Array<{ start: number; end: number }>;
   } | null>(null);
-
-  const sizePresets = [
-    { label: 'S', value: 8 },
-    { label: 'M', value: 12 },
-    { label: 'L', value: 18 },
-  ];
+  const currentSize = activeTool === 'pen' ? penSize : eraserSize;
 
   const hasHighlights = strokes.length > 0;
   const hasSelection = !!selectionRect && selectionRect.width > 0 && selectionRect.height > 0;
@@ -158,6 +167,29 @@ export function ImageCapture({
   };
 
   const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+  const cloneStroke = (stroke: Stroke): Stroke => ({
+    lineWidth: stroke.lineWidth,
+    bbox: { ...stroke.bbox },
+    points: stroke.points.map((p) => ({ ...p })),
+  });
+  const cloneErase = (stroke: EraseStroke): EraseStroke => cloneStroke(stroke);
+  const pushHistory = () => {
+    setHistory((prev) => {
+      const snapshot = { strokes: strokes.map(cloneStroke), erasers: eraserStrokes.map(cloneErase) };
+      const next = [...prev, snapshot];
+      return next.length > 30 ? next.slice(-30) : next;
+    });
+  };
+  const restoreHistory = () => {
+    setHistory((prev) => {
+      if (!prev.length) return prev;
+      const next = [...prev];
+      const latest = next.pop() as { strokes: Stroke[]; erasers: EraseStroke[] };
+      setStrokes(latest.strokes.map(cloneStroke));
+      setEraserStrokes(latest.erasers.map(cloneErase));
+      return next;
+    });
+  };
   const rectFromBounds = (minX: number, minY: number, maxX: number, maxY: number): SelectionRect => ({
     x: minX,
     y: minY,
@@ -200,9 +232,40 @@ export function ImageCapture({
     return { x: left, y: top, width: Math.max(1, right - left), height: Math.max(1, bottom - top) };
   };
 
+  const beginEraserStroke = (start: Point) => {
+    const stroke: EraseStroke = {
+      points: [start],
+      lineWidth: eraserSize,
+      bbox: { minX: start.x, minY: start.y, maxX: start.x, maxY: start.y },
+    };
+    setEraserStrokes((prev) => [...prev, stroke]);
+  };
+
+  const extendEraserStroke = (pt: Point) => {
+    setEraserStrokes((prev) => {
+      if (!prev.length) return prev;
+      const next = [...prev];
+      const stroke = { ...next[next.length - 1] };
+      if (stroke.points.length === 0) return next;
+      const last = stroke.points[stroke.points.length - 1];
+      const distance = Math.hypot(pt.x - last.x, pt.y - last.y);
+      if (distance < 0.003) return next;
+      stroke.points = [...stroke.points, pt];
+      stroke.bbox = {
+        minX: Math.min(stroke.bbox.minX, pt.x),
+        minY: Math.min(stroke.bbox.minY, pt.y),
+        maxX: Math.max(stroke.bbox.maxX, pt.x),
+        maxY: Math.max(stroke.bbox.maxY, pt.y),
+      };
+      next[next.length - 1] = stroke;
+      return next;
+    });
+  };
+
   const buildHighlightMaskedImage = (
     baseImage: HTMLImageElement,
     strokeList: Stroke[],
+    eraserList: EraseStroke[],
     canvasSize: { width: number; height: number },
   ): { base64: string; mimeType: string } | null => {
     if (!strokeList.length || !canvasSize.width || !canvasSize.height) return null;
@@ -249,6 +312,15 @@ export function ImageCapture({
       drawStrokeToCtx(maskCtx, stroke.points, baseWidth);
       drawStrokeToCtx(maskCtx, stroke.points, baseWidth + 4); // small expansion to keep full glyphs
     });
+
+    if (eraserList.length) {
+      maskCtx.globalCompositeOperation = 'destination-out';
+      eraserList.forEach((stroke) => {
+        const baseWidth = stroke.lineWidth * lineScale;
+        drawStrokeToCtx(maskCtx, stroke.points, baseWidth);
+      });
+      maskCtx.globalCompositeOperation = 'source-over';
+    }
 
     const resultCanvas = document.createElement('canvas');
     resultCanvas.width = imgW;
@@ -341,7 +413,7 @@ export function ImageCapture({
 
     const scaleX = img.naturalWidth / (canvas.width || img.naturalWidth);
     const scaleY = img.naturalHeight / (canvas.height || img.naturalHeight);
-    const maxLineWidth = strokes.reduce((acc, s) => Math.max(acc, s.lineWidth), 0) || size;
+    const maxLineWidth = strokes.reduce((acc, s) => Math.max(acc, s.lineWidth), 0) || currentSize;
     const padX = maxLineWidth * REFINEMENT_CONFIG.strokePadMultiplier * scaleX;
     const padY = maxLineWidth * REFINEMENT_CONFIG.strokePadMultiplier * scaleY;
 
@@ -1138,17 +1210,25 @@ export function ImageCapture({
     if ('touches' in evt && evt.touches.length > 1) return;
     const coords = getCanvasCoords(evt);
     if (!coords) return;
+    pushHistory();
     setIsDragging(true);
     dragStart.current = coords;
+    setCursorPos({
+      x: coords.x * (canvasRef.current?.width || 1),
+      y: coords.y * (canvasRef.current?.height || 1),
+    });
+    setCursorVisible(true);
     if ('touches' in evt) evt.preventDefault();
 
-    if (mode === 'highlight') {
+    if (mode === 'highlight' && activeTool === 'pen') {
       const stroke: Stroke = {
         points: [coords],
-        lineWidth: size,
+        lineWidth: currentSize,
         bbox: { minX: coords.x, minY: coords.y, maxX: coords.x, maxY: coords.y },
       };
       setCurrentStroke(stroke);
+    } else if (mode === 'highlight' && activeTool === 'eraser') {
+      beginEraserStroke(coords);
     } else if (mode === 'select') {
       setSelectionRect({ x: coords.x, y: coords.y, width: 0, height: 0 });
     }
@@ -1160,8 +1240,12 @@ export function ImageCapture({
     const coords = getCanvasCoords(evt);
     if (!coords) return;
     if ('touches' in evt) evt.preventDefault();
+    setCursorPos({
+      x: coords.x * (canvasRef.current?.width || 1),
+      y: coords.y * (canvasRef.current?.height || 1),
+    });
 
-    if (mode === 'highlight') {
+    if (mode === 'highlight' && activeTool === 'pen') {
       setCurrentStroke((prev) => {
         if (!prev) return prev;
         const last = prev.points[prev.points.length - 1];
@@ -1180,6 +1264,8 @@ export function ImageCapture({
           },
         };
       });
+    } else if (mode === 'highlight' && activeTool === 'eraser') {
+      extendEraserStroke(coords);
     } else if (mode === 'select') {
       const start = dragStart.current;
       if (!start) return;
@@ -1198,18 +1284,21 @@ export function ImageCapture({
     if (currentStroke && currentStroke.points.length > 1) {
       setStrokes((prev) => [...prev, currentStroke]);
     }
+    // finalize eraser stroke bbox (already tracked) but nothing else needed
     setCurrentStroke(null);
+    setCursorVisible(false);
   };
 
   const clearSelections = () => {
     setStrokes([]);
+    setEraserStrokes([]);
     setCurrentStroke(null);
     setSelectionRect(null);
   };
 
   const undoLastHighlight = () => {
     setCurrentStroke(null);
-    setStrokes((prev) => prev.slice(0, -1));
+    restoreHistory();
   };
 
   const drawStroke = (ctx: CanvasRenderingContext2D, stroke: Stroke, alpha = 0.35) => {
@@ -1219,11 +1308,33 @@ export function ImageCapture({
     const h = ctx.canvas.height;
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.globalCompositeOperation = 'multiply';
+    ctx.globalCompositeOperation = 'source-over';
     ctx.lineWidth = stroke.lineWidth;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = 'rgba(245, 158, 11, 1)';
+    ctx.strokeStyle = PEN_COLOR;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x * w, pts[0].y * h);
+    for (let i = 1; i < pts.length - 1; i++) {
+      const midX = (pts[i].x + pts[i + 1].x) / 2;
+      const midY = (pts[i].y + pts[i + 1].y) / 2;
+      ctx.quadraticCurveTo(pts[i].x * w, pts[i].y * h, midX * w, midY * h);
+    }
+    ctx.lineTo(pts[pts.length - 1].x * w, pts[pts.length - 1].y * h);
+    ctx.stroke();
+    ctx.restore();
+  };
+  const drawEraserStroke = (ctx: CanvasRenderingContext2D, stroke: EraseStroke) => {
+    const pts = stroke.points;
+    if (pts.length < 2) return;
+    const w = ctx.canvas.width;
+    const h = ctx.canvas.height;
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.lineWidth = stroke.lineWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#000';
     ctx.beginPath();
     ctx.moveTo(pts[0].x * w, pts[0].y * h);
     for (let i = 1; i < pts.length - 1; i++) {
@@ -1246,6 +1357,7 @@ export function ImageCapture({
     if (mode === 'highlight') {
       strokes.forEach((s) => drawStroke(ctx, s, 0.35));
       if (currentStroke) drawStroke(ctx, currentStroke, 0.22);
+      eraserStrokes.forEach((s) => drawEraserStroke(ctx, s));
     }
 
     if (mode === 'select' && selectionRect && selectionRect.width > 0 && selectionRect.height > 0) {
@@ -1298,11 +1410,15 @@ export function ImageCapture({
       debugRectsRef.current.bands?.forEach((band) => drawBand(band, 'rgba(148, 163, 184, 0.8)'));
       debugRectsRef.current.included?.forEach((band) => drawBand(band, 'rgba(34, 197, 94, 0.9)'));
     }
-  }, [strokes, currentStroke, selectionRect, mode]);
+  }, [strokes, eraserStrokes, currentStroke, selectionRect, mode]);
 
   useEffect(() => {
     drawOverlay();
   }, [drawOverlay]);
+
+  useEffect(() => {
+    setCurrentStroke(null);
+  }, [activeTool]);
 
   const getSelectionDataUrl = async (rect: SelectionRect): Promise<{ base64: string; mimeType: string } | null> => {
     if (!capturedImage) return null;
@@ -1413,7 +1529,7 @@ export function ImageCapture({
         return;
       }
 
-      const masked = buildHighlightMaskedImage(img, strokes, {
+      const masked = buildHighlightMaskedImage(img, strokes, eraserStrokes, {
         width: canvas.width || canvas.clientWidth || img.clientWidth || img.naturalWidth,
         height: canvas.height || canvas.clientHeight || img.clientHeight || img.naturalHeight,
       });
@@ -1451,6 +1567,7 @@ export function ImageCapture({
   useEffect(() => {
     if (!capturedImage) {
       clearSelections();
+      setEraserStrokes([]);
       setMode('text');
       setResultsText('');
       setResultsError(null);
@@ -1638,6 +1755,22 @@ export function ImageCapture({
               </div>
             </div>
           )}
+          {mode === 'highlight' && cursorVisible && cursorPos && (
+            <div
+              className="absolute z-30 pointer-events-none rounded-full"
+              style={{
+                width: currentSize,
+                height: currentSize,
+                left: cursorPos.x - currentSize / 2,
+                top: cursorPos.y - currentSize / 2,
+                border: `2px solid ${activeTool === 'pen' ? PEN_COLOR : TOOL_ACCENT_ERASER}`,
+                backgroundColor:
+                  activeTool === 'pen'
+                    ? 'rgba(245,158,11,0.15)'
+                    : 'rgba(100,116,139,0.12)',
+              }}
+            />
+          )}
         </div>
       </div>
 
@@ -1663,7 +1796,7 @@ export function ImageCapture({
 
         {mode === 'highlight' && (
           <div className="mt-3 grid gap-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-3 mx-auto">
               <Button
                 type="button"
                 variant="secondary"
@@ -1671,31 +1804,108 @@ export function ImageCapture({
                 onClick={undoLastHighlight}
                 disabled={!hasHighlights}
                 aria-label="Undo highlight"
+                className="h-11 w-11"
               >
                 <Undo2 className="h-4 w-4" />
               </Button>
 
-              <Popover>
+              <ToggleGroup
+                type="single"
+                value={activeTool}
+                onValueChange={(v) => v && setActiveTool(v as 'pen' | 'eraser')}
+                className="rounded-full bg-muted border border-border/70 p-0.5 h-8"
+              >
+                <ToggleGroupItem
+                  value="pen"
+                  className="px-3 h-7 text-xs rounded-full flex items-center data-[state=on]:bg-[var(--tool-pen)]/15 data-[state=on]:border data-[state=on]:border-[var(--tool-pen)] data-[state=on]:text-foreground"
+                  style={{ ['--tool-pen' as string]: TOOL_ACCENT_PEN }}
+                  aria-label="Pen tool"
+                >
+                  <Highlighter className="mr-1 h-4 w-4" /> Pen
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="eraser"
+                  className="px-3 h-7 text-xs rounded-full flex items-center data-[state=on]:bg-[var(--tool-eraser)]/15 data-[state=on]:border data-[state=on]:border-[var(--tool-eraser)] data-[state=on]:text-foreground"
+                  style={{ ['--tool-eraser' as string]: TOOL_ACCENT_ERASER }}
+                  aria-label="Eraser tool"
+                >
+                  <Eraser className="mr-1 h-4 w-4" /> Eraser
+                </ToggleGroupItem>
+              </ToggleGroup>
+
+              <Popover open={thicknessOpen} onOpenChange={setThicknessOpen}>
                 <PopoverTrigger asChild>
-                  <Button type="button" variant="outline" size="sm" className="rounded-full px-3">
-                    <span className="font-semibold">{size <= 10 ? 'S' : size <= 14 ? 'M' : 'L'}</span>
-                    <span className="text-xs text-muted-foreground">{size}px</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full px-3 py-2 h-10 flex items-center gap-2"
+                  >
+                    <div className="relative w-8 h-8 flex-shrink-0">
+                      <div
+                        className="rounded-full absolute left-1/2 top-1/2"
+                        style={{
+                          width: currentSize,
+                          height: currentSize,
+                          transform: 'translate(-50%, -50%)',
+                          border:
+                            activeTool === 'eraser'
+                              ? `1px solid ${TOOL_ACCENT_ERASER}`
+                              : `1px solid ${PEN_COLOR}`,
+                          backgroundColor: activeTool === 'pen' ? PEN_COLOR : 'transparent',
+                        }}
+                      />
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">{currentSize}px</span>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-56">
-                  <div className="flex items-center justify-between gap-2">
-                    {sizePresets.map((preset) => (
+                <PopoverContent className="w-72 space-y-4">
+                  <div className="text-sm font-medium">Thickness</div>
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-8 h-8">
+                      <div
+                        className="rounded-full absolute left-1/2 top-1/2"
+                        style={{
+                          width: currentSize,
+                          height: currentSize,
+                          transform: 'translate(-50%, -50%)',
+                          border:
+                            activeTool === 'eraser'
+                              ? `1px solid ${TOOL_ACCENT_ERASER}`
+                              : `1px solid ${PEN_COLOR}`,
+                          backgroundColor: activeTool === 'pen' ? PEN_COLOR : 'transparent',
+                        }}
+                      />
+                    </div>
+                    <span className="text-sm text-muted-foreground">{currentSize}px</span>
+                  </div>
+                  <Slider
+                    value={[currentSize]}
+                    min={6}
+                    max={28}
+                    step={1}
+                    onValueChange={(vals) => {
+                      const v = vals[0];
+                      if (activeTool === 'pen') setPenSize(v);
+                      else setEraserSize(v);
+                    }}
+                  />
+                  <div className="flex gap-2">
+                    {[6, 12, 20].map((preset) => (
                       <Button
-                        key={preset.label}
+                        key={preset}
                         type="button"
-                        variant={size === preset.value ? 'default' : 'secondary'}
                         size="sm"
-                        onClick={() => setSize(preset.value)}
+                        variant={currentSize === preset ? 'default' : 'secondary'}
+                        className="flex-1"
+                        onClick={() => {
+                          if (activeTool === 'pen') setPenSize(preset);
+                          else setEraserSize(preset);
+                        }}
                       >
-                        {preset.label}
+                        {preset}px
                       </Button>
                     ))}
-                    <span className="text-xs text-muted-foreground ml-auto">{size}px</span>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -1708,17 +1918,14 @@ export function ImageCapture({
               disabled={ocrLoading || !hasHighlights || !onRequestOCR}
               className="w-full"
             >
-              Extract highlights
+              {`Extract highlights${hasHighlights ? ` (${strokes.length})` : ''}`}
             </Button>
-            {!hasHighlights && (
-              <p className="text-xs text-muted-foreground text-center">Add a highlight to enable extraction.</p>
-            )}
           </div>
         )}
 
         {mode === 'select' && (
           <div className="mt-3 grid gap-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-3 mx-auto">
               <Button
                 type="button"
                 variant="secondary"
@@ -1726,6 +1933,7 @@ export function ImageCapture({
                 onClick={() => setSelectionRect(null)}
                 disabled={!selectionRect}
                 aria-label="Clear selection"
+                className="h-11 w-11"
               >
                 <RotateCcw className="h-4 w-4" />
               </Button>
@@ -1741,9 +1949,6 @@ export function ImageCapture({
             >
               Extract selection
             </Button>
-            {!hasSelection && (
-              <p className="text-xs text-muted-foreground text-center">Draw a box to enable extraction.</p>
-            )}
           </div>
         )}
 
@@ -1758,7 +1963,6 @@ export function ImageCapture({
             >
               Extract full text
             </Button>
-            <p className="text-xs text-muted-foreground text-center">No drawing needed in this mode.</p>
           </div>
         )}
       </div>
