@@ -1,147 +1,82 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserPlus, Search, BookOpen, Users, UserCheck } from 'lucide-react';
+import { UserPlus, Search, Users, UserCheck } from 'lucide-react';
 import { UserProfileDialog, UserProfile } from './UserProfileDialog';
 import type { SocialUser } from './SocialFeed';
+import {
+  useFollowingProfiles,
+  useSuggestedProfiles,
+  useSocialMutations,
+} from '@/api/hooks';
+import { fetchProfileSummary, type BasicProfile } from '@/api/social';
+import { toast } from 'sonner';
 
-interface Friend extends SocialUser {
-  booksRead: number;
-  currentlyReading?: string;
-  isFollowing: boolean;
-  bio?: string;
+type FriendProfile = SocialUser & {
+  bio?: string | null;
   joinedAt?: Date;
-  notesCount?: number;
-  followers?: number;
-  following?: number;
+  isFollowing: boolean;
+};
+
+function toFriendProfile(profile: BasicProfile, isFollowing: boolean): FriendProfile {
+  return {
+    id: profile.id,
+    name: profile.displayName || profile.username || 'Reader',
+    username: profile.username || profile.id.slice(0, 10),
+    avatarUrl: profile.avatarUrl || undefined,
+    bio: profile.bio,
+    joinedAt: profile.createdAt,
+    isFollowing,
+  };
 }
 
-// Mock data with full profile info
-const mockFriends: Friend[] = [
-  { 
-    id: '1', 
-    name: 'Sarah Chen', 
-    username: 'sarahreads', 
-    booksRead: 42, 
-    currentlyReading: 'Atomic Habits', 
-    isFollowing: true,
-    bio: 'Book lover and productivity enthusiast. Always reading something new.',
-    joinedAt: new Date('2024-03-10'),
-    notesCount: 234,
-    followers: 156,
-    following: 89,
-  },
-  { 
-    id: '2', 
-    name: 'Marcus Johnson', 
-    username: 'bookworm_mj', 
-    booksRead: 28, 
-    currentlyReading: 'The Psychology of Money', 
-    isFollowing: true,
-    bio: 'Finance and psychology geek. Learning through books.',
-    joinedAt: new Date('2024-01-20'),
-    notesCount: 178,
-    followers: 89,
-    following: 124,
-  },
-  { 
-    id: '3', 
-    name: 'Emma Wilson', 
-    username: 'emmareads', 
-    booksRead: 56, 
-    isFollowing: true,
-    bio: 'Reached 50 books this year! Fiction and non-fiction equally.',
-    joinedAt: new Date('2023-08-15'),
-    notesCount: 312,
-    followers: 423,
-    following: 201,
-  },
-];
-
-const mockSuggestions: Friend[] = [
-  { 
-    id: '4', 
-    name: 'Alex Rivera', 
-    username: 'alexlitlife', 
-    booksRead: 34, 
-    currentlyReading: 'Deep Work', 
-    isFollowing: false,
-    bio: 'Deep work advocate. Building better focus one book at a time.',
-    joinedAt: new Date('2024-02-01'),
-    notesCount: 95,
-    followers: 67,
-    following: 45,
-  },
-  { 
-    id: '5', 
-    name: 'Jordan Lee', 
-    username: 'jordanreads', 
-    booksRead: 19, 
-    isFollowing: false,
-    bio: 'Just started my reading journey. Recommendations welcome!',
-    joinedAt: new Date('2024-05-01'),
-    notesCount: 42,
-    followers: 23,
-    following: 56,
-  },
-  { 
-    id: '6', 
-    name: 'Casey Morgan', 
-    username: 'bookishcasey', 
-    booksRead: 67, 
-    currentlyReading: 'Project Hail Mary', 
-    isFollowing: false,
-    bio: 'Sci-fi enthusiast and amateur astronomer. Books are my telescope.',
-    joinedAt: new Date('2023-03-20'),
-    notesCount: 456,
-    followers: 234,
-    following: 123,
-  },
-];
-
-function FriendCard({ 
-  friend, 
+function FriendCard({
+  friend,
   onToggleFollow,
-  onProfileClick 
-}: { 
-  friend: Friend; 
-  onToggleFollow: (id: string) => void;
-  onProfileClick: (friend: Friend) => void;
+  onProfileClick,
+}: {
+  friend: FriendProfile;
+  onToggleFollow: (id: string, isFollowing: boolean) => void;
+  onProfileClick: (friend: FriendProfile) => void;
 }) {
+  const initials =
+    friend.name?.split(' ').map((n) => n[0]).join('').toUpperCase() ||
+    friend.username?.slice(0, 2).toUpperCase();
+
   return (
-    <Card 
+    <Card
       className="p-3 sm:p-4 bg-card border-border/50 hover:shadow-card transition-all duration-200 cursor-pointer hover:bg-accent/5 active:scale-[0.98]"
       onClick={() => onProfileClick(friend)}
     >
       <div className="flex items-start gap-3">
-        {/* Avatar */}
         <Avatar className="h-11 w-11 sm:h-12 sm:w-12 flex-shrink-0">
           <AvatarImage src={friend.avatarUrl} alt={friend.name} />
           <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
-            {friend.name.split(' ').map(n => n[0]).join('')}
+            {initials}
           </AvatarFallback>
         </Avatar>
-        
-        {/* Content - stacked layout */}
+
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-[15px] text-foreground leading-tight">
+              <p className="font-semibold text-[15px] text-foreground leading-tight line-clamp-1">
                 {friend.name}
               </p>
-              <p className="text-[13px] text-muted-foreground">@{friend.username}</p>
+              <p className="text-[13px] text-muted-foreground line-clamp-1">@{friend.username}</p>
+              {friend.bio && (
+                <p className="text-[12px] text-muted-foreground mt-1 line-clamp-2">{friend.bio}</p>
+              )}
             </div>
-            
-            {/* Follow button */}
-            <Button 
-              variant={friend.isFollowing ? "secondary" : "default"}
+
+            <Button
+              variant={friend.isFollowing ? 'secondary' : 'default'}
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                onToggleFollow(friend.id);
+                onToggleFollow(friend.id, friend.isFollowing);
               }}
               className="flex-shrink-0 h-8 text-xs px-3"
             >
@@ -158,19 +93,6 @@ function FriendCard({
               )}
             </Button>
           </div>
-          
-          {/* Stats row - separate line */}
-          <div className="flex items-center gap-2 mt-1.5 text-[12px] text-muted-foreground">
-            <span className="flex items-center gap-1 bg-muted/50 px-1.5 py-0.5 rounded">
-              <BookOpen className="w-3 h-3" />
-              {friend.booksRead} books
-            </span>
-            {friend.currentlyReading && (
-              <span className="truncate text-muted-foreground/80">
-                📖 {friend.currentlyReading}
-              </span>
-            )}
-          </div>
         </div>
       </div>
     </Card>
@@ -178,79 +100,109 @@ function FriendCard({
 }
 
 export function FriendsPanel() {
-  const [friends, setFriends] = useState<Friend[]>(mockFriends);
-  const [suggestions, setSuggestions] = useState<Friend[]>(mockSuggestions);
+  const { data: followingData = [], isLoading: followingLoading } = useFollowingProfiles();
+  const { data: suggestedData = [], isLoading: suggestionsLoading } = useSuggestedProfiles();
+  const { follow, unfollow } = useSocialMutations();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
-  const handleToggleFollow = (id: string) => {
-    // Check if in friends
-    const friendIndex = friends.findIndex(f => f.id === id);
-    if (friendIndex !== -1) {
-      const friend = friends[friendIndex];
-      setFriends(prev => prev.filter(f => f.id !== id));
-      setSuggestions(prev => [...prev, { ...friend, isFollowing: false }]);
-      return;
-    }
+  const following = useMemo(
+    () => followingData.map((p) => toFriendProfile(p, true)),
+    [followingData],
+  );
 
-    // Check if in suggestions
-    const suggestionIndex = suggestions.findIndex(f => f.id === id);
-    if (suggestionIndex !== -1) {
-      const suggestion = suggestions[suggestionIndex];
-      setSuggestions(prev => prev.filter(f => f.id !== id));
-      setFriends(prev => [...prev, { ...suggestion, isFollowing: true }]);
+  const followingIds = useMemo(() => new Set(following.map((f) => f.id)), [following]);
+  const suggestions = useMemo(
+    () => suggestedData.map((p) => toFriendProfile(p, followingIds.has(p.id))),
+    [suggestedData, followingIds],
+  );
+
+  const filteredFollowing = useMemo(
+    () =>
+      following.filter(
+        (f) =>
+          f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (f.username ?? '').toLowerCase().includes(searchQuery.toLowerCase()),
+      ),
+    [following, searchQuery],
+  );
+
+  const handleToggleFollow = (id: string, isFollowing: boolean) => {
+    if (isFollowing) {
+      unfollow.mutate(id, {
+        onError: () => toast.error('Failed to unfollow'),
+      });
+    } else {
+      follow.mutate(id, {
+        onError: () => toast.error('Failed to follow'),
+      });
     }
   };
 
-  const handleProfileClick = (friend: Friend) => {
-    const profile: UserProfile = {
+  const handleProfileClick = async (friend: FriendProfile) => {
+    const fallback: UserProfile = {
       id: friend.id,
       name: friend.name,
-      username: friend.username,
-      avatarUrl: friend.avatarUrl,
+      username: friend.username || friend.id.slice(0, 10),
+      avatarUrl: friend.avatarUrl || '',
       bio: friend.bio || '',
       joinedAt: friend.joinedAt || new Date(),
-      booksRead: friend.booksRead,
-      notesCount: friend.notesCount || 0,
-      followers: friend.followers || 0,
-      following: friend.following || 0,
+      booksRead: 0,
+      notesCount: 0,
+      followers: 0,
+      following: 0,
       isFollowing: friend.isFollowing,
-      recentBooks: friend.currentlyReading 
-        ? [{ id: '1', title: friend.currentlyReading, author: 'Author' }] 
-        : [],
+      recentBooks: [],
       publicNotes: [],
     };
-    setSelectedProfile(profile);
+    setSelectedProfile(fallback);
     setProfileDialogOpen(true);
-  };
 
-  const handleFollow = (userId: string) => {
-    setSelectedProfile(prev => prev ? { ...prev, isFollowing: true, followers: prev.followers + 1 } : null);
-    // Also update in friends/suggestions lists
-    const suggestionIndex = suggestions.findIndex(f => f.id === userId);
-    if (suggestionIndex !== -1) {
-      const suggestion = suggestions[suggestionIndex];
-      setSuggestions(prev => prev.filter(f => f.id !== userId));
-      setFriends(prev => [...prev, { ...suggestion, isFollowing: true }]);
+    try {
+      const profile = await fetchProfileSummary(friend.id);
+      setSelectedProfile({
+        id: profile.id,
+        name: profile.displayName || profile.username || fallback.name,
+        username: profile.username || fallback.username,
+        avatarUrl: profile.avatarUrl || '',
+        bio: profile.bio || '',
+        joinedAt: profile.createdAt,
+        booksRead: profile.booksCount ?? 0,
+        notesCount: profile.notesCount ?? 0,
+        followers: profile.followers,
+        following: profile.following,
+        isFollowing: profile.isFollowing,
+        isOwnProfile: profile.isSelf,
+        recentBooks: [],
+        publicNotes: [],
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not load profile');
     }
   };
 
-  const handleUnfollow = (userId: string) => {
-    setSelectedProfile(prev => prev ? { ...prev, isFollowing: false, followers: prev.followers - 1 } : null);
-    // Also update in friends/suggestions lists
-    const friendIndex = friends.findIndex(f => f.id === userId);
-    if (friendIndex !== -1) {
-      const friend = friends[friendIndex];
-      setFriends(prev => prev.filter(f => f.id !== userId));
-      setSuggestions(prev => [...prev, { ...friend, isFollowing: false }]);
-    }
+  const handleFollowFromDialog = (userId: string) => {
+    follow.mutate(userId, {
+      onSuccess: () =>
+        setSelectedProfile((prev) =>
+          prev ? { ...prev, isFollowing: true, followers: prev.followers + 1 } : null,
+        ),
+      onError: () => toast.error('Failed to follow'),
+    });
   };
 
-  const filteredFriends = friends.filter(f => 
-    f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    f.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleUnfollowFromDialog = (userId: string) => {
+    unfollow.mutate(userId, {
+      onSuccess: () =>
+        setSelectedProfile((prev) =>
+          prev ? { ...prev, isFollowing: false, followers: Math.max(0, prev.followers - 1) } : null,
+        ),
+      onError: () => toast.error('Failed to unfollow'),
+    });
+  };
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -260,7 +212,7 @@ export function FriendsPanel() {
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search friends..."
+            placeholder="Search following..."
             className="pl-9"
           />
         </div>
@@ -270,7 +222,7 @@ export function FriendsPanel() {
         <TabsList className="w-full bg-secondary/50 mb-4">
           <TabsTrigger value="following" className="flex-1 gap-2">
             <Users className="w-4 h-4" />
-            Following ({friends.length})
+            Following ({following.length})
           </TabsTrigger>
           <TabsTrigger value="discover" className="flex-1 gap-2">
             <UserPlus className="w-4 h-4" />
@@ -279,21 +231,23 @@ export function FriendsPanel() {
         </TabsList>
 
         <TabsContent value="following" className="space-y-3">
-          {filteredFriends.length === 0 ? (
+          {followingLoading ? (
+            <p className="text-sm text-muted-foreground">Loading your follows...</p>
+          ) : filteredFollowing.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="font-medium">No friends yet</p>
+              <p className="font-medium">No follows yet</p>
               <p className="text-sm">Discover readers to follow in the Discover tab</p>
             </div>
           ) : (
-            filteredFriends.map((friend, index) => (
-              <div 
+            filteredFollowing.map((friend, index) => (
+              <div
                 key={friend.id}
                 className="animate-fade-up"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <FriendCard 
-                  friend={friend} 
+                <FriendCard
+                  friend={friend}
                   onToggleFollow={handleToggleFollow}
                   onProfileClick={handleProfileClick}
                 />
@@ -304,31 +258,38 @@ export function FriendsPanel() {
 
         <TabsContent value="discover" className="space-y-3">
           <p className="text-sm text-muted-foreground mb-4">
-            People you might want to follow based on reading interests
+            People you might want to follow
           </p>
-          {suggestions.map((friend, index) => (
-            <div 
-              key={friend.id}
-              className="animate-fade-up"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <FriendCard 
-                friend={friend} 
-                onToggleFollow={handleToggleFollow}
-                onProfileClick={handleProfileClick}
-              />
-            </div>
-          ))}
+          {suggestionsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading suggestions...</p>
+          ) : suggestions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No suggestions right now.</p>
+          ) : (
+            suggestions.map((friend, index) => (
+              <div
+                key={friend.id}
+                className="animate-fade-up"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <FriendCard
+                  friend={friend}
+                  onToggleFollow={handleToggleFollow}
+                  onProfileClick={handleProfileClick}
+                />
+              </div>
+            ))
+          )}
         </TabsContent>
       </Tabs>
 
-      <UserProfileDialog 
+      <UserProfileDialog
         open={profileDialogOpen}
         onOpenChange={setProfileDialogOpen}
         user={selectedProfile}
-        onFollow={handleFollow}
-        onUnfollow={handleUnfollow}
+        onFollow={handleFollowFromDialog}
+        onUnfollow={handleUnfollowFromDialog}
       />
     </div>
   );
 }
+

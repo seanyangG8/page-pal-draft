@@ -10,22 +10,24 @@ import {
   ResponsiveDialogFooter,
 } from '@/components/ui/responsive-dialog';
 import { Upload, FileJson, AlertCircle, CheckCircle } from 'lucide-react';
-import { importFromJSON, saveBooks, saveNotes, getBooks, getNotes } from '@/lib/store';
+import { importFromJSON } from '@/api/exportImport';
 import { Book, Note } from '@/types';
+import { useBookMutations, useNoteMutations } from '@/api/hooks';
+import { toast } from 'sonner';
 
 interface ImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onImport?: (books: Book[], notes: Note[]) => void;
-  onImportComplete?: () => void;
 }
 
-export function ImportDialog({ open, onOpenChange, onImport, onImportComplete }: ImportDialogProps) {
+export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<{ books: number; notes: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { create: createBook } = useBookMutations();
+  const { create: createNote } = useNoteMutations();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -64,32 +66,58 @@ export function ImportDialog({ open, onOpenChange, onImport, onImportComplete }:
         const data = importFromJSON(content);
         
         if (data) {
-          // Merge with existing data (avoid duplicates by ID)
-          const existingBooks = getBooks();
-          const existingNotes = getNotes();
-          
-          const existingBookIds = new Set(existingBooks.map(b => b.id));
-          const existingNoteIds = new Set(existingNotes.map(n => n.id));
-          
-          const newBooks = data.books.filter(b => !existingBookIds.has(b.id));
-          const newNotes = data.notes.filter(n => !existingNoteIds.has(n.id));
-          
-          if (onImport) {
-            onImport(newBooks, newNotes);
-          } else {
-            saveBooks([...existingBooks, ...newBooks]);
-            saveNotes([...existingNotes, ...newNotes]);
-            onImportComplete?.();
-          }
-          
-          onOpenChange(false);
-          setFile(null);
-          setPreview(null);
+          // Simple sequential import: create new books/notes for this user
+          const run = async () => {
+            const idMap = new Map<string, string>();
+            for (const b of data.books) {
+              const created = await createBook.mutateAsync({
+                title: b.title,
+                author: b.author,
+                format: b.format,
+                coverUrl: b.coverUrl,
+                isbn: b.isbn,
+              });
+              idMap.set(b.id, created.id);
+            }
+            for (const n of data.notes) {
+              const bookId = idMap.get(n.bookId);
+              if (!bookId) continue;
+              await createNote.mutateAsync({
+                bookId,
+                type: n.type,
+                mediaType: n.mediaType,
+                content: n.content,
+                imageUrl: n.imageUrl,
+                extractedText: n.extractedText,
+                audioUrl: n.audioUrl,
+                audioDuration: n.audioDuration,
+                transcript: (n as any).transcript,
+                location: n.location,
+                timestamp: n.timestamp,
+                chapter: n.chapter,
+                context: n.context,
+                tags: n.tags,
+                aiSummary: n.aiSummary,
+                aiExpanded: n.aiExpanded,
+                aiFlashcard: n.aiFlashcard,
+                isPrivate: n.isPrivate ?? true,
+                reviewCount: n.reviewCount ?? 0,
+                lastReviewedAt: n.lastReviewedAt,
+                nextReviewAt: n.nextReviewAt,
+                folderId: undefined,
+              });
+            }
+            toast.success(`Imported ${data.books.length} books and ${data.notes.length} notes`);
+            onOpenChange(false);
+            setFile(null);
+            setPreview(null);
+          };
+          run().catch(() => {
+            setError('Failed to import data.');
+          }).finally(() => setImporting(false));
         }
       } catch {
         setError('Failed to import data.');
-      } finally {
-        setImporting(false);
       }
     };
     reader.readAsText(file);

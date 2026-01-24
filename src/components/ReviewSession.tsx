@@ -1,18 +1,27 @@
-import { useState, useEffect } from 'react';
-import { Note, Book } from '@/types';
+﻿import { useState } from 'react';
+import { Note } from '@/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  ChevronLeft, ChevronRight, Check, X, RotateCcw, 
-  Quote, Lightbulb, HelpCircle, CheckCircle, BookOpen,
-  Sparkles, Brain
+import {
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  X,
+  RotateCcw,
+  Quote,
+  Lightbulb,
+  HelpCircle,
+  CheckCircle,
+  BookOpen,
+  Brain,
 } from 'lucide-react';
-import { getBooks, markNoteReviewed } from '@/lib/store';
+import { useBooks, useNoteMutations, useReviewSessionMutations } from '@/api/hooks';
 
 interface ReviewSessionProps {
   notes: Note[];
+  sessionId?: string;
   onComplete: () => void;
   onClose: () => void;
 }
@@ -24,47 +33,60 @@ const noteTypeConfig = {
   action: { icon: CheckCircle, label: 'Action', className: 'note-badge-action' },
 };
 
-export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps) {
+export function ReviewSession({ notes, sessionId, onComplete, onClose }: ReviewSessionProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
   const [showAnswer, setShowAnswer] = useState(false);
-  const [books, setBooks] = useState<Book[]>([]);
-
-  useEffect(() => {
-    setBooks(getBooks());
-  }, []);
+  const { data: booksData } = useBooks();
+  const { markReviewed } = useNoteMutations();
+  const { markInSession, complete } = useReviewSessionMutations();
 
   const currentNote = notes[currentIndex];
-  const book = books.find(b => b.id === currentNote?.bookId);
-  const config = currentNote ? noteTypeConfig[currentNote.type] : null;
+  const book = booksData?.find((b) => b.id === currentNote?.bookId);
+  const config = currentNote ? (noteTypeConfig as const)[currentNote.type] : null;
   const Icon = config?.icon;
-  
-  const progress = (reviewedIds.size / notes.length) * 100;
+
+  const progress = notes.length === 0 ? 0 : (reviewedIds.size / notes.length) * 100;
 
   const handleMarkReviewed = (remembered: boolean) => {
-    if (remembered && currentNote) {
-      markNoteReviewed(currentNote.id);
+    if (!currentNote) return;
+
+    const finished = reviewedIds.size + 1 >= notes.length;
+
+    if (remembered) {
+      if (sessionId) {
+        markInSession.mutate({ sessionId, noteId: currentNote.id });
+      } else {
+        markReviewed.mutate({ id: currentNote.id });
+      }
     }
-    setReviewedIds(prev => new Set(prev).add(currentNote.id));
+
+    setReviewedIds((prev) => new Set(prev).add(currentNote.id));
     setShowAnswer(false);
-    
+
     if (currentIndex < notes.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    } else if (reviewedIds.size + 1 >= notes.length) {
-      onComplete();
+      setCurrentIndex((prev) => prev + 1);
+    }
+
+    if (finished) {
+      if (sessionId) {
+        complete.mutate(sessionId, { onSettled: onComplete });
+      } else {
+        onComplete();
+      }
     }
   };
 
   const goToNext = () => {
     if (currentIndex < notes.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex((prev) => prev + 1);
       setShowAnswer(false);
     }
   };
 
   const goToPrev = () => {
     if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
+      setCurrentIndex((prev) => prev - 1);
       setShowAnswer(false);
     }
   };
@@ -99,7 +121,7 @@ export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps
 
       {/* Card */}
       <div className="flex-1 flex items-center justify-center p-4 overflow-y-auto overflow-x-hidden">
-        <Card 
+        <Card
           className="w-full max-w-xl p-6 shadow-elevated cursor-pointer"
           onClick={() => !showAnswer && currentNote.aiFlashcard && setShowAnswer(true)}
         >
@@ -108,7 +130,7 @@ export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
               <BookOpen className="w-4 h-4" />
               <span>{book.title}</span>
-              <span className="text-border">•</span>
+              <span className="text-border">-</span>
               <span>{book.author}</span>
             </div>
           )}
@@ -130,15 +152,13 @@ export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps
                 <p className="text-xl font-display font-medium mb-6">
                   {currentNote.aiFlashcard.question}
                 </p>
-                
+
                 {showAnswer ? (
                   <div className="p-4 rounded-lg bg-secondary animate-fade-in">
                     <p className="text-lg">{currentNote.aiFlashcard.answer}</p>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Tap to reveal answer
-                  </p>
+                  <p className="text-sm text-muted-foreground">Tap to reveal answer</p>
                 )}
               </div>
             </div>
@@ -152,7 +172,7 @@ export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps
                   {currentNote.type === 'quote' && '"'}
                 </p>
               )}
-              
+
               {currentNote.extractedText && (
                 <blockquote className="mt-3 pl-3 border-l-2 border-primary/30 text-muted-foreground italic">
                   {currentNote.extractedText}
@@ -161,7 +181,7 @@ export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps
 
               {currentNote.context && (
                 <p className="text-sm text-muted-foreground mt-4 pt-4 border-t border-border">
-                  💭 {currentNote.context}
+                  - {currentNote.context}
                 </p>
               )}
             </div>
@@ -170,7 +190,7 @@ export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps
           {/* Bookmark */}
           {currentNote.location && (
             <p className="text-xs text-muted-foreground mt-4">
-              🔖 {currentNote.location}
+              Location: {currentNote.location}
             </p>
           )}
         </Card>
@@ -181,8 +201,8 @@ export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps
         <div className="container max-w-xl mx-auto">
           <div className="flex items-center justify-center gap-2">
             {/* Previous arrow pill */}
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="icon"
               className="rounded-full h-10 w-10 shrink-0"
               onClick={goToPrev}
@@ -192,8 +212,8 @@ export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps
             </Button>
 
             {/* Forgot button */}
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="gap-2 flex-1 max-w-[140px]"
               onClick={() => handleMarkReviewed(false)}
             >
@@ -202,7 +222,7 @@ export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps
             </Button>
 
             {/* Remembered button */}
-            <Button 
+            <Button
               className="gap-2 flex-1 max-w-[160px]"
               onClick={() => handleMarkReviewed(true)}
             >
@@ -211,7 +231,7 @@ export function ReviewSession({ notes, onComplete, onClose }: ReviewSessionProps
             </Button>
 
             {/* Next arrow pill */}
-            <Button 
+            <Button
               variant="outline"
               size="icon"
               className="rounded-full h-10 w-10 shrink-0"

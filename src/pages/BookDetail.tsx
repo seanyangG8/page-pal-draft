@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/Header';
@@ -13,7 +13,7 @@ import { PullToRefresh } from '@/components/PullToRefresh';
 import { staggerContainer, staggerItem } from '@/components/PageTransition';
 import { Button } from '@/components/ui/button';
 import { Book, Note, NoteType, MediaType } from '@/types';
-import { getBooks, getNotesForBook, addNote, deleteNote, updateNote } from '@/lib/store';
+import { useBooks as useBooksHook, useNotesByBook, useNoteMutations } from '@/api/hooks';
 import { ArrowLeft, BookOpen, PenLine, Quote, Lightbulb, HelpCircle, CheckCircle, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -31,8 +31,10 @@ const BookDetail = () => {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { data: booksData } = useBooksHook();
+  const { data: notesData, isLoading: notesLoading } = useNotesByBook(bookId || '');
+  const { create: createNote, update: updateNoteMutation, remove: deleteNoteMutation } = useNoteMutations();
   const [book, setBook] = useState<Book | null>(null);
-  const [notes, setNotes] = useState<Note[]>([]);
   const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | NoteType>('all');
@@ -41,25 +43,26 @@ const BookDetail = () => {
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [showRecorder, setShowRecorder] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const notes = notesData || [];
 
   useEffect(() => {
     if (!bookId) return;
-    
-    const books = getBooks();
-    const foundBook = books.find(b => b.id === bookId);
-    if (foundBook) {
-      setBook(foundBook);
-      setNotes(getNotesForBook(bookId));
-    } else {
-      navigate('/');
+    if (booksData) {
+      const found = booksData.find((b) => b.id === bookId);
+      if (found) {
+        setBook(found);
+      } else {
+        navigate('/');
+      }
     }
-  }, [bookId, navigate]);
+  }, [bookId, booksData, notesData, navigate]);
 
-  const handleAddNote = (noteData: { 
+  const handleAddNote = async (noteData: { 
     type: NoteType; 
     mediaType: MediaType;
     content: string; 
     location?: string; 
+    chapter?: string;
     context?: string;
     timestamp?: string;
     imageUrl?: string;
@@ -68,26 +71,25 @@ const BookDetail = () => {
     audioDuration?: number;
     tags?: string[];
     isPrivate?: boolean;
-  }): string => {
+  }): Promise<string> => {
     if (!bookId) return '';
-    
-    const newNote = addNote({
-      bookId,
-      ...noteData,
-    });
-    setNotes(prev => [newNote, ...prev]);
-    toast.success('Note saved');
-    setPendingRecording(null);
-    setPendingImage(null);
-    return newNote.id;
+    try {
+      const created = await createNote.mutateAsync({ bookId, ...noteData });
+      setPendingRecording(null);
+      setPendingImage(null);
+      toast.success('Note saved');
+      return created.id;
+    } catch (err) {
+      toast.error('Failed to save note');
+      return '';
+    }
   };
 
   const handleUpdateNoteLocation = (noteId: string, location: string, timestamp?: string) => {
     const note = notes.find(n => n.id === noteId);
     if (note) {
       const updated = { ...note, location, timestamp };
-      updateNote(noteId, updated);
-      setNotes(prev => prev.map(n => n.id === noteId ? updated : n));
+      updateNoteMutation.mutate({ id: noteId, updates: updated });
     }
   };
 
@@ -102,32 +104,35 @@ const BookDetail = () => {
   };
 
   const handleDeleteNote = (noteId: string) => {
-    deleteNote(noteId);
-    setNotes(prev => prev.filter(n => n.id !== noteId));
-    toast.success('Note deleted');
+    deleteNoteMutation.mutate(noteId, {
+      onSuccess: () => toast.success('Note deleted'),
+      onError: () => toast.error('Failed to delete note'),
+    });
   };
 
   const handleUpdateNote = (updatedNote: Note) => {
-    updateNote(updatedNote.id, updatedNote);
-    setNotes(prev => prev.map(n => n.id === updatedNote.id ? updatedNote : n));
-    toast.success('Note updated');
+    updateNoteMutation.mutate(
+      { id: updatedNote.id, updates: updatedNote },
+      {
+        onSuccess: () => toast.success('Note updated'),
+        onError: () => toast.error('Failed to update note'),
+      }
+    );
   };
 
-  const filteredNotes = notes.filter(note => {
-    const matchesSearch = !searchQuery || 
-      note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.context?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = activeFilter === 'all' || note.type === activeFilter;
-    return matchesSearch && matchesFilter;
-  });
+  const filteredNotes = useMemo(() => {
+    return notes.filter(note => {
+      const matchesSearch = !searchQuery || 
+        note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        note.context?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesFilter = activeFilter === 'all' || note.type === activeFilter;
+      return matchesSearch && matchesFilter;
+    });
+  }, [notes, searchQuery, activeFilter]);
 
-  const handleRefresh = useCallback(async () => {
-    if (!bookId) return;
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setNotes(getNotesForBook(bookId));
-  }, [bookId]);
+  const handleRefresh = useCallback(async () => {}, [bookId]);
 
-  if (!book) {
+  if (!book || notesLoading) {
     return null;
   }
 
@@ -323,6 +328,7 @@ const BookDetail = () => {
         onUpdateLocation={handleUpdateNoteLocation}
         bookId={book.id}
         bookTitle={book.title}
+        bookAuthor={book.author}
         bookFormat={book.format}
         initialRecording={pendingRecording}
         initialImage={pendingImage}

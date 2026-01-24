@@ -1,22 +1,28 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Sparkles, 
-  Zap, 
-  FileText, 
-  RotateCcw, 
-  Check, 
+import {
+  Sparkles,
+  Zap,
+  FileText,
+  RotateCcw,
+  Check,
   Loader2,
   ArrowLeft,
-  Wand2
+  Wand2,
 } from 'lucide-react';
-
-type AIAction = 'cleanup' | 'expand' | 'summarize' | 'flashcard';
+import { runAIAction, type AIAction } from '@/api/ai';
 
 interface AITextActionsProps {
   originalText: string;
-  onTextChange: (text: string) => void;
+  onTextChange: (text: string, flashcard?: { question: string; answer: string }) => void;
+  context?: {
+    bookTitle?: string;
+    bookAuthor?: string;
+    chapterOrSection?: string;
+    page?: string;
+    highlight?: string;
+  } | string;
   onBack?: () => void;
   showBackButton?: boolean;
 }
@@ -28,41 +34,7 @@ const aiActions: { action: AIAction; icon: typeof Sparkles; label: string; descr
   { action: 'flashcard', icon: RotateCcw, label: 'Flashcard', description: 'Q&A format' },
 ];
 
-// Simulated AI responses (placeholder until real AI integration)
-function simulateAI(action: AIAction, text: string): Promise<string> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      switch (action) {
-        case 'cleanup':
-          // Capitalize first letter, trim, normalize whitespace, add period if missing
-          const cleaned = text.trim().replace(/\s+/g, ' ');
-          const withPeriod = cleaned.endsWith('.') || cleaned.endsWith('!') || cleaned.endsWith('?') 
-            ? cleaned 
-            : cleaned + '.';
-          resolve(withPeriod.charAt(0).toUpperCase() + withPeriod.slice(1));
-          break;
-        case 'expand':
-          resolve(`${text}\n\nThis concept relates to the broader theme of understanding and knowledge acquisition. The key insight here is that we can deepen our comprehension by exploring the underlying principles and connecting them to what we already know.`);
-          break;
-        case 'summarize':
-          const words = text.split(' ');
-          if (words.length > 20) {
-            resolve(words.slice(0, 15).join(' ') + '...');
-          } else {
-            resolve(text);
-          }
-          break;
-        case 'flashcard':
-          resolve(`Q: What is the main idea of this note?\n\nA: ${text.slice(0, 100)}${text.length > 100 ? '...' : ''}`);
-          break;
-        default:
-          resolve(text);
-      }
-    }, 800);
-  });
-}
-
-export function AITextActions({ originalText, onTextChange, onBack, showBackButton }: AITextActionsProps) {
+export function AITextActions({ originalText, onTextChange, context, onBack, showBackButton }: AITextActionsProps) {
   const [editedText, setEditedText] = useState(originalText);
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeAction, setActiveAction] = useState<AIAction | null>(null);
@@ -74,13 +46,18 @@ export function AITextActions({ originalText, onTextChange, onBack, showBackButt
   };
 
   const handleAIAction = async (action: AIAction) => {
+    if (!editedText.trim()) return;
     setIsProcessing(true);
     setActiveAction(action);
-    
+
     try {
-      const result = await simulateAI(action, editedText);
-      setEditedText(result);
-      setHasChanges(result !== originalText);
+      const result = await runAIAction(action, editedText, context);
+      if (action === 'flashcard' && result.flashcard) {
+        onTextChange(editedText, result.flashcard);
+      } else if (result.text) {
+        setEditedText(result.text);
+        setHasChanges(result.text !== originalText);
+      }
     } catch (error) {
       console.error('AI action failed:', error);
     } finally {
@@ -173,15 +150,12 @@ export function AITextActions({ originalText, onTextChange, onBack, showBackButt
             </button>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground text-center">
-          💡 Placeholder AI — Connect to your own backend for real AI features
-        </p>
       </div>
 
       {/* Apply button */}
       {hasChanges && (
-        <Button 
-          type="button" 
+        <Button
+          type="button"
           className="w-full gap-2"
           onClick={handleApply}
         >

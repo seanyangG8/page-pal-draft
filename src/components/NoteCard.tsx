@@ -11,10 +11,11 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useHaptic } from '@/hooks/use-haptic';
+import { getNoteAudioSignedUrl } from '@/api/storage';
 
 interface NoteCardProps {
   note: Note;
@@ -38,6 +39,8 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, onClick, showBookTi
   const Icon = config.icon;
   const isMobile = useIsMobile();
   const { light, warning, error } = useHaptic();
+  const [audioSrc, setAudioSrc] = useState<string | null>(null);
+  const [audioLoading, setAudioLoading] = useState(false);
   
   // Swipe state
   const [swipeX, setSwipeX] = useState(0);
@@ -50,6 +53,39 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, onClick, showBookTi
   
   const SWIPE_THRESHOLD = 80;
   const DELETE_THRESHOLD = 120;
+
+  useEffect(() => {
+    let active = true;
+    if (note.mediaType !== 'audio' || !note.audioUrl) {
+      setAudioSrc(null);
+      setAudioLoading(false);
+      return;
+    }
+
+    // If already a full URL, use directly
+    if (note.audioUrl.startsWith('http')) {
+      setAudioSrc(note.audioUrl);
+      setAudioLoading(false);
+      return;
+    }
+
+    setAudioLoading(true);
+    getNoteAudioSignedUrl(note.audioUrl)
+      .then((url) => {
+        if (active) setAudioSrc(url);
+      })
+      .catch((err) => {
+        console.error('Failed to load audio', err);
+        if (active) setAudioSrc(null);
+      })
+      .finally(() => {
+        if (active) setAudioLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [note.mediaType, note.audioUrl]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!isMobile) return;
@@ -216,6 +252,20 @@ export function NoteCard({ note, onDelete, onUpdate, onEdit, onClick, showBookTi
           {note.imageUrl && (
             <div className="mb-3 rounded-xl overflow-hidden">
               <img src={note.imageUrl} alt="Note capture" className="w-full max-h-44 object-cover" />
+            </div>
+          )}
+
+          {/* Audio playback */}
+          {note.mediaType === 'audio' && (
+            <div className="mb-3 space-y-1">
+              <p className="text-xs text-muted-foreground">Audio note</p>
+              {audioLoading ? (
+                <p className="text-xs text-muted-foreground">Loading audio...</p>
+              ) : audioSrc ? (
+                <audio controls className="w-full" src={audioSrc} />
+              ) : (
+                <p className="text-xs text-destructive">Audio unavailable</p>
+              )}
             </div>
           )}
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Collection } from '@/types';
+import { useCollections, useCollectionMutations } from '@/api/hooks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,49 +19,61 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Plus, MoreVertical, Trash2, Edit, Library, FolderOpen } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface CollectionManagerProps {
-  collections: Collection[];
   selectedCollectionId?: string;
-  onSelectCollection: (collectionId: string | undefined) => void;
-  onAddCollection: (collection: { name: string; description?: string }) => void;
-  onDeleteCollection: (id: string) => void;
-  onUpdateCollection: (id: string, updates: Partial<Collection>) => void;
+  onSelectCollection?: (collectionId: string | undefined) => void;
 }
 
 export function CollectionManager({
-  collections,
   selectedCollectionId,
   onSelectCollection,
-  onAddCollection,
-  onDeleteCollection,
-  onUpdateCollection,
 }: CollectionManagerProps) {
+  const { data: collections = [], isLoading } = useCollections();
+  const { create, update, remove } = useCollectionMutations();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingCollection, setEditingCollection] = useState<Collection | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
-  const handleAdd = () => {
+  const isMutating = create.isLoading || update.isLoading || remove.isLoading;
+
+  const handleAdd = async () => {
     if (!name.trim()) return;
-    onAddCollection({ 
-      name: name.trim(), 
-      description: description.trim() || undefined 
-    });
-    setName('');
-    setDescription('');
-    setIsAddOpen(false);
+    try {
+      await create.mutateAsync({ 
+        name: name.trim(), 
+        description: description.trim() || undefined 
+      });
+      toast.success('Collection created');
+      setName('');
+      setDescription('');
+      setIsAddOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to create collection');
+    }
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!editingCollection || !name.trim()) return;
-    onUpdateCollection(editingCollection.id, { 
-      name: name.trim(), 
-      description: description.trim() || undefined 
-    });
-    setEditingCollection(null);
-    setName('');
-    setDescription('');
+    try {
+      await update.mutateAsync({ 
+        id: editingCollection.id, 
+        updates: { 
+          name: name.trim(), 
+          description: description.trim() || undefined 
+        } 
+      });
+      toast.success('Collection updated');
+      setEditingCollection(null);
+      setName('');
+      setDescription('');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update collection');
+    }
   };
 
   const openEdit = (collection: Collection) => {
@@ -84,7 +97,9 @@ export function CollectionManager({
       </div>
 
       <div className="space-y-1">
-        {collections.length === 0 ? (
+        {isLoading ? (
+          <p className="text-xs text-muted-foreground py-2">Loading collections...</p>
+        ) : collections.length === 0 ? (
           <p className="text-xs text-muted-foreground py-2">
             No collections yet. Create one to group related notes.
           </p>
@@ -95,7 +110,7 @@ export function CollectionManager({
                 variant={selectedCollectionId === collection.id ? 'secondary' : 'ghost'}
                 size="sm"
                 className="flex-1 justify-start gap-2 h-8"
-                onClick={() => onSelectCollection(
+                onClick={() => onSelectCollection?.(
                   selectedCollectionId === collection.id ? undefined : collection.id
                 )}
               >
@@ -122,7 +137,7 @@ export function CollectionManager({
                     Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem 
-                    onClick={() => onDeleteCollection(collection.id)}
+                    onClick={() => remove.mutate(collection.id, { onError: () => toast.error('Failed to delete collection') })}
                     className="text-destructive focus:text-destructive gap-2"
                   >
                     <Trash2 className="w-4 h-4" />

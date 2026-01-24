@@ -14,6 +14,8 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { supabase } from '@/lib/supabaseClient';
+import { getProfile, Profile } from '@/lib/supabaseProfile';
 
 interface HeaderProps {
   showSearch?: boolean;
@@ -30,8 +32,6 @@ interface UserProfile {
   avatarUrl: string;
 }
 
-const STORAGE_KEY = 'marginalia-user-profile';
-
 export function Header({ showSearch, onSearchClick, onShowWelcome, hasBooks, title, showLargeTitle = false }: HeaderProps) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -39,11 +39,19 @@ export function Header({ showSearch, onSearchClick, onShowWelcome, hasBooks, tit
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setProfile(parsed);
-    }
+    const loadProfile = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const data = await getProfile();
+      setProfile({
+        name: data.display_name || 'Reader',
+        username: data.username || 'reader',
+        avatarUrl: data.avatar_url || '',
+      });
+    };
+    loadProfile().catch((err) => console.error('Failed to load profile', err));
   }, []);
 
   // Track scroll position for visual effects

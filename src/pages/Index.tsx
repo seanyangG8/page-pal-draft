@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/Header';
@@ -22,16 +22,26 @@ import { MobileTabBar } from '@/components/MobileTabBar';
 import { PullToRefresh } from '@/components/PullToRefresh';
 import { staggerContainer, staggerItem } from '@/components/PageTransition';
 import { Book, Note, BookFormat } from '@/types';
-import { getBooks, addBook, deleteBook, updateBook, getNotes, deleteNote, updateNote, searchNotes, saveBooks, saveNotes } from '@/lib/store';
+import { useBooks, useBookMutations, useNotes, useNoteMutations, useNoteHelpers, useReviewSessionMutations } from '@/api/hooks';
 import { BookOpen, Search, Library, Sparkles, Filter, Download, Upload, Users, Rss } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { SavedFiltersBar } from '@/components/SavedFiltersBar';
+import { FolderManager } from '@/components/FolderManager';
+import { CollectionManager } from '@/components/CollectionManager';
 const Index = () => {
   const navigate = useNavigate();
-  const [books, setBooks] = useState<Book[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
+  const { data: booksData, isLoading: booksLoading } = useBooks();
+  const { data: notesData, isLoading: notesLoading } = useNotes();
+  const { create: createBook, update: updateBookMutation, remove: deleteBookMutation } = useBookMutations();
+  const { create: createNote, update: updateNoteMutation, remove: deleteNoteMutation } = useNoteMutations();
+  const { searchNotesClient } = useNoteHelpers();
+  const { create: createReviewSession, complete: completeReviewSession } = useReviewSessionMutations();
+
+  const books = booksData || [];
+  const notes = notesData || [];
   const [searchQuery, setSearchQuery] = useState('');
   const [addBookOpen, setAddBookOpen] = useState(false);
   const [editBookOpen, setEditBookOpen] = useState(false);
@@ -41,29 +51,22 @@ const Index = () => {
   const [exportOpen, setExportOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [reviewNotes, setReviewNotes] = useState<Note[] | null>(null);
+  const [reviewSessionId, setReviewSessionId] = useState<string | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const isLoading = booksLoading || notesLoading;
   const [activeFilters, setActiveFilters] = useState<{
     bookId?: string;
     noteType?: string;
+    folderId?: string;
     tags: string[];
   }>({ tags: [] });
 
-  useEffect(() => {
-    // Simulate brief loading for skeleton demo
-    const timer = setTimeout(() => {
-      setBooks(getBooks());
-      setNotes(getNotes());
-      setIsLoading(false);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, []);
-
   const handleAddBook = (bookData: { title: string; author: string; format: BookFormat; coverUrl?: string; isbn?: string }) => {
-    const newBook = addBook(bookData);
-    setBooks(prev => [...prev, newBook]);
-    toast.success('Book added to your library');
+    createBook.mutate(bookData, {
+      onSuccess: () => toast.success('Book added to your library'),
+      onError: () => toast.error('Failed to add book'),
+    });
   };
 
   const handleEditBook = (book: Book) => {
@@ -72,47 +75,37 @@ const Index = () => {
   };
 
   const handleSaveBook = (bookId: string, updates: { title: string; author: string; format: BookFormat; coverUrl?: string; isbn?: string }) => {
-    const updated = updateBook(bookId, updates);
-    if (updated) {
-      setBooks(prev => prev.map(b => b.id === bookId ? updated : b));
-      toast.success('Book updated');
-    }
+    updateBookMutation.mutate(
+      { id: bookId, updates },
+      {
+        onSuccess: () => toast.success('Book updated'),
+        onError: () => toast.error('Failed to update book'),
+      }
+    );
   };
 
   const handleDeleteBook = (bookId: string) => {
-    deleteBook(bookId);
-    setBooks(prev => prev.filter(b => b.id !== bookId));
-    setNotes(prev => prev.filter(n => n.bookId !== bookId));
-    toast.success('Book removed');
+    deleteBookMutation.mutate(bookId, {
+      onSuccess: () => toast.success('Book removed'),
+      onError: () => toast.error('Failed to remove book'),
+    });
   };
 
   const handleDeleteNote = (noteId: string) => {
-    deleteNote(noteId);
-    setNotes(prev => prev.filter(n => n.id !== noteId));
-    setBooks(getBooks()); // Refresh to update note counts
-    toast.success('Note deleted');
-  };
-
-  const handleImport = (importedBooks: Book[], importedNotes: Note[]) => {
-    // Merge with existing data
-    const existingBooks = getBooks();
-    const existingNotes = getNotes();
-    
-    const allBooks = [...existingBooks, ...importedBooks];
-    const allNotes = [...existingNotes, ...importedNotes];
-    
-    saveBooks(allBooks);
-    saveNotes(allNotes);
-    
-    setBooks(allBooks);
-    setNotes(allNotes);
-    toast.success(`Imported ${importedBooks.length} books and ${importedNotes.length} notes`);
+    deleteNoteMutation.mutate(noteId, {
+      onSuccess: () => toast.success('Note deleted'),
+      onError: () => toast.error('Failed to delete note'),
+    });
   };
 
   const handleNoteUpdate = (updatedNote: Note) => {
-    updateNote(updatedNote.id, updatedNote);
-    setNotes(prev => prev.map(n => n.id === updatedNote.id ? updatedNote : n));
-    toast.success('Note updated');
+    updateNoteMutation.mutate(
+      { id: updatedNote.id, updates: updatedNote },
+      {
+        onSuccess: () => toast.success('Note updated'),
+        onError: () => toast.error('Failed to update note'),
+      }
+    );
   };
 
   const getBookFormat = (bookId: string): BookFormat | undefined => {
@@ -120,28 +113,35 @@ const Index = () => {
   };
 
   const handleRefresh = useCallback(async () => {
-    // Simulate network delay for pull-to-refresh
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setBooks(getBooks());
-    setNotes(getNotes());
+    // No-op: React Query handles refetch
   }, []);
 
-  const filteredNotes = notes.filter(note => {
-    const matchesSearch = !searchQuery || 
+  const filteredNotes = useMemo(() => {
+    const base = notes;
+    const matchesSearch = (note: Note) =>
+      !searchQuery ||
       note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
       note.context?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesBook = !activeFilters.bookId || note.bookId === activeFilters.bookId;
-    const matchesType = !activeFilters.noteType || note.type === activeFilters.noteType;
-    const matchesTags = activeFilters.tags.length === 0 || 
-      activeFilters.tags.every(tag => note.tags?.includes(tag));
-    return matchesSearch && matchesBook && matchesType && matchesTags;
-  });
+    return base.filter((note) => {
+      const okSearch = matchesSearch(note);
+      const okBook = !activeFilters.bookId || note.bookId === activeFilters.bookId;
+      const okType = !activeFilters.noteType || note.type === activeFilters.noteType;
+      const okFolder = !activeFilters.folderId || note.folderId === activeFilters.folderId;
+      const okTags = activeFilters.tags.length === 0 || activeFilters.tags.every((tag) => note.tags?.includes(tag));
+      return okSearch && okBook && okType && okFolder && okTags;
+    });
+  }, [notes, searchQuery, activeFilters]);
 
   const getBookTitle = (bookId: string) => {
     return books.find(b => b.id === bookId)?.title || 'Unknown';
   };
 
   const isMobile = useIsMobile();
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    notes.forEach((n) => n.tags?.forEach((t) => tagSet.add(t)));
+    return Array.from(tagSet).sort();
+  }, [notes]);
 
   return (
     <div className="min-h-screen">
@@ -257,18 +257,53 @@ const Index = () => {
             {/* Review Widget */}
             {activeTab === 'notes' && (
               <div className="mb-6">
-                <ReviewWidget onStartReview={(notes) => setReviewNotes(notes)} />
+            <ReviewWidget 
+              onStartReview={(notes) => {
+                createReviewSession.mutate(
+                  notes.map((n) => n.id),
+                  {
+                    onSuccess: (session) => {
+                      setReviewSessionId(session.id);
+                      setReviewNotes(notes);
+                    },
+                    onError: () => toast.error('Failed to start review session'),
+                  },
+                );
+              }} 
+            />
               </div>
             )}
 
             {/* Filters Panel */}
             {activeTab === 'notes' && showFilters && (
-              <div className="mb-6">
+              <div className="mb-6 space-y-4">
                 <FilterPanel
                   books={books}
+                  allTags={allTags}
                   onFilterChange={setActiveFilters}
                   activeFilters={activeFilters}
                 />
+                <SavedFiltersBar
+                  activeFilters={activeFilters}
+                  onApply={setActiveFilters}
+                  books={books}
+                />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="p-3 rounded-lg border bg-card/50">
+                    <FolderManager
+                      selectedFolderId={activeFilters.folderId}
+                      onSelectFolder={(id) =>
+                        setActiveFilters((prev) => ({
+                          ...prev,
+                          folderId: id,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="p-3 rounded-lg border bg-card/50">
+                    <CollectionManager />
+                  </div>
+                </div>
               </div>
             )}
 
@@ -287,17 +322,18 @@ const Index = () => {
                       onAction={() => setAddBookOpen(true)}
                     />
                   ) : (
-                    <Bookshelf
-                      books={books.filter(b => 
-                        !searchQuery || 
-                        b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        b.author.toLowerCase().includes(searchQuery.toLowerCase())
-                      )}
-                      onBookClick={(bookId) => navigate(`/book/${bookId}`)}
-                      onDeleteBook={handleDeleteBook}
-                      onEditBook={handleEditBook}
-                      onReorder={() => setBooks(getBooks())}
-                    />
+                      <Bookshelf
+                        books={books.filter(
+                          (b) =>
+                            !searchQuery ||
+                            b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            b.author.toLowerCase().includes(searchQuery.toLowerCase())
+                        )}
+                        onBookClick={(bookId) => navigate(`/book/${bookId}`)}
+                        onDeleteBook={handleDeleteBook}
+                        onEditBook={handleEditBook}
+                        onReorder={() => {}}
+                      />
                   )}
                 </div>
               </PullToRefresh>
@@ -402,18 +438,24 @@ const Index = () => {
       <ImportDialog
         open={importOpen}
         onOpenChange={setImportOpen}
-        onImport={handleImport}
       />
 
       {/* Review session */}
       {reviewNotes && (
         <ReviewSession
           notes={reviewNotes}
+          sessionId={reviewSessionId ?? undefined}
           onComplete={() => {
+            if (reviewSessionId) {
+              completeReviewSession.mutate(reviewSessionId);
+            }
+            setReviewSessionId(null);
             setReviewNotes(null);
-            setNotes(getNotes()); // Refresh notes after review
           }}
-          onClose={() => setReviewNotes(null)}
+          onClose={() => {
+            setReviewSessionId(null);
+            setReviewNotes(null);
+          }}
         />
       )}
 

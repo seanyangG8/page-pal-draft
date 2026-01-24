@@ -22,8 +22,11 @@ import { AITextActions } from './AITextActions';
 import { TagInput } from './TagInput';
 import { LocationInput, LocationData, formatLocation } from './LocationInput';
 import { inferNoteType, getPlaceholderForType, getTypeStyles } from '@/lib/noteTypeInference';
-import { getNotes } from '@/lib/store';
+import { useNotes } from '@/api/hooks';
 import { useHaptic } from '@/hooks/use-haptic';
+import { uploadNoteImage, uploadNoteAudio } from '@/api/storage';
+import { runOCR } from '@/api/ocr';
+import { toast } from 'sonner';
 
 interface AddNoteDialogProps {
   open: boolean;
@@ -33,6 +36,7 @@ interface AddNoteDialogProps {
     mediaType: MediaType;
     content: string; 
     location?: string; 
+    chapter?: string;
     context?: string;
     timestamp?: string;
     imageUrl?: string;
@@ -42,10 +46,11 @@ interface AddNoteDialogProps {
     transcript?: string;
     tags?: string[];
     isPrivate?: boolean;
-  }) => string; // Returns note ID
+  }) => Promise<string>; // Returns note ID
   onUpdateLocation?: (noteId: string, location: string, timestamp?: string) => void;
   bookId: string;
   bookTitle: string;
+  bookAuthor?: string;
   bookFormat?: BookFormat;
   initialRecording?: { url: string; duration: number; transcript?: string } | null;
   initialImage?: { url: string; extractedText?: string } | null;
@@ -156,7 +161,8 @@ export function AddNoteDialog({
   onAdd, 
   onUpdateLocation,
   bookId,
-  bookTitle, 
+  bookTitle,
+  bookAuthor,
   bookFormat = 'physical',
   initialRecording, 
   initialImage 
@@ -185,18 +191,21 @@ export function AddNoteDialog({
   
   // AI state
   const [showAIEditor, setShowAIEditor] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const { data: notesData } = useNotes();
 
   // Get existing tags for autocomplete
   const existingTags = useMemo(() => {
-    const allNotes = getNotes();
+    const allNotes = notesData || [];
     const tagSet = new Set<string>();
     allNotes.forEach(note => note.tags?.forEach(t => tagSet.add(t)));
     return Array.from(tagSet);
-  }, [open]);
+  }, [notesData]);
 
   // Get suggested tags for this book
   const suggestedTags = useMemo(() => {
-    const bookNotes = getNotes().filter(n => n.bookId === bookId);
+    const bookNotes = (notesData || []).filter(n => n.bookId === bookId);
     const tagCounts = new Map<string, number>();
     bookNotes.forEach(note => note.tags?.forEach(t => {
       tagCounts.set(t, (tagCounts.get(t) || 0) + 1);
@@ -205,7 +214,17 @@ export function AddNoteDialog({
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([tag]) => tag);
-  }, [bookId, open]);
+  }, [bookId, notesData]);
+
+  const aiContext = useMemo(
+    () => ({
+      bookTitle,
+      bookAuthor,
+      chapterOrSection: location.chapter || undefined,
+      page: location.page || undefined,
+    }),
+    [bookTitle, bookAuthor, location.chapter, location.page],
+  );
 
   // Get last used location/tags for "Save & add another"
   const [lastLocation, setLastLocation] = useState<LocationData>({});
@@ -226,6 +245,8 @@ export function AddNoteDialog({
       setCaptureMode('image');
     }
   }, [open, initialImage]);
+
+  // OCR is now handled inside ImageCapture (auto on upload)
 
   // Auto-infer note type as user types (unless manually set)
   useEffect(() => {
@@ -267,44 +288,128 @@ export function AddNoteDialog({
   // Check if location was already entered
   const hasLocationEntered = !!(location.page || location.chapter || location.timestamp || location.freeform);
 
-  const handleSave = (addAnother = false) => {
-    if (!hasContent) return;
-    
-    success();
-    
-    // Remember location/tags for next note
-    setLastLocation(location);
-    setLastTags(tags);
+  const stripCodeFences = (value: string) =>
+    value.replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim();
 
-    const locationString = formatLocation(location);
+  const extractTextFromJsonLike = (value: string) => {
+    const match = value.match(/"text"\s*:\s*"([\s\S]*?)"\s*(?:,|})/);
+    if (!match) return '';
+    return match[1]
+      .replace(/\\\\/g, '\\')
+      .replace(/\\"/g, '"')
+      .replace(/\\n/g, '\n')
+      .replace(/\\t/g, '\t')
+      .trim();
+  };
+
+  const parseOCRPayload = (raw: string): { text: string; chapter?: string; page?: string } => {
+    const cleaned = stripCodeFences(raw);
+    if (!cleaned) return { text: '' };
+    if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(cleaned);
+        if (parsed && typeof parsed === 'object') {
+          const textValue = typeof parsed.text === 'string' ? parsed.text.trim() : cleaned;
+          const chapterValue = parsed.chapter ?? undefined;
+          const pageValue = parsed.page ?? undefined;
+          return {
+            text: textValue,
+            chapter: chapterValue !== null && chapterValue !== undefined ? String(chapterValue) : undefined,
+            page: pageValue !== null && pageValue !== undefined ? String(pageValue) : undefined,
+          };
+        }
+      } catch {
+        const fallbackText = extractTextFromJsonLike(cleaned);
+        if (fallbackText) return { text: fallbackText };
+        return { text: '' };
+      }
+    }
+    return { text: cleaned.trim() };
+  };
+
+  const fileFromUrl = async (url: string, fallbackName: string, fallbackType: string) => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const type = blob.type || fallbackType;
+    const ext = type.split('/')[1] || 'bin';
+    return new File([blob], `${fallbackName}.${ext}`, { type });
+  };
+
+  const handleSave = async (addAnother = false) => {
+    if (!hasContent || isSaving) return;
+    setIsSaving(true);
     
-    const noteId = onAdd({
-      type,
-      mediaType: captureMode,
-      content: content.trim() || (imageData?.extractedText || audioData?.transcript || 'Voice memo'),
-      location: locationString || undefined, // Include location if already entered
-      timestamp: location.timestamp || undefined,
-      context: context.trim() || undefined,
-      imageUrl: imageData?.url,
-      extractedText: imageData?.extractedText,
-      audioUrl: audioData?.url,
-      audioDuration: audioData?.duration,
-      transcript: audioData?.transcript,
-      tags: tags.length > 0 ? tags : undefined,
-      isPrivate: !isPrivate ? true : undefined,
-    });
-    
-    if (addAnother) {
-      resetForm(true);
-    } else if (hasLocationEntered) {
-      // Location already entered, just close
-      resetForm();
-      onOpenChange(false);
-    } else {
-      // Show bookmark step
-      setSavedNoteId(noteId);
-      setStep('bookmark');
-      setLocation({});
+    try {
+      success();
+      
+      // Remember location/tags for next note
+      setLastLocation(location);
+      setLastTags(tags);
+
+      const locationString = formatLocation(location);
+
+      let imageUrl = imageData?.url;
+      let audioUrl = audioData?.url;
+
+      // Upload image to storage if it's a data/blob URL
+      if (imageData?.url && (imageData.url.startsWith('data:') || imageData.url.startsWith('blob:'))) {
+        try {
+          const file = await fileFromUrl(imageData.url, 'note-image', 'image/png');
+          const uploaded = await uploadNoteImage(file);
+          imageUrl = uploaded.publicUrl ?? uploaded.path;
+        } catch (err: any) {
+          console.error('Image upload failed', err);
+          toast.error('Failed to upload image');
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      // Upload audio to storage if it's a blob URL
+      if (audioData?.url && (audioData.url.startsWith('blob:') || audioData.url.startsWith('data:'))) {
+        try {
+          const file = await fileFromUrl(audioData.url, 'note-audio', 'audio/webm');
+          const uploaded = await uploadNoteAudio(file);
+          audioUrl = uploaded.path;
+        } catch (err: any) {
+          console.error('Audio upload failed', err);
+          toast.error('Failed to upload audio');
+          setIsSaving(false);
+          return;
+        }
+      }
+      
+      const noteId = await onAdd({
+        type,
+        mediaType: captureMode,
+        content: content.trim() || (imageData?.extractedText || audioData?.transcript || 'Voice memo'),
+        location: locationString || undefined, // Include location if already entered
+        chapter: location.chapter || undefined,
+        timestamp: location.timestamp || undefined,
+        context: context.trim() || undefined,
+        imageUrl: imageUrl,
+        extractedText: imageData?.extractedText,
+        audioUrl: audioUrl,
+        audioDuration: audioData?.duration,
+        transcript: audioData?.transcript,
+        tags: tags.length > 0 ? tags : undefined,
+        isPrivate,
+      });
+      
+      if (addAnother) {
+        resetForm(true);
+      } else if (hasLocationEntered) {
+        // Location already entered, just close
+        resetForm();
+        onOpenChange(false);
+      } else {
+        // Show bookmark step
+        setSavedNoteId(noteId);
+        setStep('bookmark');
+        setLocation({});
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -366,6 +471,7 @@ export function AddNoteDialog({
                   {showAIEditor && content.trim() ? (
                     <AITextActions
                       originalText={content}
+                      context={aiContext}
                       onTextChange={(text) => {
                         setContent(text);
                         setShowAIEditor(false);
@@ -400,6 +506,7 @@ export function AddNoteDialog({
                   {showAIEditor && imageData?.extractedText ? (
                     <AITextActions
                       originalText={imageData.extractedText}
+                      context={aiContext}
                       onTextChange={(text) => {
                         setContent(text);
                         setShowAIEditor(false);
@@ -409,15 +516,45 @@ export function AddNoteDialog({
                       showBackButton
                     />
                   ) : (
-                    <ImageCapture 
-                      onCapture={setImageData}
-                      capturedImage={imageData}
-                      onClear={() => setImageData(null)}
-                      onUseAsText={(text) => {
-                        setContent(text);
-                        setShowAIEditor(true);
-                      }}
-                    />
+                <ImageCapture 
+                  onCapture={setImageData}
+                  capturedImage={imageData}
+                  onClear={() => setImageData(null)}
+                  onUseAsText={(text) => {
+                    setContent(text);
+                    setShowAIEditor(true);
+                  }}
+                  onRequestOCR={async (base64, mimeType) => {
+                    try {
+                      const raw = await runOCR(
+                        base64,
+                        mimeType,
+                        'Extract text and, if present, chapter/page info. Respond as JSON: {"text": "<plain extracted text>", "chapter": "<chapter if seen or null>", "page": "<page number if seen or null>"}. Do not include any other keys or formatting.'
+                      );
+
+                      const { text: extracted, chapter, page } = parseOCRPayload(raw);
+
+                      if (extracted) {
+                        setImageData((prev) => (prev ? { ...prev, extractedText: extracted } : prev));
+                        setContent((prev) => prev || extracted);
+                      }
+
+                      // Prefill location fields (not saved until user continues)
+                      if (chapter || page) {
+                        setLocation((prev) => ({
+                          ...prev,
+                          chapter: chapter || prev.chapter,
+                          page: page || prev.page,
+                        }));
+                      }
+
+                      return extracted;
+                    } catch (err) {
+                      console.error('OCR failed', err);
+                      return undefined;
+                    }
+                  }}
+                />
                   )}
                 </TabsContent>
 
@@ -426,6 +563,7 @@ export function AddNoteDialog({
                   {showAIEditor && audioData?.transcript ? (
                     <AITextActions
                       originalText={audioData.transcript}
+                      context={aiContext}
                       onTextChange={(text) => {
                         setContent(text);
                         setShowAIEditor(false);
@@ -565,7 +703,7 @@ export function AddNoteDialog({
                   <Button
                     type="button"
                     variant="outline"
-                    disabled={!hasContent}
+                    disabled={!hasContent || isSaving}
                     onClick={() => handleSave(true)}
                     className="flex-1 gap-1.5 touch-manipulation h-11"
                   >
@@ -575,12 +713,12 @@ export function AddNoteDialog({
                   </Button>
                   <Button 
                     type="button"
-                    disabled={!hasContent}
+                    disabled={!hasContent || isSaving}
                     onClick={() => handleSave(false)}
                     className="flex-1 gap-1.5 touch-manipulation h-11"
                   >
                     <Save className="w-4 h-4" />
-                    Save
+                    {isSaving ? 'Saving...' : 'Save'}
                   </Button>
                 </div>
                 <Button 

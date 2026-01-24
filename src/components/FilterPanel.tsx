@@ -10,16 +10,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Quote, Lightbulb, HelpCircle, CheckCircle, X } from 'lucide-react';
-import { getAllTags } from '@/lib/store';
 
 interface FilterState {
   bookId?: string;
   noteType?: string;
+  folderId?: string;
   tags: string[];
 }
 
 interface FilterPanelProps {
   books: Book[];
+  allTags: string[];
   onFilterChange: (filters: FilterState) => void;
   activeFilters: FilterState;
 }
@@ -31,9 +32,7 @@ const noteTypes: { type: NoteType; icon: typeof Quote; label: string }[] = [
   { type: 'action', icon: CheckCircle, label: 'Actions' },
 ];
 
-export function FilterPanel({ books, onFilterChange, activeFilters }: FilterPanelProps) {
-  const allTags = getAllTags();
-
+export function FilterPanel({ books, allTags, onFilterChange, activeFilters }: FilterPanelProps) {
   const toggleTag = (tag: string) => {
     const tags = activeFilters.tags.includes(tag)
       ? activeFilters.tags.filter(t => t !== tag)
@@ -42,7 +41,7 @@ export function FilterPanel({ books, onFilterChange, activeFilters }: FilterPane
   };
 
   const clearFilters = () => {
-    onFilterChange({ bookId: undefined, noteType: undefined, tags: [] });
+    onFilterChange({ bookId: undefined, noteType: undefined, folderId: undefined, tags: [] });
   };
 
   const hasActiveFilters = activeFilters.bookId || activeFilters.noteType || activeFilters.tags.length > 0;

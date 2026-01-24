@@ -12,6 +12,8 @@ npm ci
 npm run dev
 ```
 
+Supabase setup (auth, database, storage) is documented in `docs/supabase-setup.md`.
+
 ## Build and preview
 
 ```sh

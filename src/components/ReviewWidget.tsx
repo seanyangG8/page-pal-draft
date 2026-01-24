@@ -3,7 +3,7 @@ import { Note } from '@/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Brain, ChevronRight, Sparkles } from 'lucide-react';
-import { getNotesForReview } from '@/lib/store';
+import { useNotes, useNoteHelpers } from '@/api/hooks';
 
 interface ReviewWidgetProps {
   onStartReview: (notes: Note[]) => void;
@@ -11,10 +11,14 @@ interface ReviewWidgetProps {
 
 export function ReviewWidget({ onStartReview }: ReviewWidgetProps) {
   const [dueNotes, setDueNotes] = useState<Note[]>([]);
+  const { data: notesData } = useNotes();
+  const { getNotesForReviewClient } = useNoteHelpers();
 
   useEffect(() => {
-    setDueNotes(getNotesForReview(10));
-  }, []);
+    if (notesData) {
+      setDueNotes(getNotesForReviewClient(notesData, 10));
+    }
+  }, [notesData, getNotesForReviewClient]);
 
   if (dueNotes.length === 0) {
     return null;

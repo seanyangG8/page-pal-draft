@@ -8,9 +8,9 @@ import {
   DropdownMenuSeparator 
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import type { CSSProperties } from 'react';
-import { reorderBooks } from '@/lib/store';
+import { useBookMutations } from '@/api/hooks';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -322,22 +322,25 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
   const [draggedBookId, setDraggedBookId] = useState<string | null>(null);
   const [dragOverBookId, setDragOverBookId] = useState<string | null>(null);
   const [localBooks, setLocalBooks] = useState<Book[]>(books);
+  const { reorder: reorderMutation } = useBookMutations();
   const [touchDragId, setTouchDragId] = useState<string | null>(null);
   
   const bookRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const bookSizeVars: CSSProperties = {
-    '--book-min': isMobile ? '60px' : '78px',
-    '--book-max': isMobile ? '86px' : '104px',
+    '--book-min': isMobile ? '54px' : '70px',
+    '--book-max': isMobile ? '77px' : '94px',
     '--book-gap': isMobile ? '0.65rem' : '0.95rem',
     '--shelf-cols': isMobile ? 4 : 8,
   };
 
-  // Sync local state when books prop changes
-  if (books !== localBooks && !draggedBookId && !touchDragId) {
-    setLocalBooks(books);
-  }
+  // Sync local state when books prop changes (avoid setState during render)
+  useEffect(() => {
+    if (!draggedBookId && !touchDragId) {
+      setLocalBooks(books);
+    }
+  }, [books, draggedBookId, touchDragId]);
 
   const setBookRef = useCallback((bookId: string) => (el: HTMLDivElement | null) => {
     if (el) {
@@ -452,7 +455,7 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
       const [removed] = newBooks.splice(draggedIndex, 1);
       newBooks.splice(targetIndex, 0, removed);
       setLocalBooks(newBooks);
-      reorderBooks(newBooks.map(b => b.id));
+      reorderMutation.mutate(newBooks.map(b => b.id));
       onReorder?.();
     }
   };
@@ -498,7 +501,7 @@ export function Bookshelf({ books, onBookClick, onDeleteBook, onEditBook, onReor
                 overflowY: 'visible',
                 paddingTop: isMobile ? '1rem' : '1.2rem',
                 paddingBottom: isMobile ? '0.7rem' : '0.85rem',
-                minHeight: isMobile ? '9rem' : '11rem',
+                minHeight: isMobile ? '8.5rem' : '10.5rem',
                 marginTop: isMobile ? '0.1rem' : '0.15rem',
               }}
             >

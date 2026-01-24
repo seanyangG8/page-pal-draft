@@ -13,7 +13,7 @@ import {
   ResponsiveDialogFooter,
 } from '@/components/ui/responsive-dialog';
 import { Download, FileText, FileSpreadsheet, FileJson } from 'lucide-react';
-import { exportToMarkdown, exportToCSV, exportToJSON } from '@/lib/store';
+import { exportToMarkdown, exportToCSV, exportToJSON } from '@/api/exportImport';
 
 interface ExportDialogProps {
   open: boolean;

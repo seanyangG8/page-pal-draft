@@ -9,6 +9,9 @@ import Index from "./pages/Index";
 import BookDetail from "./pages/BookDetail";
 import MyProfile from "./pages/MyProfile";
 import NotFound from "./pages/NotFound";
+import Auth from "./pages/Auth";
+import { AuthProvider } from "@/lib/auth";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -45,9 +48,32 @@ function AnimatedRoutes() {
         variants={pageVariants}
       >
         <Routes location={location}>
-          <Route path="/" element={<Index />} />
-          <Route path="/book/:bookId" element={<BookDetail />} />
-          <Route path="/profile" element={<MyProfile />} />
+          <Route path="/auth" element={<Auth />} />
+
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Index />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/book/:bookId"
+            element={
+              <ProtectedRoute>
+                <BookDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <MyProfile />
+              </ProtectedRoute>
+            }
+          />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
@@ -62,9 +88,11 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner position="bottom-center" />
-        <BrowserRouter>
-          <AnimatedRoutes />
-        </BrowserRouter>
+        <AuthProvider>
+          <BrowserRouter>
+            <AnimatedRoutes />
+          </BrowserRouter>
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   </ThemeProvider>

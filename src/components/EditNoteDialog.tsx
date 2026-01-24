@@ -17,7 +17,7 @@ import { Quote, Lightbulb, HelpCircle, CheckCircle, Pencil, Lock, Globe, Save, C
 import { TagInput } from './TagInput';
 import { LocationInput, LocationData, formatLocation, parseLocation } from './LocationInput';
 import { getTypeStyles } from '@/lib/noteTypeInference';
-import { getNotes } from '@/lib/store';
+import { useNotes } from '@/api/hooks';
 import { useHaptic } from '@/hooks/use-haptic';
 
 interface EditNoteDialogProps {
@@ -43,6 +43,7 @@ export function EditNoteDialog({
   bookFormat = 'physical'
 }: EditNoteDialogProps) {
   const { success } = useHaptic();
+  const { data: notesData } = useNotes();
   const [content, setContent] = useState('');
   const [type, setType] = useState<NoteType>('idea');
   const [location, setLocation] = useState<LocationData>({});
@@ -53,11 +54,11 @@ export function EditNoteDialog({
 
   // Get existing tags for autocomplete
   const existingTags = useMemo(() => {
-    const allNotes = getNotes();
+    const allNotes = notesData || [];
     const tagSet = new Set<string>();
     allNotes.forEach(n => n.tags?.forEach(t => tagSet.add(t)));
     return Array.from(tagSet);
-  }, [open]);
+  }, [notesData]);
 
   // Initialize form when note changes
   useEffect(() => {

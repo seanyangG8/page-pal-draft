@@ -1,9 +1,9 @@
-# Backend Plan — Page-Pal / Marginalia
+﻿# Backend Plan â€” Page-Pal / Marginalia
 
 ## Status
-- Phase: Planning
-- Stack: Recommend Supabase (Postgres + Auth + Storage) for RLS, auth, and buckets.
-- Next action: Apply schema + RLS and create buckets, then start API slice 1 (Auth/Profile).
+- Phase: Schema applied + frontend migration in progress
+- Stack: Supabase (Postgres + Auth + Storage) with RLS, auth, and buckets.
+- Next action: Finish social feed/post creation/profile stats and then wire the AI slice now that storage helpers and review sessions are in place.
 
 ## Data Model (Postgres v1)
 auth.users (provider)
@@ -109,6 +109,11 @@ activity_dates
 - unique (user_id, activity_date)
 
 (Social tables deferred to a later phase.)
+Social tables  
+- social_posts (id, user_id, type, content, note_id, book_id, milestone_type, milestone_value, like_count, comment_count, is_public, timestamps)  
+- social_comments (id, post_id, user_id, content, timestamps)  
+- social_likes (user_id, post_id, created_at)  
+- social_follows (follower_id, following_id, created_at, no self-follow)
 
 ## Storage Buckets
 - avatars (public)
@@ -128,6 +133,7 @@ activity_dates
 ## Triggers
 - updated_at: before update set updated_at = now() on mutable tables.
 - notes_count: after insert/delete on notes -> increment/decrement books.notes_count.
+- auth bootstrap: after insert on auth.users -> create a matching profiles row (id only + optional defaults); username is set later by the app.
 - Optional: after insert on notes/books -> upsert activity_dates for current date (streak accuracy).
 
 ## Indexes
@@ -155,9 +161,12 @@ activity_dates
    - GET /export/markdown|csv|json (matches current {books, notes} shape)  
    - POST /import/json (bind imported records to current user_id)  
 7) Storage  
-   - Upload or signed-url endpoints for avatars/book-covers/note-images/note-audio  
-8) AI  
-   - POST /ai/cleanup|expand|summarize|flashcard|ocr|transcribe (validate and store ai_* fields server-side)
+   - Upload endpoints or client helpers for avatars/book-covers/note-images (public) and note-audio (private) with MIME/size limits and `user_id/<uuid>` paths  
+   - Signed URLs for private audio  
+8) Social  
+   - Posts/comments/likes/follows with RLS; feed endpoints  
+9) AI  
+  - POST /ai/cleanup|expand|summarize|flashcard|ocr|transcribe (validate and store ai_* fields server-side) - actions handled by `ai-actions` (Gemini); OCR handled by `ai-ocr` (Gemini); transcribe still pending
 
 ## Frontend Migration Notes
 - Replace `src/lib/store.ts` calls with API + React Query per slice; keep response shapes aligned with this schema.
@@ -169,16 +178,41 @@ activity_dates
 - API shape is mobile-friendly: JSON, UUIDs, and timestamps in ISO8601; no browser-only fields required.
 - Auth: use Supabase Auth iOS SDK; keep redirect/deep link scheme ready for future social/email flows.
 - Storage: signed URLs for private audio; public images ok. Keep media MIME types standard (jpeg/png/webp, webm/mp3/m4a).
-- Offline: if adding later, plan for per-user sync keyed by updated_at; avoid server-generated state that can’t be merged.
+- Offline: if adding later, plan for per-user sync keyed by updated_at; avoid server-generated state that canâ€™t be merged.
 - Push/social: social tables deferred; nothing in schema blocks adding APNs tokens or device tables later.
 
+## Security / Abuse Mitigation
+- RLS is the main shield: owner-only CRUD; public read only for non-private notes; profiles readable but updates owner-only.
+- Never trust client user_id: always set user_id = auth.uid() on inserts/updates server-side (RPC/edge/row-level defaults).
+- Rate limiting: add API-layer throttling (e.g., per-IP/per-user limits) on write-heavy endpoints (notes, uploads, auth).
+- Size/extension limits on buckets: enforce max file size; allowlist MIME types (jpeg/png/webp for images; webm/mp3/m4a for audio); randomize filenames; path-scope by user (`user_id/<uuid>.*`).
+- Signed URLs for private audio; short TTL; disable public access to private bucket.
+- Validate all inputs server-side: max lengths for text fields (title, content, bio, tags), safe checks for ai_flashcard JSON shape.
+- Unique constraints: username unique (lowercased); notes/book IDs are UUIDs; reading_goals unique per (user, year); activity unique per (user, date).
+- Avoid unbounded arrays: tags/text arrays reasonable length; note_ids array in review_sessions bounded by query logic.
+- Logging/monitoring: enable Supabase logs; consider alerting on spikes in errors or storage usage.
+
 ## Work Plan Checklist
-- [ ] Confirm stack (Supabase recommended).
-- [ ] Create buckets (avatars, book-covers, note-images, note-audio).
-- [ ] Apply schema above (tables, constraints, cascades, checks).
-- [ ] Add RLS policies as specified.
-- [ ] Add triggers (updated_at, notes_count, optional activity-on-create).
-- [ ] Add indexes for search/tags/perf.
-- [ ] Implement API slice 1 (Auth/Profile) and wire profile UI.
-- [ ] Implement API slice 2 (Books/Notes) and migrate `store.ts`.
-- [ ] Continue slices 3–8; update Status as work completes.
+- [x] Confirm stack (Supabase).
+- [x] Create buckets (avatars, book-covers, note-images, note-audio).
+- [x] Apply schema above (tables, constraints, cascades, checks).
+- [x] Add RLS policies as specified.
+- [x] Add triggers (updated_at, notes_count, optional activity-on-create).
+- [x] Add indexes for search/tags/perf.
+- [x] Implement API slice 1 (Auth/Profile) and wire profile UI.
+- [x] Implement API slice 2 (Books/Notes) and migrate off localStorage (React Query + Supabase).
+- [x] Wire collections/folders/saved filters UIs to Supabase hooks (components ready; SavedFiltersBar added to notes filters).
+- [x] Add storage upload/signed URL helpers (client-side, uses Supabase Storage).
+- [x] Add social schema (posts/comments/likes/follows) with RLS and counters.
+- [ ] Implement social endpoints/client wiring and AI endpoints (social feed/comments/follows are wired with profile joins; activity posts now auto-create for new books and public notes; post creation UX, follower lists, and AI APIs remain).
+- [ ] Finalize docs after above slices are shipped.
+
+## Frontend Integration Status
+- Supabase client added (`src/lib/supabaseClient.ts`) using `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`.
+- Profile helpers added (`src/lib/supabaseProfile.ts`); Header and MyProfile load/update profile from Supabase when a session exists.
+- Auth page supports email/password with verification, password reset, and recovery; redirects use `window.location.origin`. Ensure Supabase Auth `Site URL`/redirects are set for dev and prod.
+- Books/Notes migrated to Supabase via React Query hooks; Index and BookDetail use hooks; Add/Edit Note dialogs, Review widgets, Import/Export updated.
+- MyProfile stats/goals/activity now use Supabase hooks.
+- Collections/Folders components now use Supabase hooks; SavedFiltersBar is available and wired into the notes filters to save/apply filters. Review sessions now use Supabase RPCs (`review_pick_notes`, `review_start_session`, `review_mark_note`, `review_complete_session`); social feed/comments/follows call Supabase with profile joins, and the AI endpoints remain.
+
+

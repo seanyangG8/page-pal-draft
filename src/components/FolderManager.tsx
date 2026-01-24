@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Folder } from '@/types';
+import { useFolders, useFolderMutations } from '@/api/hooks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,14 +18,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { FolderPlus, MoreVertical, Trash2, Edit, Folder as FolderIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface FolderManagerProps {
-  folders: Folder[];
   selectedFolderId?: string;
-  onSelectFolder: (folderId: string | undefined) => void;
-  onAddFolder: (folder: { name: string; color?: string }) => void;
-  onDeleteFolder: (id: string) => void;
-  onUpdateFolder: (id: string, updates: Partial<Folder>) => void;
+  onSelectFolder?: (folderId: string | undefined) => void;
 }
 
 const folderColors = [
@@ -37,33 +35,42 @@ const folderColors = [
   { name: 'Purple', value: 'hsl(263 70% 50%)' },
 ];
 
-export function FolderManager({
-  folders,
-  selectedFolderId,
-  onSelectFolder,
-  onAddFolder,
-  onDeleteFolder,
-  onUpdateFolder,
-}: FolderManagerProps) {
+export function FolderManager({ selectedFolderId, onSelectFolder }: FolderManagerProps) {
+  const { data: folders = [], isLoading } = useFolders();
+  const { create, update, remove } = useFolderMutations();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [name, setName] = useState('');
   const [color, setColor] = useState<string | undefined>(undefined);
 
-  const handleAdd = () => {
+  const isMutating = create.isLoading || update.isLoading || remove.isLoading;
+
+  const handleAdd = async () => {
     if (!name.trim()) return;
-    onAddFolder({ name: name.trim(), color });
-    setName('');
-    setColor(undefined);
-    setIsAddOpen(false);
+    try {
+      await create.mutateAsync({ name: name.trim(), color });
+      toast.success('Folder created');
+      setName('');
+      setColor(undefined);
+      setIsAddOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to create folder');
+    }
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!editingFolder || !name.trim()) return;
-    onUpdateFolder(editingFolder.id, { name: name.trim(), color });
-    setEditingFolder(null);
-    setName('');
-    setColor(undefined);
+    try {
+      await update.mutateAsync({ id: editingFolder.id, updates: { name: name.trim(), color } });
+      toast.success('Folder updated');
+      setEditingFolder(null);
+      setName('');
+      setColor(undefined);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update folder');
+    }
   };
 
   const openEdit = (folder: Folder) => {
@@ -91,11 +98,15 @@ export function FolderManager({
           variant={selectedFolderId === undefined ? 'secondary' : 'ghost'}
           size="sm"
           className="w-full justify-start gap-2 h-8"
-          onClick={() => onSelectFolder(undefined)}
+          onClick={() => onSelectFolder?.(undefined)}
         >
           <FolderIcon className="w-4 h-4" />
           All Notes
         </Button>
+
+        {isLoading && (
+          <p className="text-xs text-muted-foreground px-1">Loading folders...</p>
+        )}
         
         {folders.map(folder => (
           <div key={folder.id} className="flex items-center group">
@@ -103,7 +114,7 @@ export function FolderManager({
               variant={selectedFolderId === folder.id ? 'secondary' : 'ghost'}
               size="sm"
               className="flex-1 justify-start gap-2 h-8"
-              onClick={() => onSelectFolder(folder.id)}
+              onClick={() => onSelectFolder?.(folder.id)}
             >
               <FolderIcon 
                 className="w-4 h-4" 
@@ -128,7 +139,7 @@ export function FolderManager({
                   Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  onClick={() => onDeleteFolder(folder.id)}
+                  onClick={() => remove.mutate(folder.id, { onError: () => toast.error('Failed to delete folder') })}
                   className="text-destructive focus:text-destructive gap-2"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -175,7 +186,7 @@ export function FolderManager({
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-            <Button onClick={handleAdd} disabled={!name.trim()}>Create</Button>
+            <Button onClick={handleAdd} disabled={!name.trim() || isMutating}>Create</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

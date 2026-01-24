@@ -13,6 +13,7 @@ export interface Book {
   notesCount: number;
   tags?: string[];
   folderId?: string;
+  displayOrder?: number;
 }
 
 export interface Note {
@@ -27,6 +28,7 @@ export interface Note {
   // For audio/voice memos
   audioUrl?: string;
   audioDuration?: number;
+  transcript?: string;
   // Location info
   location?: string; // page number, chapter, or timestamp
   timestamp?: string; // for audiobooks: "1:23:45"

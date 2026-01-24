@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,8 +23,10 @@ import {
   Trophy
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getBooks, getNotes, getReadingGoals, saveReadingGoals, calculateStreak, getBooksReadThisYear, getActivityDates } from '@/lib/store';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabaseClient';
+import { getProfile, updateProfile } from '@/lib/supabaseProfile';
+import { useBooks, useNotes, useReadingGoals, useGoalsMutations, useActivity, useActivityHelpers } from '@/api/hooks';
 
 interface UserProfileData {
   name: string;
@@ -33,8 +35,6 @@ interface UserProfileData {
   avatarUrl: string;
   joinedAt: Date;
 }
-
-const STORAGE_KEY = 'marginalia-user-profile';
 
 const defaultProfile: UserProfileData = {
   name: 'Reader',
@@ -63,19 +63,40 @@ export default function MyProfile() {
   const [streak, setStreak] = useState({ current: 0, longest: 0 });
   const [booksThisYear, setBooksThisYear] = useState(0);
   const [activityDays, setActivityDays] = useState(0);
+  const { data: booksData } = useBooks();
+  const { data: notesData } = useNotes();
+  const { data: goalsData } = useReadingGoals();
+  const { update: updateGoals } = useGoalsMutations();
+  const { data: activityDates } = useActivity();
+  const { calculateStreakFromDates } = useActivityHelpers();
 
   useEffect(() => {
-    // Load profile from localStorage
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setProfile({ ...parsed, joinedAt: new Date(parsed.joinedAt) });
-      setEditForm({ ...parsed, joinedAt: new Date(parsed.joinedAt) });
-    }
+    const load = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      try {
+        const p = await getProfile();
+        const loaded: UserProfileData = {
+          name: p.display_name || 'Reader',
+          username: p.username || 'reader',
+          bio: p.bio || '',
+          avatarUrl: p.avatar_url || '',
+          joinedAt: p.created_at ? new Date(p.created_at) : new Date(),
+        };
+        setProfile(loaded);
+        setEditForm(loaded);
+      } catch (err) {
+        console.error('Failed to load profile', err);
+      }
+    };
+    load();
+  }, []);
 
-    // Calculate stats
-    const books = getBooks();
-    const notes = getNotes();
+  useEffect(() => {
+    const books = booksData || [];
+    const notes = notesData || [];
     setStats({
       booksRead: books.length,
       totalNotes: notes.length,
@@ -85,28 +106,53 @@ export default function MyProfile() {
       actions: notes.filter(n => n.type === 'action').length,
     });
 
-    // Load goals and streak
-    const savedGoals = getReadingGoals();
+    const savedGoals = goalsData || { yearlyBookTarget: 12, year: new Date().getFullYear() };
     setGoals(savedGoals);
     setGoalInput(savedGoals.yearlyBookTarget);
-    setStreak(calculateStreak());
-    setBooksThisYear(getBooksReadThisYear());
-    setActivityDays(getActivityDates().length);
-  }, []);
+
+    const dates = activityDates || [];
+    setStreak(calculateStreakFromDates(dates));
+    setActivityDays(dates.length);
+    const currentYear = new Date().getFullYear();
+    setBooksThisYear(books.filter(b => new Date(b.createdAt).getFullYear() === currentYear).length);
+  }, [booksData, notesData, goalsData, activityDates, calculateStreakFromDates]);
 
   const handleSaveGoal = () => {
-    const newGoals = { yearlyBookTarget: goalInput, year: new Date().getFullYear() };
-    saveReadingGoals(newGoals);
-    setGoals(newGoals);
-    setIsEditingGoal(false);
-    toast.success('Reading goal updated!');
+    updateGoals.mutate(goalInput, {
+      onSuccess: (newGoals) => {
+        setGoals(newGoals);
+        setIsEditingGoal(false);
+        toast.success('Reading goal updated!');
+      },
+      onError: () => toast.error('Failed to update goal'),
+    });
   };
 
   const handleSave = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(editForm));
-    setProfile(editForm);
-    setIsEditing(false);
-    toast.success('Profile updated!');
+    updateProfile({
+      display_name: editForm.name,
+      username: editForm.username,
+      bio: editForm.bio,
+      avatar_url: editForm.avatarUrl,
+    })
+      .then(async () => {
+        const refreshed = await getProfile();
+        const updated: UserProfileData = {
+          name: refreshed.display_name || 'Reader',
+          username: refreshed.username || 'reader',
+          bio: refreshed.bio || '',
+          avatarUrl: refreshed.avatar_url || '',
+          joinedAt: refreshed.created_at ? new Date(refreshed.created_at) : new Date(),
+        };
+        setProfile(updated);
+        setEditForm(updated);
+        setIsEditing(false);
+        toast.success('Profile updated!');
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error('Failed to update profile');
+      });
   };
 
   const handleCancel = () => {
@@ -130,7 +176,7 @@ export default function MyProfile() {
           onClick={() => navigate('/')}
           className="mb-6"
         >
-          ← Back to Library
+          {'<- Back to Library'}
         </Button>
 
         {/* Profile Header */}
@@ -272,7 +318,7 @@ export default function MyProfile() {
                 />
                 <p className="text-xs text-muted-foreground">
                   {booksThisYear >= goals.yearlyBookTarget 
-                    ? '🎉 Goal reached! Amazing work!' 
+                    ? 'Goal reached! Amazing work!' 
                     : `${goals.yearlyBookTarget - booksThisYear} more to go`
                   }
                 </p>
@@ -308,7 +354,7 @@ export default function MyProfile() {
             <div className="mt-4 pt-3 border-t border-border/50">
               <p className="text-xs text-muted-foreground">
                 {streak.current > 0 
-                  ? `🔥 Keep it up! You're on a ${streak.current}-day streak!`
+                  ? `Keep it up! You're on a ${streak.current}-day streak!`
                   : 'Add a book or note today to start your streak!'
                 }
               </p>
@@ -363,10 +409,10 @@ export default function MyProfile() {
               <h3 className="font-semibold text-foreground mb-4">Notes by Type</h3>
               <div className="space-y-4">
                 {[
-                  { type: 'Quotes', count: stats.quotes, className: 'note-badge-quote', icon: '💬' },
-                  { type: 'Ideas', count: stats.ideas, className: 'note-badge-idea', icon: '💡' },
-                  { type: 'Questions', count: stats.questions, className: 'note-badge-question', icon: '❓' },
-                  { type: 'Actions', count: stats.actions, className: 'note-badge-action', icon: '✅' },
+                  { type: 'Quotes', count: stats.quotes, className: 'note-badge-quote', icon: 'Q' },
+                  { type: 'Ideas', count: stats.ideas, className: 'note-badge-idea', icon: 'I' },
+                  { type: 'Questions', count: stats.questions, className: 'note-badge-question', icon: '?' },
+                  { type: 'Actions', count: stats.actions, className: 'note-badge-action', icon: '!' },
                 ].map(item => (
                   <div key={item.type} className="flex items-center gap-3">
                     <span className="text-xl">{item.icon}</span>
@@ -393,15 +439,15 @@ export default function MyProfile() {
               <h3 className="font-semibold text-foreground mb-4">Your Achievements</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {[
-                  { name: 'First Book', desc: 'Added your first book', unlocked: stats.booksRead >= 1, icon: '📚' },
-                  { name: 'Note Taker', desc: 'Captured 10 notes', unlocked: stats.totalNotes >= 10, icon: '📝' },
-                  { name: 'Bookworm', desc: 'Read 5 books', unlocked: stats.booksRead >= 5, icon: '🐛' },
-                  { name: 'Quote Collector', desc: 'Saved 10 quotes', unlocked: stats.quotes >= 10, icon: '💬' },
-                  { name: 'Idea Machine', desc: 'Captured 20 ideas', unlocked: stats.ideas >= 20, icon: '💡' },
-                  { name: 'Scholar', desc: 'Read 10 books', unlocked: stats.booksRead >= 10, icon: '🎓' },
-                  { name: 'On Fire', desc: '7-day reading streak', unlocked: streak.longest >= 7, icon: '🔥' },
-                  { name: 'Dedicated', desc: '30-day reading streak', unlocked: streak.longest >= 30, icon: '💪' },
-                  { name: 'Goal Getter', desc: 'Reach yearly goal', unlocked: booksThisYear >= goals.yearlyBookTarget, icon: '🏆' },
+                  { name: 'First Book', desc: 'Added your first book', unlocked: stats.booksRead >= 1, icon: '*' },
+                  { name: 'Note Taker', desc: 'Captured 10 notes', unlocked: stats.totalNotes >= 10, icon: '*' },
+                  { name: 'Bookworm', desc: 'Read 5 books', unlocked: stats.booksRead >= 5, icon: '*' },
+                  { name: 'Quote Collector', desc: 'Saved 10 quotes', unlocked: stats.quotes >= 10, icon: '*' },
+                  { name: 'Idea Machine', desc: 'Captured 20 ideas', unlocked: stats.ideas >= 20, icon: '*' },
+                  { name: 'Scholar', desc: 'Read 10 books', unlocked: stats.booksRead >= 10, icon: '*' },
+                  { name: 'On Fire', desc: '7-day reading streak', unlocked: streak.longest >= 7, icon: '*' },
+                  { name: 'Dedicated', desc: '30-day reading streak', unlocked: streak.longest >= 30, icon: '*' },
+                  { name: 'Goal Getter', desc: 'Reach yearly goal', unlocked: booksThisYear >= goals.yearlyBookTarget, icon: '*' },
                 ].map(achievement => (
                   <div 
                     key={achievement.name}
@@ -427,3 +473,6 @@ export default function MyProfile() {
     </div>
   );
 }
+
+
+
