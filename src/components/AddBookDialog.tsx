@@ -14,6 +14,13 @@ import { BookOpen, Smartphone, Headphones, Book, Loader2, Search, Camera, X, Arr
 import { cn } from '@/lib/utils';
 import { useHaptic } from '@/hooks/use-haptic';
 import { runOCR } from '@/api/ocr';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface AddBookDialogProps {
   open: boolean;
@@ -216,12 +223,30 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
       );
       if (!response.ok) return;
       const data = await response.json();
+      const volume = data.items?.[0]?.volumeInfo;
       const cover =
-        data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail?.replace('http:', 'https:') ||
-        data.items?.[0]?.volumeInfo?.imageLinks?.smallThumbnail?.replace('http:', 'https:');
-      if (cover) {
-        setSearchCoverUrl(cover);
-      }
+        volume?.imageLinks?.thumbnail?.replace('http:', 'https:') ||
+        volume?.imageLinks?.smallThumbnail?.replace('http:', 'https:');
+      const authorGuess = volume?.authors?.[0];
+      const isbnGuess =
+        volume?.industryIdentifiers?.find((id: any) => id.type === 'ISBN_13')?.identifier ||
+        volume?.industryIdentifiers?.find((id: any) => id.type === 'ISBN_10')?.identifier;
+
+      if (cover) setSearchCoverUrl(cover);
+
+      // Autofill author/ISBN when OCR was weak and user hasn't edited yet
+      setSelectedBook((prev) => {
+        if (!prev) return prev;
+        const shouldUpdateAuthor =
+          !isEditing && (!prev.author || prev.author.toLowerCase() === 'unknown author');
+        const shouldUpdateIsbn = !prev.isbn && isbnGuess;
+        if (!shouldUpdateAuthor && !shouldUpdateIsbn) return prev;
+        return {
+          ...prev,
+          author: shouldUpdateAuthor ? (authorGuess || prev.author) : prev.author,
+          isbn: shouldUpdateIsbn ? isbnGuess : prev.isbn,
+        };
+      });
     } catch (err) {
       console.error('Failed to fetch search cover', err);
     }
@@ -553,68 +578,64 @@ export function AddBookDialog({ open, onOpenChange, onAdd }: AddBookDialogProps)
             <div className="space-y-4 sm:space-y-5">
               {/* Book preview */}
               <div className="flex gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-muted/30 border border-border relative">
-                <div className="space-y-2">
-                  <div className="flex gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      onClick={() => setCoverChoice('captured')}
-                      className={cn(
-                        'relative overflow-hidden w-16 h-22 sm:w-20 sm:h-28 rounded-lg border transition-all',
-                        coverChoice === 'captured'
-                          ? 'border-primary shadow-md'
-                          : 'border-border hover:border-primary/50',
-                      )}
-                      aria-label="Use captured cover"
+                      className="relative w-20 h-28 sm:w-24 sm:h-32 rounded-lg overflow-hidden border border-border hover:border-primary/50 transition"
+                      aria-label="Change cover"
                     >
-                      {capturedImage ? (
-                        <img
-                          src={capturedImage}
-                          alt="Captured cover"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <Camera className="w-6 h-6 text-muted-foreground" />
-                        </div>
-                      )}
-                      <span className="absolute bottom-1 left-1 right-1 text-[10px] text-center font-medium bg-background/80 rounded px-1">
-                        Captured
+                      {(() => {
+                        const currentCover =
+                          (coverChoice === 'captured' && capturedImage) ||
+                          (coverChoice === 'search' && (searchCoverUrl || selectedBook.coverUrl)) ||
+                          capturedImage ||
+                          searchCoverUrl ||
+                          selectedBook.coverUrl;
+                        return currentCover ? (
+                          <img src={currentCover} alt="Book cover" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-muted flex items-center justify-center">
+                            <Book className="w-7 h-7 text-muted-foreground" />
+                          </div>
+                        );
+                      })()}
+                      <span className="absolute bottom-1 left-1 right-1 text-[11px] text-center font-medium bg-background/85 rounded px-1">
+                        Tap to change
                       </span>
                     </button>
-
-                    <button
-                      type="button"
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-52">
+                    <DropdownMenuItem
+                      onClick={() => setCoverChoice('captured')}
+                      disabled={!capturedImage}
+                      className="justify-between"
+                    >
+                      Use captured photo
+                      {!capturedImage && <span className="text-xs text-muted-foreground">(not available)</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
                       onClick={() => setCoverChoice('search')}
                       disabled={!searchCoverUrl && !selectedBook.coverUrl}
-                      className={cn(
-                        'relative overflow-hidden w-16 h-22 sm:w-20 sm:h-28 rounded-lg border transition-all disabled:opacity-60 disabled:cursor-not-allowed',
-                        coverChoice === 'search'
-                          ? 'border-primary shadow-md'
-                          : 'border-border hover:border-primary/50',
-                      )}
-                      aria-label="Use search cover"
+                      className="justify-between"
                     >
-                      {searchCoverUrl || selectedBook.coverUrl ? (
-                        <img
-                          src={searchCoverUrl || selectedBook.coverUrl || ''}
-                          alt="Search cover"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <Book className="w-6 h-6 text-muted-foreground" />
-                        </div>
-                      )}
-                      <span className="absolute bottom-1 left-1 right-1 text-[10px] text-center font-medium bg-background/80 rounded px-1">
-                        Search
-                      </span>
-                    </button>
-                  </div>
-
-                  <p className="text-[11px] text-muted-foreground">
-                    Tap a cover to use it. The chosen one will be saved.
-                  </p>
-                </div>
+                      Use search cover
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() =>
+                        setCoverChoice(
+                          (coverChoice === 'captured' && capturedImage) || (coverChoice === 'search' && (searchCoverUrl || selectedBook.coverUrl))
+                            ? coverChoice
+                            : 'captured',
+                        )
+                      }
+                      disabled={!capturedImage && !searchCoverUrl && !selectedBook.coverUrl}
+                    >
+                      Keep current choice
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
                 <div className="flex-1 min-w-0 py-1">
                   {isEditing ? (
