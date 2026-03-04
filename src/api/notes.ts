@@ -144,7 +144,7 @@ export async function getAllTags(notes: Note[]): Promise<string[]> {
   return Array.from(tags).sort();
 }
 
-export async function getNotesForReview(notes: Note[], limit = 10): Promise<Note[]> {
+export function getNotesForReview(notes: Note[], limit = 10): Note[] {
   const now = new Date();
   return notes
     .filter((n) => !n.nextReviewAt || n.nextReviewAt <= now)

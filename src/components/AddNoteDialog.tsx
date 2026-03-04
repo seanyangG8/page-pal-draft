@@ -436,7 +436,7 @@ export function AddNoteDialog({
 
   return (
     <ResponsiveDialog open={open} onOpenChange={(open) => { if (!open) resetForm(); onOpenChange(open); }}>
-      <ResponsiveDialogContent className="sm:max-w-lg">
+      <ResponsiveDialogContent className="sm:max-w-lg" forceFullHeightMobile={captureMode !== 'text'}>
         {step === 'capture' ? (
           <>
             <ResponsiveDialogHeader>

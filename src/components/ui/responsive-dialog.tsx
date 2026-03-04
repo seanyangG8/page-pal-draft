@@ -25,6 +25,10 @@ interface ResponsiveDialogProps {
 interface ResponsiveDialogContentProps {
   className?: string;
   children: React.ReactNode;
+  /**
+   * On mobile, force the drawer to occupy the full viewport height (useful for image/voice capture).
+   */
+  forceFullHeightMobile?: boolean;
 }
 
 interface ResponsiveDialogHeaderProps {
@@ -116,12 +120,42 @@ export function ResponsiveDialog({
 export function ResponsiveDialogContent({
   className,
   children,
+  forceFullHeightMobile,
 }: ResponsiveDialogContentProps) {
   const { isMobile } = React.useContext(ResponsiveDialogContext);
+  const [drawerVh, setDrawerVh] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    if (!isMobile) return;
+    if (!forceFullHeightMobile) return;
+
+    const viewport = window.visualViewport;
+    const update = () => {
+      const h = viewport?.height ?? window.innerHeight;
+      setDrawerVh(h);
+      document.documentElement.style.setProperty("--drawer-vh", `${h}px`);
+    };
+    update();
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [isMobile, forceFullHeightMobile]);
 
   if (isMobile) {
     return (
-      <DrawerContent className={cn("flex flex-col overflow-hidden", className)}>
+      <DrawerContent
+        className={cn(
+          "flex flex-col overflow-hidden",
+          forceFullHeightMobile && "min-h-[70dvh] max-h-[calc(var(--drawer-vh,100dvh)-0.25rem)]",
+          className,
+        )}
+        style={forceFullHeightMobile && drawerVh ? ({ ["--drawer-vh" as string]: `${drawerVh}px` } as React.CSSProperties) : undefined}
+      >
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {children}
         </div>

@@ -19,6 +19,7 @@ type FriendProfile = SocialUser & {
   bio?: string | null;
   joinedAt?: Date;
   isFollowing: boolean;
+  isDemo?: boolean;
 };
 
 function toFriendProfile(profile: BasicProfile, isFollowing: boolean): FriendProfile {
@@ -32,6 +33,62 @@ function toFriendProfile(profile: BasicProfile, isFollowing: boolean): FriendPro
     isFollowing,
   };
 }
+
+const DEMO_FOLLOWING: FriendProfile[] = [
+  {
+    id: 'demo-ari',
+    name: 'Ari Winters',
+    username: 'ari.writes',
+    avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Ari',
+    bio: 'Reads non-fiction and shares annotated highlights.',
+    joinedAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000),
+    isFollowing: true,
+    isDemo: true,
+  },
+  {
+    id: 'demo-lena',
+    name: 'Lena Park',
+    username: 'lenareads',
+    avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Lena',
+    bio: 'Poetry + essays; building a commonplace book.',
+    joinedAt: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000),
+    isFollowing: true,
+    isDemo: true,
+  },
+];
+
+const DEMO_SUGGESTIONS: FriendProfile[] = [
+  {
+    id: 'demo-omar',
+    name: 'Omar Saleh',
+    username: 'omar_notes',
+    avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Omar',
+    bio: 'Engineering notes from "Build" mapped into systems diagrams.',
+    joinedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    isFollowing: false,
+    isDemo: true,
+  },
+  {
+    id: 'demo-rosie',
+    name: 'Rosie Patel',
+    username: 'rosie.learning',
+    avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Rosie',
+    bio: 'Design history references shared daily.',
+    joinedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+    isFollowing: false,
+    isDemo: true,
+  },
+  {
+    id: 'demo-jules',
+    name: 'Jules Martin',
+    username: 'julesreads',
+    avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Jules',
+    bio: 'Audiobook power user tagging quotes for essays.',
+    joinedAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000),
+    isFollowing: false,
+    isDemo: true,
+  },
+];
 
 function FriendCard({
   friend,
@@ -108,15 +165,26 @@ export function FriendsPanel() {
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
+  const showDemoFollowing = !followingLoading && followingData.length === 0;
+  const showDemoSuggestions = !suggestionsLoading && suggestedData.length === 0;
+
   const following = useMemo(
-    () => followingData.map((p) => toFriendProfile(p, true)),
-    [followingData],
+    () => (showDemoFollowing ? DEMO_FOLLOWING : followingData.map((p) => toFriendProfile(p, true))),
+    [showDemoFollowing, followingData],
   );
 
   const followingIds = useMemo(() => new Set(following.map((f) => f.id)), [following]);
   const suggestions = useMemo(
-    () => suggestedData.map((p) => toFriendProfile(p, followingIds.has(p.id))),
-    [suggestedData, followingIds],
+    () =>
+      showDemoSuggestions
+        ? DEMO_SUGGESTIONS.map((p) => ({ ...p, isFollowing: followingIds.has(p.id) }))
+        : suggestedData.map((p) => toFriendProfile(p, followingIds.has(p.id))),
+    [showDemoSuggestions, suggestedData, followingIds],
+  );
+
+  const demoProfileIds = useMemo(
+    () => new Set([...following, ...suggestions].filter((p) => p.isDemo).map((p) => p.id)),
+    [following, suggestions],
   );
 
   const filteredFollowing = useMemo(
@@ -130,6 +198,10 @@ export function FriendsPanel() {
   );
 
   const handleToggleFollow = (id: string, isFollowing: boolean) => {
+    if (demoProfileIds.has(id)) {
+      toast.info('Demo example-interactions are disabled.');
+      return;
+    }
     if (isFollowing) {
       unfollow.mutate(id, {
         onError: () => toast.error('Failed to unfollow'),
@@ -160,6 +232,10 @@ export function FriendsPanel() {
     setSelectedProfile(fallback);
     setProfileDialogOpen(true);
 
+    if (friend.isDemo) {
+      return;
+    }
+
     try {
       const profile = await fetchProfileSummary(friend.id);
       setSelectedProfile({
@@ -185,6 +261,10 @@ export function FriendsPanel() {
   };
 
   const handleFollowFromDialog = (userId: string) => {
+    if (demoProfileIds.has(userId)) {
+      toast.info('Demo example-interactions are disabled.');
+      return;
+    }
     follow.mutate(userId, {
       onSuccess: () =>
         setSelectedProfile((prev) =>
@@ -195,6 +275,10 @@ export function FriendsPanel() {
   };
 
   const handleUnfollowFromDialog = (userId: string) => {
+    if (demoProfileIds.has(userId)) {
+      toast.info('Demo example-interactions are disabled.');
+      return;
+    }
     unfollow.mutate(userId, {
       onSuccess: () =>
         setSelectedProfile((prev) =>
@@ -231,6 +315,9 @@ export function FriendsPanel() {
         </TabsList>
 
         <TabsContent value="following" className="space-y-3">
+          {showDemoFollowing && !followingLoading && (
+            <p className="text-xs text-muted-foreground">Showing demo friends until you follow real people.</p>
+          )}
           {followingLoading ? (
             <p className="text-sm text-muted-foreground">Loading your follows...</p>
           ) : filteredFollowing.length === 0 ? (
@@ -260,6 +347,11 @@ export function FriendsPanel() {
           <p className="text-sm text-muted-foreground mb-4">
             People you might want to follow
           </p>
+          {showDemoSuggestions && !suggestionsLoading && (
+            <p className="text-xs text-muted-foreground -mt-2">
+              Demo suggestions are shown until recommendations load.
+            </p>
+          )}
           {suggestionsLoading ? (
             <p className="text-sm text-muted-foreground">Loading suggestions...</p>
           ) : suggestions.length === 0 ? (

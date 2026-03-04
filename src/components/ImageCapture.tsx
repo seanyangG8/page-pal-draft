@@ -1577,15 +1577,20 @@ export function ImageCapture({
     }
   }, [capturedImage]);
 
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const url = event.target?.result as string;
-      onCapture({ url, extractedText: undefined });
+      if (url) onCapture({ url, extractedText: undefined });
     };
     reader.readAsDataURL(file);
+
+    // allow re-selecting the same file/capture
+    e.target.value = '';
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -1595,7 +1600,7 @@ export function ImageCapture({
     const reader = new FileReader();
     reader.onload = (event) => {
       const url = event.target?.result as string;
-      onCapture({ url, extractedText: undefined });
+      if (url) onCapture({ url, extractedText: undefined });
     };
     reader.readAsDataURL(file);
   };

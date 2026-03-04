@@ -24,6 +24,7 @@ export interface FeedItem {
   type: 'shared_note' | 'status' | 'milestone';
   userId: string;
   user?: SocialUser;
+  isDemo?: boolean;
   timestamp: Date;
   content?: string | null;
   likes: number;
@@ -157,6 +158,64 @@ export function SocialFeed() {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
+  const demoFeedItems = useMemo<FeedItem[]>(
+    () => [
+      {
+        id: 'demo-note',
+        type: 'shared_note',
+        userId: 'demo-ava',
+        user: {
+          id: 'demo-ava',
+          name: 'Ava Chen',
+          username: 'ava.reads',
+          avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Ava',
+        },
+        isDemo: true,
+        timestamp: new Date(Date.now() - 30 * 60 * 1000),
+        content: 'Logged a new note from "Deep Work".',
+        likes: 12,
+        comments: 3,
+        isLiked: false,
+      },
+      {
+        id: 'demo-milestone',
+        type: 'milestone',
+        userId: 'demo-mateo',
+        user: {
+          id: 'demo-mateo',
+          name: 'Mateo Ruiz',
+          username: 'mateo.library',
+          avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Mateo',
+        },
+        isDemo: true,
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        content: null,
+        milestone: { type: 'books_read', value: 10 },
+        likes: 28,
+        comments: 2,
+        isLiked: false,
+      },
+      {
+        id: 'demo-status',
+        type: 'status',
+        userId: 'demo-priya',
+        user: {
+          id: 'demo-priya',
+          name: 'Priya Kapoor',
+          username: 'priya.codes',
+          avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Priya',
+        },
+        isDemo: true,
+        timestamp: new Date(Date.now() - 18 * 60 * 60 * 1000),
+        content: 'Added 3 highlights while reading "The Creative Act".',
+        likes: 9,
+        comments: 1,
+        isLiked: false,
+      },
+    ],
+    [],
+  );
+
   const feedItems: FeedItem[] = useMemo(() => {
     if (!feedData) return [];
     const likedSet = new Set(myLikes || []);
@@ -181,11 +240,29 @@ export function SocialFeed() {
     }));
   }, [feedData, myLikes]);
 
+  const displayedFeed = useMemo(
+    () => (feedItems.length > 0 ? feedItems : demoFeedItems),
+    [feedItems, demoFeedItems],
+  );
+
+  const demoPostIds = useMemo(
+    () => new Set(displayedFeed.filter((item) => item.isDemo).map((item) => item.id)),
+    [displayedFeed],
+  );
+
   const handleLike = (id: string) => {
+    if (demoPostIds.has(id)) {
+      toast.info('Demo example-interactions are disabled.');
+      return;
+    }
     like.mutate(id, { onError: () => toast.error('Failed to like post') });
   };
 
   const handleUnlike = (id: string) => {
+    if (demoPostIds.has(id)) {
+      toast.info('Demo example-interactions are disabled.');
+      return;
+    }
     unlike.mutate(id, { onError: () => toast.error('Failed to unlike post') });
   };
 
@@ -208,6 +285,9 @@ export function SocialFeed() {
     };
     setSelectedProfile(fallbackProfile);
     setProfileDialogOpen(true);
+    if (demoPostIds.has(userId)) {
+      return;
+    }
     try {
       const profile = await fetchProfileSummary(userId);
       setSelectedProfile({
@@ -234,6 +314,10 @@ export function SocialFeed() {
 
   const handleFollowUser = (userId: string) => {
     if (!selectedProfile || selectedProfile.isOwnProfile || selectedProfile.isFollowing) return;
+    if (demoPostIds.has(userId)) {
+      toast.info('Demo example-interactions are disabled.');
+      return;
+    }
     follow.mutate(userId, {
       onSuccess: () =>
         setSelectedProfile((prev) =>
@@ -247,6 +331,10 @@ export function SocialFeed() {
 
   const handleUnfollowUser = (userId: string) => {
     if (!selectedProfile || selectedProfile.isOwnProfile || !selectedProfile.isFollowing) return;
+    if (demoPostIds.has(userId)) {
+      toast.info('Demo example-interactions are disabled.');
+      return;
+    }
     unfollow.mutate(userId, {
       onSuccess: () =>
         setSelectedProfile((prev) =>
@@ -264,6 +352,10 @@ export function SocialFeed() {
   };
 
   const handleCommentClick = (item: FeedItem) => {
+    if (item.isDemo) {
+      toast.info('Demo example-interactions are disabled.');
+      return;
+    }
     setSelectedPost(item);
     setCommentsOpen(true);
   };
@@ -284,10 +376,10 @@ export function SocialFeed() {
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading feed...</p>}
       {!isLoading && feedItems.length === 0 && (
-        <p className="text-sm text-muted-foreground">No posts yet. Share a note to get started.</p>
+        <p className="text-sm text-muted-foreground">Activity examples shown until your feed has posts.</p>
       )}
 
-      {feedItems.map((item, index) => (
+      {displayedFeed.map((item, index) => (
         <div
           key={item.id}
           className="animate-fade-up"
@@ -320,6 +412,10 @@ export function SocialFeed() {
         onProfileClick={handleProfileClick}
         onLike={handleLike}
         onComment={() => {
+          if (selectedPost?.isDemo) {
+            toast.info('Demo example-interactions are disabled.');
+            return;
+          }
           setPostDetailOpen(false);
           setCommentsOpen(true);
         }}

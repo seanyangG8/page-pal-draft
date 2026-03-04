@@ -22,7 +22,7 @@ export function CommentsDialog({
   onProfileClick 
 }: { open: boolean; onOpenChange: (open: boolean) => void; feedItem: FeedItem | null; onProfileClick: (userId: string, user?: SocialUser) => void; }) {
   const [newComment, setNewComment] = useState('');
-  const postId = feedItem?.id;
+  const postId = feedItem && !feedItem.isDemo ? feedItem.id : '';
   const { data: commentsData } = useComments(postId || '');
   const { addComment } = useCommentsMutations();
 

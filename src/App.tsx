@@ -14,6 +14,10 @@ import { AuthProvider } from "@/lib/auth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
+const routerBase =
+  import.meta.env.BASE_URL === "/"
+    ? "/"
+    : import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const pageVariants = {
   initial: { opacity: 0, y: 10 },
@@ -89,7 +93,7 @@ const App = () => (
         <Toaster />
         <Sonner position="bottom-center" />
         <AuthProvider>
-          <BrowserRouter>
+          <BrowserRouter basename={routerBase}>
             <AnimatedRoutes />
           </BrowserRouter>
         </AuthProvider>
