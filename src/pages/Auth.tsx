@@ -12,6 +12,19 @@ type Mode = 'signin' | 'signup' | 'reset' | 'recovery';
 export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
+  const appBaseUrl = useMemo(
+    () => new URL(import.meta.env.BASE_URL, window.location.origin),
+    []
+  );
+  const emailAuthRedirectUrl = useMemo(
+    () => new URL('auth', appBaseUrl).toString(),
+    [appBaseUrl]
+  );
+  const resetPasswordRedirectUrl = useMemo(() => {
+    const url = new URL('auth', appBaseUrl);
+    url.searchParams.set('mode', 'recovery');
+    return url.toString();
+  }, [appBaseUrl]);
   const redirectTo = (location.state as any)?.from?.pathname || '/';
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
@@ -45,7 +58,7 @@ export default function Auth() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth`,
+            emailRedirectTo: emailAuthRedirectUrl,
           },
         });
         if (error) throw error;
@@ -54,7 +67,7 @@ export default function Auth() {
         setMode('signin');
       } else if (mode === 'reset') {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth?mode=recovery`,
+          redirectTo: resetPasswordRedirectUrl,
         });
         if (error) throw error;
         toast.success('Reset link sent. Check your email.');

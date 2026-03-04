@@ -16,21 +16,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const init = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (!error) {
-        setSession(data.session);
+    let isActive = true;
+    // Prevent an indefinite loading state when auth/session bootstrap hangs.
+    const loadingTimeout = window.setTimeout(() => {
+      if (isActive) {
+        console.error('Auth initialization timed out. Continuing as signed out.');
+        setLoading(false);
       }
-      setLoading(false);
+    }, 8000);
+
+    const init = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (!isActive) return;
+        if (error) {
+          console.error('Failed to read auth session:', error);
+        } else {
+          setSession(data.session);
+        }
+      } catch (error) {
+        if (!isActive) return;
+        console.error('Auth initialization failed:', error);
+      } finally {
+        if (!isActive) return;
+        window.clearTimeout(loadingTimeout);
+        setLoading(false);
+      }
     };
     init();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      setLoading(false);
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        if (!isActive) return;
+        setSession(newSession);
+        setLoading(false);
+      }
+    );
 
     return () => {
+      isActive = false;
+      window.clearTimeout(loadingTimeout);
       listener.subscription.unsubscribe();
     };
   }, []);
